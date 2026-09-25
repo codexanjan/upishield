@@ -1,0 +1,10 @@
+# Ignore Python virtual environment and local databases
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+backend/*.db
+backend/uploads/
+.git/
+.next/
+node_modules/

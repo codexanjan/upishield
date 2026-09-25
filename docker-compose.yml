@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: upishield-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: upishield
+      POSTGRES_PASSWORD: upishield_secure_password
+      POSTGRES_DB: upishield_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upishield -d upishield_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - upishield-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: upishield-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://upishield:upishield_secure_password@postgres:5432/upishield_db
+      SECRET_KEY: ${SECRET_KEY:-upi_shield_production_super_secret_jwt_key_2026}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 120
+      UPLOAD_DIR: ./uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - upishield-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: upishield-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    networks:
+      - upishield-net
+
+volumes:
+  postgres_data:
+  backend_uploads:
+
+networks:
+  upishield-net:
+    driver: bridge
