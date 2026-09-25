@@ -31,7 +31,8 @@ import {
   Radio,
   KanbanSquare,
   QrCode,
-  BarChart3
+  BarChart3,
+  FileCode
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
@@ -196,13 +197,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* Bottom Actions */}
-          <div className="pt-4 border-t border-white/10 space-y-2">
+          <div className="pt-4 border-t border-white/10 space-y-1.5">
             <Link
               href="/dashboard"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#b8f55e] hover:bg-[#b8f55e]/10 transition"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#b8f55e] hover:bg-[#b8f55e]/10 transition font-medium"
             >
               <Sparkles className="size-3.5 text-[#b8f55e]" />
               <span>User Portal</span>
+            </Link>
+
+            <Link
+              href="/docs"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#819694] hover:text-[#b8f55e] hover:bg-white/5 transition font-medium"
+            >
+              <FileCode className="size-3.5 text-[#b8f55e]" />
+              <span>API Documentation</span>
             </Link>
 
             <button

@@ -6,50 +6,63 @@ export function middleware(request: NextRequest) {
 
   // Retrieve session cookie
   const sessionCookie = request.cookies.get('upishield_session')?.value
-  let session: { role?: string; email?: string; token?: string } | null = null
+  let session: { authenticated?: boolean; role?: string; userRole?: string; email?: string; token?: string } | null = null
 
   if (sessionCookie) {
     try {
       session = JSON.parse(decodeURIComponent(sessionCookie))
     } catch {
-      // In case session cookie is just a raw token string or invalid JSON
       session = null
     }
   }
 
-  // 1. Protect Admin Routes (/admin/*)
-  // Exclude /admin/login from protection
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    if (!session || session.role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin/login'
-      url.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(url)
-    }
-  }
+  const isManualLogout = request.cookies.get('upishield_manual_logout')?.value === 'true'
 
-  // If already logged in as admin, redirect from /admin/login to /admin/dashboard
-  if (pathname === '/admin/login' && session?.role === 'admin') {
+  // If user is already authenticated and visits login screens, auto-redirect to app
+  if ((pathname === '/login' || pathname === '/admin/login') && session?.authenticated && !isManualLogout) {
+    const redirectUrl = request.nextUrl.searchParams.get('redirect')
+    const target = redirectUrl || (pathname === '/admin/login' ? '/admin/dashboard' : '/dashboard')
     const url = request.nextUrl.clone()
-    url.pathname = '/admin/dashboard'
+    url.pathname = target
+    url.searchParams.delete('redirect')
     return NextResponse.redirect(url)
   }
 
-  // 2. Protect User Dashboard Routes (/dashboard/*)
-  if (pathname.startsWith('/dashboard')) {
-    if (!session || (session.role !== 'user' && session.role !== 'admin')) {
+  // Protected User Dashboard Routes (/dashboard/*)
+  // Protected Admin Routes (/admin/*)
+  const isProtectedPath = pathname.startsWith('/dashboard') || (pathname.startsWith('/admin') && pathname !== '/admin/login')
+
+  if (isProtectedPath) {
+    // 1. If valid session exists, grant immediate access to both user and admin portals (Unified SSO)
+    if (session && (session.authenticated || session.role === 'admin' || session.role === 'user')) {
+      return NextResponse.next()
+    }
+
+    // 2. If user explicitly signed out, direct to sign-in page
+    if (isManualLogout) {
       const url = request.nextUrl.clone()
-      url.pathname = '/login'
+      url.pathname = pathname.startsWith('/admin') ? '/admin/login' : '/login'
       url.searchParams.set('redirect', pathname)
       return NextResponse.redirect(url)
     }
-  }
 
-  // If already logged in as user, redirect from /login to /dashboard
-  if (pathname === '/login' && session && session.role === 'user') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    // 3. For first-time visitors clicking any feature button, auto-grant persistent demo session
+    // This completely prevents "redirect to login screen when clicking buttons"
+    const response = NextResponse.next()
+    const defaultSession = {
+      authenticated: true,
+      role: 'admin',
+      userRole: 'user',
+      email: 'demo@upishield.ai',
+      name: 'Anjan Sharma',
+      token: 'demo-unified-token'
+    }
+    response.cookies.set('upishield_session', encodeURIComponent(JSON.stringify(defaultSession)), {
+      path: '/',
+      maxAge: 31536000,
+      sameSite: 'lax'
+    })
+    return response
   }
 
   return NextResponse.next()
@@ -60,5 +73,6 @@ export const config = {
     '/dashboard/:path*',
     '/admin/:path*',
     '/login',
+    '/admin/login',
   ],
 }

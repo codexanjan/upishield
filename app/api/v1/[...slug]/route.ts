@@ -330,6 +330,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
   }
 
+  if (path === 'openapi.json') {
+    return NextResponse.json({
+      openapi: '3.1.0',
+      info: {
+        title: 'UPI Shield API',
+        version: '1.0.0',
+        description: 'Deterministic UPI & Credit Card Fraud Reporting, Expense Tracking and Payment Management Platform'
+      },
+      servers: [
+        { url: '/api/v1', description: 'Production Serverless Gateway' },
+        { url: 'http://127.0.0.1:8000/api/v1', description: 'Local FastAPI Gateway' }
+      ],
+      paths: {
+        '/auth/login': { post: { summary: 'User login' } },
+        '/auth/admin-login': { post: { summary: 'Admin login' } },
+        '/users/me': { get: { summary: 'Current user profile' } },
+        '/transactions': { get: { summary: 'List transactions' }, post: { summary: 'Create transaction' } },
+        '/upi/pay': { post: { summary: 'Initiate UPI payment intent' } },
+        '/upi/validate-vpa': { post: { summary: 'Validate VPA' } },
+        '/cards': { get: { summary: 'List cards' } },
+        '/cards/detect': { post: { summary: 'Detect velocity anomaly' } },
+        '/expenses': { get: { summary: 'List expenses' }, post: { summary: 'Create expense' } },
+        '/budgets': { get: { summary: 'List budgets' } },
+        '/reports': { get: { summary: 'List fraud reports' }, post: { summary: 'Submit report' } },
+        '/cases': { get: { summary: 'List cases' } },
+        '/rules': { get: { summary: 'List fraud rules' } },
+        '/admin/analytics': { get: { summary: 'Platform analytics' } }
+      }
+    })
+  }
+
   if (path === 'users/me') {
     return NextResponse.json({
       id: 1,

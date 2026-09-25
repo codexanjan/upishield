@@ -104,26 +104,33 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-white transition">Capabilities</a>
             <a href="#how-it-works" className="hover:text-white transition">Deterministic Engine</a>
             <a href="#simulator" className="hover:text-white transition">Live Simulator</a>
+            <Link href="/docs" className="text-[#b8f55e] hover:brightness-110 transition font-semibold">API Docs</Link>
           </nav>
 
           <div className="flex items-center gap-3">
             <Link
-              href="/admin/login"
+              href="/docs"
+              className="hidden lg:inline-flex rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[.08] transition"
+            >
+              API Docs
+            </Link>
+            <Link
+              href="/admin/dashboard"
               className="rounded-xl border border-[#b8f55e]/30 bg-[#b8f55e]/10 px-3.5 py-2 text-xs font-semibold text-[#b8f55e] hover:bg-[#b8f55e]/20 transition"
             >
               Admin Portal
             </Link>
             <Link
-              href="/login"
+              href="/dashboard"
               className="hidden sm:inline-flex rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-xs font-medium text-white hover:bg-white/[.08] transition"
             >
-              Sign In
+              User Portal
             </Link>
             <Link
-              href="/register"
+              href="/dashboard/pay"
               className="rounded-xl bg-[#b8f55e] px-4 py-2 text-xs font-semibold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/20"
             >
-              Get Protected
+              Launch Vault
             </Link>
           </div>
         </div>
