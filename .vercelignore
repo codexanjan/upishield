@@ -1,10 +1,7 @@
-# Ignore Python virtual environment and local databases
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-*.pyc
-backend/*.db
-backend/uploads/
+# Ignore Python backend directory for Vercel deployment
+backend/
+backend/**
+*.db
 .git/
 .next/
 node_modules/
