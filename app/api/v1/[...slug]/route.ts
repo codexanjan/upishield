@@ -287,7 +287,98 @@ const demoState = {
       case_id: null,
       created_at: new Date(Date.now() - 3600000 * 6).toISOString()
     }
-  ]
+  ],
+  quarantinedEntities: [
+    {
+      id: 'QRN-INIT-1',
+      entity_id: 'dev-3',
+      entity_label: 'DEV-EMU-X99 (Shared Emulator)',
+      entity_type: 'DEVICE',
+      reason: 'Multi-Account Emulator Detected with shared syndicate connections',
+      linked_vpas: ['scammer.refund@okaxis'],
+      quarantined_by: 'admin@upishield.ai',
+      quarantined_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+      status: 'QUARANTINED'
+    }
+  ],
+  blockedVpas: ['scammer.refund@okaxis', 'claim.bonus@okhdfcbank', 'fast.lottery@ybl'],
+  blockedDevices: ['DEV-EMU-X99']
+}
+
+// 5-Feature Explainable AI (XAI) Formatter
+function buildXaiResponse(assessment: any, txn: any, baseline: any) {
+  // 1. Risk Contribution Breakdown (7 weighted components)
+  const fraudModelPts = Math.min(25, Math.max(1, Math.round((assessment.fraud_probability * 100) * 0.25)))
+  const anomalyPts = Math.min(20, Math.max(1, Math.round((assessment.sub_scores?.anomaly_score ?? 10) * 0.20)))
+  const behaviourPts = Math.min(20, Math.max(1, Math.round((assessment.sub_scores?.behaviour_risk ?? 10) * 0.20)))
+  const devicePts = Math.min(10, Math.max(1, Math.round((assessment.sub_scores?.device_risk ?? 5) * 0.10)))
+  const locationPts = Math.min(10, Math.max(1, Math.round((assessment.sub_scores?.location_risk ?? 5) * 0.10)))
+  const velocityPts = Math.min(10, Math.max(1, Math.round((assessment.sub_scores?.velocity_score ?? 15) * 0.10)))
+  const beneficiaryPts = Math.min(5, Math.max(1, Math.round((assessment.sub_scores?.receiver_risk ?? 5) * 0.05)))
+
+  const components = {
+    fraud_model: fraudModelPts,
+    anomaly: anomalyPts,
+    behaviour: behaviourPts,
+    device: devicePts,
+    location: locationPts,
+    velocity: velocityPts,
+    beneficiary: beneficiaryPts
+  }
+
+  // 2. Risk factors with dynamic reasons and point impacts
+  const risk_factors: { feature: string; reason: string; impact: number }[] = []
+  if (Array.isArray(assessment.explainable_ai?.shap_contributions)) {
+    assessment.explainable_ai.shap_contributions.forEach((c: any) => {
+      risk_factors.push({
+        feature: c.category ? c.category.toLowerCase() : 'factor',
+        reason: c.description || c.feature_name,
+        impact: c.impact_score || c.impact_pct || 10
+      })
+    })
+  }
+
+  if (risk_factors.length === 0 && assessment.overall_risk_score > 30) {
+    risk_factors.push({ feature: 'transaction_amount', reason: 'Unusual amount compared to user baseline', impact: 21 })
+    risk_factors.push({ feature: 'device', reason: 'Unrecognized hardware fingerprint', impact: 12 })
+    risk_factors.push({ feature: 'location', reason: 'Outside frequent home perimeter', impact: 10 })
+  }
+
+  // 3. Trust signals / mitigating factors
+  const trust_factors: string[] = assessment.explainable_ai?.mitigating_factors?.length > 0
+    ? assessment.explainable_ai.mitigating_factors
+    : [
+        'Device fingerprint verified',
+        'No previous beneficiary fraud reports',
+        'Normal transaction velocity'
+      ]
+
+  return {
+    risk_score: assessment.overall_risk_score,
+    risk_level: assessment.risk_level,
+    sub_level: assessment.sub_level,
+    fraud_probability: assessment.fraud_probability,
+    anomaly_score: Number(((assessment.sub_scores?.anomaly_score ?? 10) / 100).toFixed(2)),
+    adaptive_threshold: assessment.adaptive_threshold,
+    components,
+    risk_factors,
+    trust_factors,
+    decision: assessment.decision,
+    recommended_action: assessment.recommended_action,
+    ai_explanation: assessment.explainable_ai?.summary || 'Evaluated across multi-model AI fraud engine.',
+    shap_features: {
+      increasing: [
+        { feature: 'Transaction Amount', impact_pct: Math.min(45, Math.round((assessment.sub_scores?.transaction_risk ?? 10) * 0.28)) },
+        { feature: 'New Device', impact_pct: Math.min(35, Math.round((assessment.sub_scores?.device_risk ?? 5) * 0.22)) },
+        { feature: 'Location Change', impact_pct: Math.min(30, Math.round((assessment.sub_scores?.location_risk ?? 5) * 0.18)) },
+        { feature: 'New Beneficiary', impact_pct: Math.min(25, Math.round((assessment.sub_scores?.receiver_risk ?? 5) * 0.15)) }
+      ],
+      reducing: [
+        { feature: 'Trusted IP / Attestation', impact_pct: -9 },
+        { feature: 'Normal Velocity Baseline', impact_pct: -8 }
+      ]
+    }
+  }
 }
 
 // Check if external backend is configured
@@ -594,7 +685,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
   }
 
-  if (path.startsWith('risk/qr/')) {
+    if (path.startsWith('risk/qr/')) {
     const qrId = path.split('/')[2] || 'QR-1001'
     return NextResponse.json({
       qr_id: qrId,
@@ -603,6 +694,39 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       merchant_verified: true,
       currency: 'INR'
     })
+  }
+
+  if (path === 'fraud/evaluate' || path === 'risk/xai') {
+    const searchParams = request.nextUrl.searchParams
+    const amount = Number(searchParams.get('amount')) || 18500
+    const city = searchParams.get('city') || 'Delhi'
+    const device_id = searchParams.get('device_id') || searchParams.get('deviceId') || 'DEV-NEW-88'
+    const receiver_vpa = searchParams.get('vpa') || searchParams.get('receiver_vpa') || 'new.merchant@okaxis'
+    const receiver_name = searchParams.get('merchant') || 'Merchant'
+
+    const normalized = normalizeCrossUpiPayload({ amount, city, device_id, receiver_vpa, receiver_name })
+    const assessment = evaluateDynamicRisk(normalized, DEFAULT_USER_BASELINE)
+    return NextResponse.json(buildXaiResponse(assessment, normalized, DEFAULT_USER_BASELINE))
+  }
+
+  if (path === 'transactions' || path === 'admin/transactions') {
+    return NextResponse.json(demoState.transactions)
+  }
+
+  if (path === 'cases' || path === 'admin/cases') {
+    return NextResponse.json(demoState.cases)
+  }
+
+  if (path === 'entities/quarantined' || path === 'admin/quarantined') {
+    return NextResponse.json(demoState.quarantinedEntities)
+  }
+
+  if (path === 'vpa/blocked' || path === 'admin/blocked-vpas') {
+    return NextResponse.json(demoState.blockedVpas)
+  }
+
+  if (path === 'devices/blocked' || path === 'admin/blocked-devices') {
+    return NextResponse.json(demoState.blockedDevices)
   }
 
   // Safe fallback: never return a bare string or empty object without array or schema safety
@@ -642,6 +766,239 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       user_email: userObj.email,
       role: userObj.role
     })
+  }
+
+  // Explainable AI & Dynamic Risk Evaluation Endpoint
+  if (path === 'fraud/evaluate' || path === 'risk/xai') {
+    const normalized = normalizeCrossUpiPayload(body)
+    const assessment = evaluateDynamicRisk(normalized, DEFAULT_USER_BASELINE, body.prior_transaction)
+    return NextResponse.json(buildXaiResponse(assessment, normalized, DEFAULT_USER_BASELINE))
+  }
+
+  // Entity Quarantine & VPA Blacklist (Syndicate Intelligence)
+  if (path === 'entities/quarantine') {
+    const entity_id = body.entity_id || body.id || 'dev-3'
+    const entity_label = body.entity_label || body.label || 'DEV-EMU-X99 (Shared Emulator)'
+    const entity_type = body.entity_type || 'DEVICE'
+    const reason = body.reason || 'Multi-Account Emulator Detected with shared syndicate connections'
+    const linked_vpas: string[] = body.linked_vpas || ['scammer.refund@okaxis']
+
+    const quarantineRecord = {
+      id: `QRN-${Date.now()}`,
+      entity_id,
+      entity_label,
+      entity_type,
+      reason,
+      linked_vpas,
+      quarantined_by: body.admin_email || 'admin@upishield.ai',
+      quarantined_at: new Date().toISOString(),
+      status: 'QUARANTINED'
+    }
+
+    demoState.quarantinedEntities.push(quarantineRecord)
+    linked_vpas.forEach(v => {
+      if (!demoState.blockedVpas.includes(v)) {
+        demoState.blockedVpas.push(v)
+      }
+    })
+
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: body.admin_email || 'admin@upishield.ai',
+      action: 'Quarantine Entity & Block VPA',
+      target_type: 'Entity / VPA',
+      target_id: entity_label,
+      ip_address: '103.212.144.18',
+      details: { entity_id, entity_label, entity_type, reason, linked_vpas },
+      created_at: new Date().toISOString()
+    })
+
+    demoState.notifications.unshift({
+      id: demoState.notifications.length + 1,
+      title: 'Entity Quarantined & VPAs Blocked',
+      message: `Entity "${entity_label}" and associated VPAs (${linked_vpas.join(', ')}) placed on Global UPI Quarantine.`,
+      type: 'Quarantine Action',
+      link: '/admin/network-graph',
+      is_read: false,
+      created_at: new Date().toISOString()
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `Entity ${entity_label} placed on Global UPI Quarantine.`,
+      quarantined_entity: quarantineRecord,
+      blocked_vpas: demoState.blockedVpas
+    })
+  }
+
+  // Spawn Syndicate Investigation Case
+  if (path === 'cases/spawn-syndicate') {
+    const entity_label = body.entity_label || 'DEV-EMU-X99 (Shared Emulator)'
+    const caseNum = `CASE-SYN-2026-${Math.floor(100000 + Math.random() * 900000)}`
+    const relationships = body.connected_relationships || [
+      { name: 'Rohan Mehta (User)', risk: 92, label: 'Shared Emulator Link' },
+      { name: 'scammer.refund@okaxis', risk: 95, label: 'Cross-Account Rapid Collect' }
+    ]
+    const relationshipsDesc = relationships.map((r: any) => `${r.name || r.label} (Risk ${r.risk || 90})`).join(', ')
+
+    const newCase = {
+      id: demoState.cases.length + 1,
+      case_number: caseNum,
+      report_id: Date.now(),
+      status: 'Under Review',
+      priority: 'Critical',
+      fraud_category: 'Syndicate / Emulator Ring',
+      amount: 85000,
+      upi_id: 'scammer.refund@okaxis',
+      merchant: entity_label,
+      description: body.reason || `Cross-account emulator network detected. Hardware fingerprint matches Nox/BlueStacks virtualized instance. Used across 3 disparate UPI handles within 48 hours to execute rapid collect requests. Connected relationships: ${relationshipsDesc}.`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      assigned_admin_name: 'Lead Cyber Investigator',
+      user_name: 'Rohan Mehta & 2 Linked Accounts',
+      user_email: 'syndicate.investigation@upishield.ai',
+      user_mobile: '+91 98000 00000',
+      transaction_reference: 'TXN-SYN-RING-01',
+      evidence: [
+        {
+          id: Date.now(),
+          file_name: 'emulator_fingerprint_dump.json',
+          file_url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop',
+          file_type: 'application/json'
+        }
+      ],
+      messages: [
+        {
+          id: 1,
+          sender_type: 'system',
+          sender_name: 'Graph Neural Engine v2.1',
+          message: `Syndicate investigation case spawned automatically from topological relationship graph for ${entity_label}.`,
+          created_at: new Date().toISOString()
+        }
+      ],
+      notes: [
+        {
+          id: 1,
+          admin_name: 'System',
+          note: `High clustering coefficient detected around ${entity_label}. Flagged for multi-bank NPCI coordination.`,
+          created_at: new Date().toISOString()
+        }
+      ],
+      status_history: [
+        {
+          id: Date.now(),
+          old_status: null,
+          new_status: 'Under Review',
+          changed_by_name: 'Platform Administrator',
+          note: 'Syndicate investigation case initiated from Network Graph',
+          created_at: new Date().toISOString()
+        }
+      ]
+    }
+
+    demoState.cases.unshift(newCase)
+
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: 'admin@upishield.ai',
+      action: 'Syndicate Case Spawned',
+      target_type: 'Case',
+      target_id: caseNum,
+      ip_address: '103.212.144.18',
+      details: { case_number: caseNum, entity_label, priority: 'Critical' },
+      created_at: new Date().toISOString()
+    })
+
+    demoState.notifications.unshift({
+      id: demoState.notifications.length + 1,
+      title: 'Syndicate Case Spawned',
+      message: `Investigation Case ${caseNum} created for ${entity_label}.`,
+      type: 'Case Created',
+      link: '/admin/cases',
+      is_read: false,
+      created_at: new Date().toISOString()
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `Investigation Case ${caseNum} created for ${entity_label}.`,
+      case_number: caseNum,
+      case_id: newCase.id,
+      case: newCase
+    })
+  }
+
+  // Record and Persist Transactions
+  if (path === 'transactions') {
+    const normalized = normalizeCrossUpiPayload(body)
+    const assessment = evaluateDynamicRisk(normalized, DEFAULT_USER_BASELINE, body.prior_transaction)
+    const isSuspicious = assessment.risk_level === 'HIGH' || assessment.risk_level === 'CRITICAL'
+    const newTxn = {
+      id: demoState.transactions.length + 1,
+      transaction_reference: `TXN-${Math.floor(10000 + Math.random() * 90000)}-UPI`,
+      user_id: 1,
+      merchant: body.merchant || body.receiver_name || 'UPI Transfer',
+      amount: Number(body.amount) || 0,
+      currency: 'INR',
+      transaction_type: 'UPI',
+      payment_method: body.payment_method || 'UPI App Intent',
+      transaction_date: new Date().toISOString(),
+      status: assessment.decision === 'BLOCK' ? 'Blocked' : 'Completed',
+      flag_status: isSuspicious ? 'Suspicious' : 'Normal',
+      flag_reason: assessment.explainable_ai?.summary || '',
+      has_report: false,
+      upi_details: {
+        receiver_name: body.merchant || body.receiver_name || 'Receiver',
+        receiver_upi: body.receiver_upi || 'receiver@upi'
+      },
+      risk_score: assessment.overall_risk_score,
+      decision: assessment.decision
+    }
+    demoState.transactions.unshift(newTxn)
+
+    return NextResponse.json({
+      success: true,
+      transaction: newTxn,
+      assessment: buildXaiResponse(assessment, normalized, DEFAULT_USER_BASELINE)
+    })
+  }
+
+  // Block VPA Endpoint
+  if (path === 'vpa/block') {
+    const vpa = body.vpa || body.upi_id
+    if (vpa && !demoState.blockedVpas.includes(vpa)) {
+      demoState.blockedVpas.push(vpa)
+    }
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: body.admin_email || 'admin@upishield.ai',
+      action: 'VPA Blocked',
+      target_type: 'VPA',
+      target_id: vpa || 'N/A',
+      ip_address: '103.212.144.18',
+      details: { vpa, reason: body.reason || 'Flagged for suspicious activity' },
+      created_at: new Date().toISOString()
+    })
+    return NextResponse.json({ success: true, message: `VPA ${vpa} added to global blacklist.`, blocked_vpas: demoState.blockedVpas })
+  }
+
+  // Block Device Endpoint
+  if (path === 'devices/block') {
+    const devId = body.device_id || body.deviceId
+    if (devId && !demoState.blockedDevices.includes(devId)) {
+      demoState.blockedDevices.push(devId)
+    }
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: body.admin_email || 'admin@upishield.ai',
+      action: 'Device Quarantined',
+      target_type: 'Device',
+      target_id: devId || 'N/A',
+      ip_address: '103.212.144.18',
+      details: { devId, reason: body.reason || 'Flagged as emulator or compromised' },
+      created_at: new Date().toISOString()
+    })
+    return NextResponse.json({ success: true, message: `Device ${devId} quarantined.`, blocked_devices: demoState.blockedDevices })
   }
 
   // 1. Multi-Model AI Fraud Prediction Endpoint
@@ -847,6 +1204,75 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     body = await request.json()
   } catch {}
+
+  // Update Fraud Rule
+  if (path === 'rules' || path.startsWith('rules/') || path === 'admin/rules') {
+    const ruleId = Number(body.rule_id || body.id || path.split('/')[1])
+    const ruleIndex = demoState.rules.findIndex(r => r.id === ruleId || r.rule_code === body.rule_code)
+
+    if (ruleIndex >= 0) {
+      if (body.threshold_value !== undefined) demoState.rules[ruleIndex].threshold_value = body.threshold_value
+      if (body.severity !== undefined) demoState.rules[ruleIndex].severity = body.severity
+      if (body.is_enabled !== undefined) demoState.rules[ruleIndex].is_enabled = body.is_enabled
+      demoState.rules[ruleIndex].updated_by = body.author || 'Platform Administrator'
+
+      demoState.auditLogs.unshift({
+        id: demoState.auditLogs.length + 1,
+        admin_email: body.author || 'admin@upishield.ai',
+        action: 'Rule Parameters Updated',
+        target_type: 'Rule',
+        target_id: demoState.rules[ruleIndex].rule_code,
+        ip_address: '103.212.144.18',
+        details: { threshold_value: body.threshold_value, severity: body.severity, is_enabled: body.is_enabled, reason: body.reason },
+        created_at: new Date().toISOString()
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Rule ${demoState.rules[ruleIndex].name} updated successfully.`,
+        rule: demoState.rules[ruleIndex]
+      })
+    }
+  }
+
+  // Update Case
+  if (path === 'cases' || path.startsWith('cases/') || path === 'admin/cases') {
+    const caseId = Number(body.case_id || body.id || path.split('/')[1])
+    const caseIndex = demoState.cases.findIndex(c => c.id === caseId || c.case_number === body.case_number)
+
+    if (caseIndex >= 0) {
+      const oldStatus = demoState.cases[caseIndex].status
+      if (body.status) demoState.cases[caseIndex].status = body.status
+      if (body.priority) demoState.cases[caseIndex].priority = body.priority
+      demoState.cases[caseIndex].updated_at = new Date().toISOString()
+
+      demoState.cases[caseIndex].status_history.unshift({
+        id: Date.now(),
+        old_status: oldStatus,
+        new_status: body.status || oldStatus,
+        changed_by_name: body.admin_name || 'Platform Administrator',
+        note: body.note || 'Status updated via administrative console',
+        created_at: new Date().toISOString()
+      })
+
+      demoState.auditLogs.unshift({
+        id: demoState.auditLogs.length + 1,
+        admin_email: body.admin_email || 'admin@upishield.ai',
+        action: 'Case Status Change',
+        target_type: 'Case',
+        target_id: demoState.cases[caseIndex].case_number,
+        ip_address: '103.212.144.18',
+        details: { old_status: oldStatus, new_status: body.status, note: body.note },
+        created_at: new Date().toISOString()
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Case ${demoState.cases[caseIndex].case_number} updated to ${body.status}.`,
+        case: demoState.cases[caseIndex]
+      })
+    }
+  }
 
   return NextResponse.json({
     success: true,

@@ -351,8 +351,8 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
                   Switch to User Portal
                 </Link>
               ) : (
-                <Link href="/admin/login" className="text-[#b8f55e] hover:underline">
-                  Switch to Admin Portal
+                <Link href="/docs" className="text-slate-400 hover:text-white transition">
+                  Security Documentation
                 </Link>
               )}
               <Link href="/" className="hover:text-white transition">

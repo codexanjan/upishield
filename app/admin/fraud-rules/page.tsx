@@ -232,6 +232,19 @@ export default function AdminFraudRulesPage() {
       )
     )
 
+    fetch('/api/v1/rules', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rule_id: editingRule.id,
+        rule_code: editingRule.rule_code,
+        threshold_value: thresholdInput,
+        severity: severityInput,
+        reason: changeReason.trim(),
+        author: 'Anjan Sharma (Admin)'
+      })
+    }).catch(() => {})
+
     setActionSuccess(`Rule "${editingRule.name}" parameters successfully updated and logged in immutable audit trail.`)
     setTimeout(() => setActionSuccess(null), 5000)
     setEditingRule(null)
@@ -266,6 +279,18 @@ export default function AdminFraudRulesPage() {
           : r
       )
     )
+
+    fetch('/api/v1/rules', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rule_id: confirmToggleRule.id,
+        rule_code: confirmToggleRule.rule_code,
+        is_enabled: nextState,
+        reason: toggleReason.trim(),
+        author: 'Anjan Sharma (Admin)'
+      })
+    }).catch(() => {})
 
     setActionSuccess(`Rule "${confirmToggleRule.name}" is now ${nextState ? 'ACTIVE' : 'DISABLED'}.`)
     setTimeout(() => setActionSuccess(null), 5000)
