@@ -70,6 +70,8 @@ export interface DynamicRiskAssessment {
   fraud_probability: number // 0.00 - 1.00
   decision: 'ALLOW' | 'VERIFY' | 'HOLD' | 'BLOCK'
   risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  sub_level?: string // e.g. 'Trusted', 'Guarded', 'Elevated Risk', 'High Risk', 'Critical Risk'
+  recommended_action?: string // e.g. 'ALLOW', 'VERIFY USER', 'HOLD / REVIEW', 'BLOCK PAYMENT'
   adaptive_threshold: number
   sub_scores: {
     transaction_risk: number
@@ -401,37 +403,55 @@ export function evaluateDynamicRisk(
   // 8. Velocity Score
   const velocityScore = impossibleTravelDetected ? 95 : (txn.amount > 20000 ? 50 : 15)
 
-  // Overall Multi-Model Ensemble Blend
-  // Weighted combination: XGBoost / Supervised (40%) + Anomaly / Isolation Forest (25%) + Contextual (35%)
+  // Overall Multi-Model Ensemble Blend (Phase 4 Formula):
+  // ML prediction (Supervised XGBoost/RF) 25%
+  // Anomaly risk (Isolation Forest) 20%
+  // Behaviour risk 20%
+  // Device risk 10%
+  // Location risk 10%
+  // Transaction risk 10%
+  // Beneficiary risk 5%
+  const supervisedMlProb = Math.min(100, isFlaggedVpa ? 98 : Math.max(txnRisk, receiverRisk))
   const rawComposite =
-    txnRisk * 0.25 +
-    receiverRisk * 0.22 +
-    locationRisk * 0.18 +
-    deviceRisk * 0.15 +
-    behaviourRisk * 0.10 +
-    qrRisk * 0.05 +
-    anomalyScore * 0.05
+    supervisedMlProb * 0.25 +
+    anomalyScore * 0.20 +
+    behaviourRisk * 0.20 +
+    deviceRisk * 0.10 +
+    locationRisk * 0.10 +
+    txnRisk * 0.10 +
+    receiverRisk * 0.05
 
   const overallRiskScore = Math.min(100, Math.max(0, Math.round(rawComposite)))
   const fraudProbability = Number((overallRiskScore / 100).toFixed(2))
 
-  // Adaptive Decisioning
+  // Adaptive Decisioning & Categorization (Phase 6 Categories):
+  // 0–30 Low (Allow), 31–60 Medium (Verify), 61–80 High (Hold/Verify), 81–100 Critical (Block)
   const adaptiveThreshold = calculateAdaptiveThreshold(baseline)
   let decision: DynamicRiskAssessment['decision'] = 'ALLOW'
   let riskLevel: DynamicRiskAssessment['risk_level'] = 'LOW'
+  let subLevel = 'Low Risk'
+  let recommendedAction = 'ALLOW'
 
-  if (overallRiskScore >= 85 || impossibleTravelDetected || isFlaggedVpa) {
+  if (overallRiskScore >= 81 || impossibleTravelDetected || isFlaggedVpa) {
     decision = 'BLOCK'
     riskLevel = 'CRITICAL'
-  } else if (overallRiskScore >= adaptiveThreshold) {
+    subLevel = overallRiskScore >= 91 ? 'Critical Risk' : 'Severe Risk'
+    recommendedAction = 'BLOCK PAYMENT'
+  } else if (overallRiskScore >= 61 || overallRiskScore >= adaptiveThreshold) {
     decision = 'HOLD'
     riskLevel = 'HIGH'
-  } else if (overallRiskScore >= 35) {
+    subLevel = overallRiskScore >= 71 ? 'Very High Risk' : 'High Risk'
+    recommendedAction = 'HOLD / VERIFY'
+  } else if (overallRiskScore >= 31) {
     decision = 'VERIFY'
     riskLevel = 'MEDIUM'
+    subLevel = overallRiskScore >= 51 ? 'Elevated Risk' : overallRiskScore >= 41 ? 'Suspicious Risk' : 'Guarded Risk'
+    recommendedAction = 'VERIFY USER'
   } else {
     decision = 'ALLOW'
     riskLevel = 'LOW'
+    subLevel = overallRiskScore <= 10 ? 'Trusted' : overallRiskScore <= 20 ? 'Very Low Risk' : 'Low Risk'
+    recommendedAction = 'ALLOW'
   }
 
   // Calculate Behaviour Deviation Percentage
@@ -460,6 +480,8 @@ export function evaluateDynamicRisk(
     fraud_probability: fraudProbability,
     decision,
     risk_level: riskLevel,
+    sub_level: subLevel,
+    recommended_action: recommendedAction,
     adaptive_threshold: adaptiveThreshold,
     sub_scores: {
       transaction_risk: Math.min(100, txnRisk),
@@ -494,6 +516,28 @@ export function evaluateDynamicRisk(
       evaluated_at: new Date().toISOString()
     }
   }
+}
+
+/**
+ * Phase 6 Risk Categories & Sub-Level Classifier
+ */
+export function getDetailedRiskCategory(score: number): {
+  level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  subLevel: string
+  action: 'ALLOW' | 'VERIFY' | 'HOLD' | 'BLOCK'
+  badgeColor: string
+  recommendedAction: string
+} {
+  if (score <= 10) return { level: 'LOW', subLevel: 'Trusted', action: 'ALLOW', badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', recommendedAction: 'ALLOW' }
+  if (score <= 20) return { level: 'LOW', subLevel: 'Very Low Risk', action: 'ALLOW', badgeColor: 'bg-[#b8f55e]/20 text-[#b8f55e] border-[#b8f55e]/30', recommendedAction: 'ALLOW' }
+  if (score <= 30) return { level: 'LOW', subLevel: 'Low Risk', action: 'ALLOW', badgeColor: 'bg-[#b8f55e]/20 text-[#b8f55e] border-[#b8f55e]/30', recommendedAction: 'ALLOW' }
+  if (score <= 40) return { level: 'MEDIUM', subLevel: 'Guarded Risk', action: 'VERIFY', badgeColor: 'bg-blue-500/20 text-blue-400 border-blue-500/30', recommendedAction: 'VERIFY USER' }
+  if (score <= 50) return { level: 'MEDIUM', subLevel: 'Suspicious Risk', action: 'VERIFY', badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30', recommendedAction: 'VERIFY USER' }
+  if (score <= 60) return { level: 'MEDIUM', subLevel: 'Elevated Risk', action: 'VERIFY', badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30', recommendedAction: 'VERIFY USER' }
+  if (score <= 70) return { level: 'HIGH', subLevel: 'High Risk', action: 'HOLD', badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30', recommendedAction: 'HOLD / VERIFY' }
+  if (score <= 80) return { level: 'HIGH', subLevel: 'Very High Risk', action: 'HOLD', badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/30', recommendedAction: 'HOLD / VERIFY' }
+  if (score <= 90) return { level: 'CRITICAL', subLevel: 'Severe Risk', action: 'BLOCK', badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30', recommendedAction: 'BLOCK PAYMENT' }
+  return { level: 'CRITICAL', subLevel: 'Critical Risk', action: 'BLOCK', badgeColor: 'bg-rose-600/30 text-rose-300 border-rose-600/50', recommendedAction: 'BLOCK PAYMENT' }
 }
 
 /**
