@@ -59,6 +59,7 @@ const navGroups = [
     title: 'SECURITY',
     items: [
       { label: 'AI Risk & Behaviour', href: '/dashboard/risk-profile', icon: Cpu },
+      { label: 'Explainable AI (XAI)', href: '/dashboard/risk-profile?tab=xai', icon: Sparkles },
       { label: 'Location History', href: '/dashboard/location-history', icon: Compass },
       { label: 'Devices', href: '/dashboard/devices', icon: Smartphone },
       { label: 'Fraud Alerts', href: '/dashboard/alerts', icon: AlertOctagon },
