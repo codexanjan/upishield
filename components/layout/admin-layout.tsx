@@ -32,13 +32,19 @@ import {
   KanbanSquare,
   QrCode,
   BarChart3,
-  FileCode
+  FileCode,
+  Cpu,
+  Share2,
+  SlidersHorizontal
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
 
 const adminNavItems = [
   { label: 'Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'AI Model Center', href: '/admin/models', icon: Cpu },
+  { label: 'Fraud Network Graph', href: '/admin/network-graph', icon: Share2 },
+  { label: 'Adaptive Thresholds', href: '/admin/adaptive-thresholds', icon: SlidersHorizontal },
   { label: 'Live Transactions', href: '/admin/transactions', icon: ArrowLeftRight },
   { label: 'Payment Map', href: '/admin/payment-map', icon: MapPin },
   { label: 'Fraud Map', href: '/admin/fraud-map', icon: Flame },

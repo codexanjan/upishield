@@ -27,6 +27,9 @@ import {
   AlertOctagon,
   Shield,
   Eye,
+  EyeOff,
+  Cpu,
+  Layers,
   ExternalLink
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
@@ -310,6 +313,84 @@ export default function UserDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* OBJECTIVE 1 & 2: DYNAMIC RISK & BEHAVIOUR INTELLIGENCE OVERVIEW */}
+        <div className="rounded-2xl border border-[#b8f55e]/30 bg-gradient-to-r from-[#0a1718] via-[#0d2122] to-[#0a1718] p-5 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30 flex items-center gap-1.5">
+                  <Cpu className="size-3" />
+                  DYNAMIC RISK SCORING ACTIVE
+                </span>
+                <span className="text-xs text-white/50">Cross-UPI Ensemble v2.4.1</span>
+              </div>
+              <h2 className="text-lg font-bold text-white">Real-Time Risk Profile &amp; Behaviour Baseline</h2>
+              <p className="text-xs text-white/60 max-w-xl">
+                Multi-model AI continuous evaluation combining XGBoost fraud pattern matching, Isolation Forest anomaly detection, and Haversine flight velocity checks.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              {/* Score Gauge */}
+              <div className="flex items-center gap-3 bg-black/40 px-4 py-2.5 rounded-xl border border-white/10">
+                <div className="text-center">
+                  <span className="text-2xl font-mono font-bold text-[#b8f55e] leading-none">18</span>
+                  <span className="text-[10px] text-white/40 block mt-0.5">/ 100</span>
+                </div>
+                <div className="border-l border-white/10 pl-3 text-left">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#b8f55e]/20 text-[#b8f55e]">
+                    LOW RISK
+                  </span>
+                  <span className="text-[11px] text-white/60 block mt-1 font-mono">Cutoff: 72.5</span>
+                </div>
+              </div>
+
+              {/* Deviation Metric */}
+              <div className="bg-black/40 px-4 py-2.5 rounded-xl border border-white/10">
+                <span className="text-[10px] uppercase text-white/40 tracking-wider block">Behaviour Deviation</span>
+                <span className="text-sm font-mono font-bold text-emerald-400 mt-0.5 block">14% (Normal)</span>
+                <span className="text-[10px] text-white/50">Ticket avg: ₹1,450</span>
+              </div>
+
+              <Link
+                href="/dashboard/risk-profile"
+                className="px-4 py-2.5 rounded-xl bg-[#b8f55e] text-[#071014] text-xs font-bold hover:bg-[#c9f97f] transition shadow-lg shadow-[#b8f55e]/20 flex items-center gap-2 shrink-0"
+              >
+                <span>Full AI Risk Analysis</span>
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Sub-Score Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-4 mt-4 border-t border-white/10 text-xs">
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="text-[10px] text-white/50 block">Device Risk</span>
+              <span className="font-mono font-bold text-[#b8f55e]">12/100 (Safe)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="text-[10px] text-white/50 block">Location Risk</span>
+              <span className="font-mono font-bold text-[#b8f55e]">15/100 (Home)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="text-[10px] text-white/50 block">Receiver Risk</span>
+              <span className="font-mono font-bold text-[#b8f55e]">8/100 (Clean)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="text-[10px] text-white/50 block">QR Integrity</span>
+              <span className="font-mono font-bold text-[#b8f55e]">0/100 (Verified)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="text-[10px] text-white/50 block">Anomaly Score</span>
+              <span className="font-mono font-bold text-[#b8f55e]">10/100 (Nominal)</span>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+              <span className="text-[10px] text-white/50 block">Adaptive Barrier</span>
+              <span className="font-mono font-bold text-white">72.5 (+2.5 bonus)</span>
+            </div>
+          </div>
+        </div>
 
         {/* 4 Dashboard Metric Categories Tab / Quick Toggle */}
         <div className="space-y-4">

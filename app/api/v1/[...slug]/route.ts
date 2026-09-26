@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  evaluateDynamicRisk,
+  normalizeCrossUpiPayload,
+  MODEL_PERFORMANCE_METRICS,
+  FRAUD_NETWORK_GRAPH_DATA,
+  DEFAULT_USER_BASELINE,
+  calculateAdaptiveThreshold
+} from '@/lib/ai-fraud-engine'
 
 // Seed / in-memory store for serverless demo mode on Vercel
 const demoState = {
@@ -534,8 +542,67 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(demoState.auditLogs)
   }
 
-  if (path === 'notifications') {
-    return NextResponse.json(demoState.notifications)
+  if (path === 'model/performance') {
+    return NextResponse.json(MODEL_PERFORMANCE_METRICS)
+  }
+
+  if (path === 'model/drift') {
+    return NextResponse.json(MODEL_PERFORMANCE_METRICS.drift_monitor)
+  }
+
+  if (path === 'model/versions') {
+    return NextResponse.json(MODEL_PERFORMANCE_METRICS.versions)
+  }
+
+  if (path === 'network/graph' || path === 'admin/network-graph') {
+    return NextResponse.json(FRAUD_NETWORK_GRAPH_DATA)
+  }
+
+  if (path.startsWith('risk/user/')) {
+    const userId = Number(path.split('/')[2]) || 1
+    return NextResponse.json({
+      user_id: userId,
+      baseline: DEFAULT_USER_BASELINE,
+      adaptive_threshold: calculateAdaptiveThreshold(DEFAULT_USER_BASELINE),
+      recent_anomalies: [
+        { type: 'Off-hours login', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), severity: 'MEDIUM' }
+      ]
+    })
+  }
+
+  if (path.startsWith('risk/device/')) {
+    const devId = path.split('/')[2] || 'DEV-A782'
+    const isEnrolled = DEFAULT_USER_BASELINE.registered_devices.includes(devId)
+    return NextResponse.json({
+      device_id: devId,
+      enrolled: isEnrolled,
+      trust_score: isEnrolled ? 94 : 28,
+      risk_level: isEnrolled ? 'LOW' : 'HIGH',
+      hardware_binding_active: true
+    })
+  }
+
+  if (path.startsWith('risk/vpa/')) {
+    const vpa = decodeURIComponent(path.split('/')[2] || '')
+    const isKnownFlagged = vpa.includes('scammer') || vpa.includes('bonus') || vpa.includes('lottery')
+    return NextResponse.json({
+      vpa,
+      reputation_score: isKnownFlagged ? 8 : 92,
+      risk_level: isKnownFlagged ? 'CRITICAL' : 'SAFE',
+      community_complaints_count: isKnownFlagged ? 14 : 0,
+      bank_psp: 'Axis Bank / NPCI Verified'
+    })
+  }
+
+  if (path.startsWith('risk/qr/')) {
+    const qrId = path.split('/')[2] || 'QR-1001'
+    return NextResponse.json({
+      qr_id: qrId,
+      tampering_detected: false,
+      integrity_score: 96,
+      merchant_verified: true,
+      currency: 'INR'
+    })
   }
 
   // Safe fallback: never return a bare string or empty object without array or schema safety
@@ -574,6 +641,119 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       user_name: userObj.name,
       user_email: userObj.email,
       role: userObj.role
+    })
+  }
+
+  // 1. Multi-Model AI Fraud Prediction Endpoint
+  if (path === 'fraud/predict') {
+    const normalized = normalizeCrossUpiPayload(body)
+    const assessment = evaluateDynamicRisk(normalized, DEFAULT_USER_BASELINE, body.prior_transaction)
+    return NextResponse.json({
+      success: true,
+      transaction_id: normalized.id,
+      source_app: normalized.source_app,
+      ...assessment
+    })
+  }
+
+  // 2. Dynamic Risk Scoring Calculation
+  if (path === 'risk/calculate') {
+    const normalized = normalizeCrossUpiPayload(body)
+    const assessment = evaluateDynamicRisk(normalized, DEFAULT_USER_BASELINE, body.prior_transaction)
+    return NextResponse.json({
+      overall_risk_score: assessment.overall_risk_score,
+      fraud_probability: assessment.fraud_probability,
+      decision: assessment.decision,
+      risk_level: assessment.risk_level,
+      adaptive_threshold: assessment.adaptive_threshold,
+      sub_scores: assessment.sub_scores,
+      behaviour_metrics: assessment.behaviour_metrics,
+      explainable_ai: assessment.explainable_ai
+    })
+  }
+
+  // 3. Unsupervised Isolation Forest Anomaly Detection
+  if (path === 'anomaly/detect') {
+    const normalized = normalizeCrossUpiPayload(body)
+    const assessment = evaluateDynamicRisk(normalized, DEFAULT_USER_BASELINE, body.prior_transaction)
+    const isAnomaly = assessment.sub_scores.anomaly_score >= 45 || assessment.behaviour_metrics.impossible_travel_detected
+
+    return NextResponse.json({
+      anomaly_detected: isAnomaly,
+      anomaly_score: assessment.sub_scores.anomaly_score,
+      risk_level: assessment.risk_level,
+      primary_driver: assessment.explainable_ai.primary_risk_driver,
+      velocity_kmh: assessment.behaviour_metrics.velocity_kmh || 0,
+      impossible_travel: assessment.behaviour_metrics.impossible_travel_detected,
+      deviation_percentage: assessment.behaviour_metrics.deviation_percentage,
+      recommendation: isAnomaly ? 'STEP_UP_AUTHENTICATION_REQUIRED' : 'NORMAL_PATTERNS_DETECTED'
+    })
+  }
+
+  // 4. User and Admin Feedback Loop Collection
+  if (path === 'feedback') {
+    const isFalsePositive = Boolean(body.false_positive || body.user_feedback === 'genuine_was_me')
+    const isFraudConfirmed = Boolean(body.user_feedback === 'fraud_not_me' || body.admin_label === 'FRAUD')
+
+    if (isFalsePositive) {
+      DEFAULT_USER_BASELINE.false_positive_count += 1
+    }
+    if (isFraudConfirmed) {
+      DEFAULT_USER_BASELINE.recent_fraud_count += 1
+    }
+
+    const feedbackEntry = {
+      id: `FB-${Date.now()}`,
+      transaction_id: body.transaction_id || 'TXN-RECENT',
+      user_feedback: body.user_feedback || 'acknowledged',
+      admin_label: body.admin_label || 'VERIFIED',
+      false_positive: isFalsePositive,
+      recorded_at: new Date().toISOString(),
+      updated_adaptive_threshold: calculateAdaptiveThreshold(DEFAULT_USER_BASELINE)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Feedback securely ingested into active model retraining queue',
+      feedback: feedbackEntry
+    })
+  }
+
+  // 5. Automated AI Model Retraining Trigger
+  if (path === 'model/retrain') {
+    MODEL_PERFORMANCE_METRICS.last_retrained = new Date().toISOString()
+    MODEL_PERFORMANCE_METRICS.dataset_samples += 28400
+    const newVersion = `v2.4.${MODEL_PERFORMANCE_METRICS.versions.length + 1}`
+
+    const newVersionEntry = {
+      version: newVersion,
+      deployed_at: new Date().toISOString(),
+      accuracy: 99.52,
+      f1_score: 98.48,
+      roc_auc: 0.993,
+      status: 'ACTIVE',
+      changelog: `Self-learning feedback loop iteration. Retrained on ${MODEL_PERFORMANCE_METRICS.dataset_samples.toLocaleString()} verified samples.`
+    }
+
+    MODEL_PERFORMANCE_METRICS.versions.unshift(newVersionEntry)
+    MODEL_PERFORMANCE_METRICS.active_version = `${newVersion}-production`
+    MODEL_PERFORMANCE_METRICS.drift_monitor.data_drift_psi = 0.024
+    MODEL_PERFORMANCE_METRICS.drift_monitor.retraining_recommended = false
+
+    return NextResponse.json({
+      success: true,
+      status: 'RETRAINING_COMPLETED',
+      active_version: newVersion,
+      metrics: {
+        accuracy: 99.52,
+        precision: 98.92,
+        recall: 98.05,
+        f1_score: 98.48,
+        roc_auc: 0.993
+      },
+      samples_processed: MODEL_PERFORMANCE_METRICS.dataset_samples,
+      drift_reduced_psi: 0.024,
+      completed_at: new Date().toISOString()
     })
   }
 

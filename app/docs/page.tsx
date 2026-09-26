@@ -43,6 +43,237 @@ interface ApiEndpoint {
 }
 
 const ENDPOINTS: ApiEndpoint[] = [
+  // AI Multi-Model Fraud Intelligence (Objectives 1, 2, 3)
+  {
+    id: 'ai-fraud-predict',
+    category: 'AI Fraud Intelligence',
+    method: 'POST',
+    path: '/api/v1/fraud/predict',
+    title: 'Cross-UPI Multi-Model Fraud Prediction',
+    description: 'Evaluates normalized transaction payload against XGBoost classifiers, Isolation Forest anomalies, and Haversine velocity with SHAP explainability.',
+    authRequired: true,
+    requestBody: {
+      source_app: 'GooglePay',
+      user_id: 1,
+      sender_vpa: 'demo@upishield.ai',
+      receiver_vpa: 'scammer.refund@okaxis',
+      receiver_name: 'Fast Refund Desk',
+      amount: 48500,
+      currency: 'INR',
+      device_id: 'DEV-A782',
+      location: {
+        city: 'Delhi',
+        latitude: 28.6139,
+        longitude: 77.2090
+      }
+    },
+    responseSample: {
+      status: 'success',
+      assessment: {
+        overall_risk_score: 96,
+        fraud_probability: 0.96,
+        decision: 'BLOCK',
+        risk_level: 'CRITICAL',
+        adaptive_threshold: 72.5,
+        sub_scores: {
+          transaction_risk: 95,
+          device_risk: 85,
+          location_risk: 90,
+          behaviour_risk: 92,
+          receiver_risk: 98,
+          qr_risk: 0,
+          anomaly_score: 95,
+          velocity_score: 100
+        },
+        behaviour_metrics: {
+          deviation_percentage: 95,
+          is_unusual_amount: true,
+          is_unusual_hour: false,
+          is_unusual_location: true,
+          is_new_beneficiary: true,
+          is_new_device: false,
+          impossible_travel_detected: true,
+          velocity_kmh: 1150
+        },
+        explainable_ai: {
+          summary: 'IMMEDIATE FRAUD BLOCK: Receiver is a known flagged syndicate VPA with impossible travel velocity.',
+          primary_risk_driver: 'Receiver Blacklist Match & Impossible Travel Velocity',
+          shap_contributions: [
+            {
+              feature_name: 'Receiver Blacklist Match',
+              category: 'RECEIVER',
+              impact_score: 45,
+              impact_pct: 45,
+              description: 'Target VPA matches active scammer blacklist.',
+              importance: 'CRITICAL'
+            },
+            {
+              feature_name: 'Impossible Flight Velocity',
+              category: 'VELOCITY',
+              impact_score: 35,
+              impact_pct: 35,
+              description: 'Distance 1,740 km traversed in 91 mins (velocity 1,150 km/h).',
+              importance: 'CRITICAL'
+            }
+          ]
+        },
+        model_metadata: {
+          ensemble_version: 'v2.4.1-ensemble',
+          inference_time_ms: 14,
+          evaluated_at: '2026-09-26T04:45:00.000Z'
+        }
+      }
+    }
+  },
+  {
+    id: 'ai-risk-calculate',
+    category: 'AI Fraud Intelligence',
+    method: 'POST',
+    path: '/api/v1/risk/calculate',
+    title: 'Calculate Dynamic Risk & Sub-Scores',
+    description: 'Generates comprehensive dynamic 0-100 risk score and sub-score breakdown across transaction, device, location, behaviour, and receiver reputation.',
+    authRequired: true,
+    requestBody: {
+      amount: 1450,
+      receiver_vpa: 'nature.basket@icici',
+      user_id: 1,
+      device_id: 'DEV-A782',
+      city: 'Bengaluru'
+    },
+    responseSample: {
+      status: 'success',
+      overall_risk_score: 18,
+      risk_level: 'LOW',
+      decision: 'ALLOW',
+      adaptive_threshold: 72.5,
+      sub_scores: {
+        transaction_risk: 15,
+        device_risk: 12,
+        location_risk: 10,
+        behaviour_risk: 14,
+        receiver_risk: 5,
+        qr_risk: 0,
+        anomaly_score: 10,
+        velocity_score: 5
+      }
+    }
+  },
+  {
+    id: 'ai-anomaly-detect',
+    category: 'AI Fraud Intelligence',
+    method: 'POST',
+    path: '/api/v1/anomaly/detect',
+    title: 'Isolation Forest Anomaly Detection',
+    description: 'Runs unsupervised multivariate tree isolation to detect subtle ticket size, timestamp, and device anomalies.',
+    authRequired: true,
+    requestBody: {
+      user_id: 1,
+      amount: 42000,
+      hour: 3,
+      city: 'Kolkata'
+    },
+    responseSample: {
+      status: 'success',
+      is_anomaly: true,
+      anomaly_score: 86,
+      deviations: {
+        amount_std_devs: 4.8,
+        is_off_hours: true,
+        unfamiliar_city: true
+      }
+    }
+  },
+  {
+    id: 'ai-feedback-loop',
+    category: 'AI Fraud Intelligence',
+    method: 'POST',
+    path: '/api/v1/feedback',
+    title: 'Self-Learning Feedback & Adaptive Tuning',
+    description: 'Ingests user and admin confirmation labels (GENUINE / FRAUD) and automatically recalculates personalized adaptive thresholds.',
+    authRequired: true,
+    requestBody: {
+      transaction_id: 'TXN-849210',
+      user_id: 1,
+      feedback_type: 'CONFIRMED_GENUINE',
+      comment: 'Verified personal payment during vacation'
+    },
+    responseSample: {
+      status: 'success',
+      message: 'Feedback processed: Per-user adaptive threshold adjusted.',
+      user_id: 1,
+      updated_adaptive_threshold: 75.0,
+      threshold_delta: '+2.5 pts',
+      feedback_dataset_size: 4892
+    }
+  },
+  {
+    id: 'ai-model-performance',
+    category: 'AI Fraud Intelligence',
+    method: 'GET',
+    path: '/api/v1/model/performance',
+    title: 'Model Performance & Confusion Matrix',
+    description: 'Returns real-time cross-validation metrics, ROC-AUC score, and normalized confusion matrix for the active production ensemble.',
+    authRequired: true,
+    responseSample: {
+      status: 'success',
+      model_performance: {
+        active_version: 'v2.4.1-production',
+        metrics: {
+          accuracy: 99.4,
+          precision: 98.8,
+          recall: 97.9,
+          f1_score: 98.3,
+          roc_auc: 0.992
+        },
+        confusion_matrix: {
+          true_positives: 24820,
+          false_positives: 304,
+          true_negatives: 1394100,
+          false_negatives: 532
+        }
+      }
+    }
+  },
+  {
+    id: 'ai-model-drift',
+    category: 'AI Fraud Intelligence',
+    method: 'GET',
+    path: '/api/v1/model/drift',
+    title: 'Data & Concept Drift Monitor (PSI)',
+    description: 'Returns Population Stability Index (PSI) and feature-level Kolmogorov-Smirnov distribution test scores.',
+    authRequired: true,
+    responseSample: {
+      status: 'success',
+      data_drift_psi: 0.041,
+      concept_drift_score: 0.018,
+      model_drift_status: 'HEALTHY',
+      retraining_recommended: false
+    }
+  },
+  {
+    id: 'ai-model-retrain',
+    category: 'AI Fraud Intelligence',
+    method: 'POST',
+    path: '/api/v1/model/retrain',
+    title: 'Trigger Automated Retraining Pipeline',
+    description: 'Initiates automated pipeline that ingests recent feedback datasets, retrains classifiers, and registers a new model checkpoint.',
+    authRequired: true,
+    requestBody: {
+      triggered_by: 'admin-console',
+      auto_deploy: true
+    },
+    responseSample: {
+      status: 'success',
+      message: 'Automated model retraining completed successfully.',
+      new_version: 'v2.4.2-production',
+      metrics: {
+        accuracy: 99.5,
+        f1_score: 98.6,
+        roc_auc: 0.994
+      }
+    }
+  },
+
   // Authentication
   {
     id: 'auth-login',

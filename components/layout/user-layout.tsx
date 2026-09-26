@@ -29,7 +29,8 @@ import {
   Compass,
   Smartphone,
   AlertOctagon,
-  FileCode
+  FileCode,
+  Cpu
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
@@ -57,6 +58,7 @@ const navGroups = [
   {
     title: 'SECURITY',
     items: [
+      { label: 'AI Risk & Behaviour', href: '/dashboard/risk-profile', icon: Cpu },
       { label: 'Location History', href: '/dashboard/location-history', icon: Compass },
       { label: 'Devices', href: '/dashboard/devices', icon: Smartphone },
       { label: 'Fraud Alerts', href: '/dashboard/alerts', icon: AlertOctagon },
