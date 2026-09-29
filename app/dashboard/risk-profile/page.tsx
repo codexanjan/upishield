@@ -101,6 +101,7 @@ export default function UserRiskProfilePage() {
 
   const [baseline, setBaseline] = useState<UserBehaviorBaseline>({
     ...DEFAULT_USER_BASELINE,
+    frequent_cities: ['Hubballi', 'Bengaluru', 'Mysuru'],
     avg_ticket_size: computedAvgTicket,
     max_historic_amount: realLargestHistoric,
     registered_devices: enrolledDevicesList
@@ -110,19 +111,29 @@ export default function UserRiskProfilePage() {
   useEffect(() => {
     setBaseline((prev) => ({
       ...prev,
+      frequent_cities: ['Hubballi', 'Bengaluru', 'Mysuru'],
       avg_ticket_size: computedAvgTicket,
       max_historic_amount: realLargestHistoric,
       registered_devices: enrolledDevicesList
     }))
   }, [computedAvgTicket, realLargestHistoric, enrolledDevicesList])
 
-  // Live Simulation Controls State
-  const [selectedTxnAmount, setSelectedTxnAmount] = useState(18500)
-  const [selectedCity, setSelectedCity] = useState('Delhi')
-  const [selectedDevice, setSelectedDevice] = useState('DEV-NEW-88')
-  const [selectedVpa, setSelectedVpa] = useState('new.merchant@okaxis')
+  // Live Simulation Controls State - Defaults to safe home profile
+  const [selectedTxnAmount, setSelectedTxnAmount] = useState(850)
+  const [selectedCity, setSelectedCity] = useState('Hubballi')
+  const [selectedDevice, setSelectedDevice] = useState('DEV-A782')
+  const [selectedVpa, setSelectedVpa] = useState('nature.basket@icici')
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
+  const [feedbackLoading, setFeedbackLoading] = useState<'genuine' | 'fraud' | null>(null)
+  const [userConfirmationState, setUserConfirmationState] = useState<'genuine' | 'fraud' | null>(null)
+  const [showSecurityModal, setShowSecurityModal] = useState(false)
+  const [securityModalData, setSecurityModalData] = useState<{ alertId: string; amount: number; city: string; device: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'xai' | 'breakdown' | 'behaviour' | 'history' | 'threshold'>('overview')
+
+  // Reset confirmation state whenever simulation inputs change so user can verify each new scenario
+  useEffect(() => {
+    setUserConfirmationState(null)
+  }, [selectedTxnAmount, selectedCity, selectedDevice, selectedVpa])
 
   // Check URL query parameters on load (e.g. ?tab=xai)
   useEffect(() => {
@@ -150,13 +161,13 @@ export default function UserRiskProfilePage() {
   const categoryInfo = getDetailedRiskCategory(liveAssessment.overall_risk_score)
 
   // 3. EXACT 7-COMPONENT WEIGHTED RISK FORMULA
-  // Total = 100 pts: ML 25%, Anomaly 20%, Behaviour 20%, Device 10%, Location 10%, Velocity 10%, Beneficiary 5%
+  // Total = 100 pts: ML 25%, Anomaly 20%, Behaviour 15%, Device 15%, Location 15%, Velocity 5%, Beneficiary 5%
   const fraudModelPts = Math.min(25, Math.max(1, Math.round(liveAssessment.sub_scores.transaction_risk * 0.25)))
   const anomalyPts = Math.min(20, Math.max(1, Math.round(liveAssessment.sub_scores.anomaly_score * 0.20)))
-  const behaviourPts = Math.min(20, Math.max(1, Math.round(liveAssessment.sub_scores.behaviour_risk * 0.20)))
-  const devicePts = Math.min(10, Math.max(1, Math.round(liveAssessment.sub_scores.device_risk * 0.10)))
-  const locationPts = Math.min(10, Math.max(1, Math.round(liveAssessment.sub_scores.location_risk * 0.10)))
-  const velocityPts = Math.min(10, Math.max(1, Math.round(liveAssessment.sub_scores.velocity_score * 0.10)))
+  const behaviourPts = Math.min(15, Math.max(1, Math.round(liveAssessment.sub_scores.behaviour_risk * 0.15)))
+  const devicePts = Math.min(15, Math.max(1, Math.round(liveAssessment.sub_scores.device_risk * 0.15)))
+  const locationPts = Math.min(15, Math.max(1, Math.round(liveAssessment.sub_scores.location_risk * 0.15)))
+  const velocityPts = Math.min(5, Math.max(1, Math.round(liveAssessment.sub_scores.velocity_score * 0.05)))
   const beneficiaryPts = Math.min(5, Math.max(1, Math.round(liveAssessment.sub_scores.receiver_risk * 0.05)))
 
   // 4. MAJOR PURCHASE BEHAVIOR DYNAMIC DERIVATION
@@ -186,9 +197,9 @@ export default function UserRiskProfilePage() {
   // Is this a major purchase scenario? (>= ₹50,000 or significant amount deviation)
   const isMajorPurchaseActive = selectedTxnAmount >= 50000 || liveAssessment.behaviour_metrics.is_unusual_amount || behaviouralImpact !== 'LOW'
 
-  // 5. INTERACTIVE ACTION BUTTON HANDLERS
+  // 5. INTERACTIVE ACTION BUTTON HANDLERS WITH FULL VISUAL CONFIRMATION & AUDIT
   const handleUserFeedback = async (type: 'genuine_was_me' | 'fraud_not_me') => {
-    setFeedbackSubmitted(null)
+    setFeedbackLoading(type === 'genuine_was_me' ? 'genuine' : 'fraud')
     try {
       // 1. Send feedback to backend API
       await fetch('/api/v1/feedback', {
@@ -222,13 +233,14 @@ export default function UserRiskProfilePage() {
         })
       }
 
-      // 3. If fraud was reported: create active fraud alert in the system
+      // 3. Fraud / Genuine state branch
       if (type === 'fraud_not_me') {
+        const alertId = `ALT-${Math.floor(1000 + Math.random() * 9000)}`
         useUPIGuardStore.setState((s) => ({
           alerts: [
             {
               id: `alt_${Date.now()}`,
-              alertId: `ALT-${Math.floor(1000 + Math.random() * 9000)}`,
+              alertId,
               severity: 'CRITICAL',
               title: `Unauthorized Payment Flagged: ₹${selectedTxnAmount.toLocaleString('en-IN')}`,
               description: `Transaction attempt to ${selectedVpa} from ${selectedCity} (${selectedDevice}) reported as NOT ME by account holder.`,
@@ -247,8 +259,16 @@ export default function UserRiskProfilePage() {
           ...prev,
           recent_fraud_count: (prev.recent_fraud_count || 0) + 1
         }))
+        setUserConfirmationState('fraud')
+        setSecurityModalData({
+          alertId,
+          amount: selectedTxnAmount,
+          city: selectedCity,
+          device: selectedDevice
+        })
+        setShowSecurityModal(true)
         setFeedbackSubmitted(
-          'Confirmed as Suspicious: Threat registered. Protective thresholds tightened (-5.0 pts) and incident logged in Fraud Alerts.'
+          `Confirmed as Suspicious: Threat registered. Protective threshold barrier tightened (-5.0 pts) and incident ${alertId} logged in Fraud Alerts.`
         )
       } else {
         // Genuine payment: Relax adaptive threshold (+2.5 pts bonus)
@@ -256,12 +276,15 @@ export default function UserRiskProfilePage() {
           ...prev,
           false_positive_count: (prev.false_positive_count || 0) + 1
         }))
+        setUserConfirmationState('genuine')
         setFeedbackSubmitted(
-          'Confirmed as Genuine: Transaction authorized. Feedback saved in AI dataset; adaptive barrier relaxed (+2.5 pts) to prevent future false alarms.'
+          `Confirmed as Genuine: Transaction marked authorized by you. Adaptive barrier relaxed (+2.5 pts) to prevent future false alarms.`
         )
       }
     } catch {
       setFeedbackSubmitted('Feedback registered in local intelligence cache.')
+    } finally {
+      setFeedbackLoading(null)
     }
   }
 
@@ -342,15 +365,26 @@ export default function UserRiskProfilePage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between"
+              className={`p-4 rounded-2xl text-xs flex items-center justify-between border ${
+                userConfirmationState === 'fraud'
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              }`}
             >
               <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
-                <span>{feedbackSubmitted}</span>
+                {userConfirmationState === 'fraud' ? (
+                  <ShieldAlert className="size-4 text-rose-400 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                )}
+                <span className="font-medium">{feedbackSubmitted}</span>
               </div>
               <button
+                type="button"
                 onClick={() => setFeedbackSubmitted(null)}
-                className="text-xs text-emerald-400 font-semibold hover:underline cursor-pointer"
+                className={`text-xs font-semibold hover:underline cursor-pointer ml-3 ${
+                  userConfirmationState === 'fraud' ? 'text-rose-400' : 'text-emerald-400'
+                }`}
               >
                 Dismiss
               </button>
@@ -451,21 +485,52 @@ export default function UserRiskProfilePage() {
 
                 {/* Quick Action Confirmation Buttons */}
                 <div className="pt-6 border-t border-white/8 space-y-3">
-                  <p className="text-xs text-[#8fa9a6]">
-                    Did you perform this recent transaction simulation?
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-[#8fa9a6]">
+                      Did you perform this recent transaction simulation?
+                    </p>
+                    {userConfirmationState && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        userConfirmationState === 'genuine' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {userConfirmationState === 'genuine' ? '✓ Verified by You' : '🛡️ Quarantined'}
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
+                      type="button"
+                      disabled={feedbackLoading !== null}
                       onClick={() => handleUserFeedback('genuine_was_me')}
-                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition cursor-pointer"
+                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                        userConfirmationState === 'genuine'
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 ring-1 ring-emerald-500/40'
+                          : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'
+                      }`}
                     >
-                      <Check className="size-3.5 text-[#b8f55e]" /> Yes, This Was Me
+                      {feedbackLoading === 'genuine' ? (
+                        <RefreshCw className="size-3.5 animate-spin text-[#b8f55e]" />
+                      ) : (
+                        <Check className="size-3.5 text-[#b8f55e]" />
+                      )}
+                      <span>{userConfirmationState === 'genuine' ? 'Yes, Confirmed Me' : 'Yes, This Was Me'}</span>
                     </button>
                     <button
+                      type="button"
+                      disabled={feedbackLoading !== null}
                       onClick={() => handleUserFeedback('fraud_not_me')}
-                      className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-xs font-semibold text-rose-300 transition cursor-pointer"
+                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                        userConfirmationState === 'fraud'
+                          ? 'bg-rose-600/30 border-rose-500/50 text-rose-300 ring-1 ring-rose-500/40'
+                          : 'bg-rose-600/20 hover:bg-rose-600/30 border-rose-500/30 text-rose-300'
+                      }`}
                     >
-                      <ShieldAlert className="size-3.5 text-rose-400" /> No, Secure Account
+                      {feedbackLoading === 'fraud' ? (
+                        <RefreshCw className="size-3.5 animate-spin text-rose-400" />
+                      ) : (
+                        <ShieldAlert className="size-3.5 text-rose-400" />
+                      )}
+                      <span>{userConfirmationState === 'fraud' ? 'Account Secured' : 'No, Secure Account'}</span>
                     </button>
                   </div>
                 </div>
@@ -538,30 +603,85 @@ export default function UserRiskProfilePage() {
                     <span className="text-[10px] text-[#8fa9a6]">Change values to recalculate XAI live</span>
                   </div>
 
+                  {/* Quick Preset Buttons for 1-Click Testing */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-white/5 pb-2.5">
+                    <span className="text-[10px] text-[#8fa9a6] font-semibold uppercase tracking-wider">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTxnAmount(850)
+                        setSelectedCity('Hubballi')
+                        setSelectedDevice('DEV-A782')
+                        setSelectedVpa('nature.basket@icici')
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                        selectedTxnAmount === 850 && selectedCity === 'Hubballi' && selectedDevice === 'DEV-A782'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
+                          : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      🟢 Home Routine (₹850)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTxnAmount(18500)
+                        setSelectedCity('Mumbai')
+                        setSelectedDevice('DEV-NEW-88')
+                        setSelectedVpa('new.merchant@okaxis')
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                        selectedTxnAmount === 18500 && selectedCity === 'Mumbai' && selectedDevice === 'DEV-NEW-88'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+                          : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      🟡 Travel Spike (₹18.5k)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTxnAmount(850000)
+                        setSelectedCity('Dubai')
+                        setSelectedDevice('DEV-EMU-X99')
+                        setSelectedVpa('scammer.refund@okaxis')
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                        selectedTxnAmount === 850000 && selectedCity === 'Dubai' && selectedDevice === 'DEV-EMU-X99'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold'
+                          : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      🔴 Cyber Attack (₹8.5L)
+                    </button>
+                  </div>
+
                   <div className="grid sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[10px] text-[#8fa9a6] block mb-1">Amount (₹)</label>
+                      <label className="text-[10px] text-[#8fa9a6] block mb-1 font-medium">Amount (₹)</label>
                       <select
+                        id="simulation-amount-select"
                         value={selectedTxnAmount}
                         onChange={(e) => setSelectedTxnAmount(Number(e.target.value))}
-                        className="w-full bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                        className="w-full bg-[#071014] border border-white/15 focus:border-[#b8f55e]/60 rounded-xl px-3 py-2 text-xs text-white outline-none transition"
                       >
-                        <option value={850}>₹850 (Normal Grocery)</option>
-                        <option value={1450}>₹1,450 (Baseline Average)</option>
-                        <option value={18500}>₹18,500 (Elevated Spike)</option>
-                        <option value={200000}>₹2,00,000 (Vehicle Advance)</option>
+                        <option value={850}>₹850 (Normal Grocery / Routine)</option>
+                        <option value={1450}>₹1,450 (Baseline Average Ticket)</option>
+                        <option value={18500}>₹18,500 (Elevated 13x Spending Spike)</option>
+                        <option value={200000}>₹2,00,000 (Vehicle Advance Outlay)</option>
                         <option value={850000}>₹8,50,000 (Car Purchase - ABC Motors)</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-[#8fa9a6] block mb-1">City / Location</label>
+                      <label className="text-[10px] text-[#8fa9a6] block mb-1 font-medium">City / Location</label>
                       <select
+                        id="simulation-city-select"
                         value={selectedCity}
                         onChange={(e) => setSelectedCity(e.target.value)}
-                        className="w-full bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                        className="w-full bg-[#071014] border border-white/15 focus:border-[#b8f55e]/60 rounded-xl px-3 py-2 text-xs text-white outline-none transition"
                       >
-                        <option value="Hubballi">Hubballi (Home Geofence)</option>
+                        <option value="Hubballi">Hubballi (Home Address / Geofence)</option>
                         <option value="Bengaluru">Bengaluru (Verified Cluster)</option>
                         <option value="Mysuru">Mysuru (Frequent City)</option>
                         <option value="Mumbai">Mumbai (Velocity Anomaly / Untrusted)</option>
@@ -570,20 +690,21 @@ export default function UserRiskProfilePage() {
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-[#8fa9a6] block mb-1">Device &amp; VPA</label>
+                      <label className="text-[10px] text-[#8fa9a6] block mb-1 font-medium">Device &amp; Beneficiary</label>
                       <select
+                        id="simulation-device-select"
                         value={`${selectedDevice}|${selectedVpa}`}
                         onChange={(e) => {
                           const [d, v] = e.target.value.split('|')
                           setSelectedDevice(d)
                           setSelectedVpa(v)
                         }}
-                        className="w-full bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                        className="w-full bg-[#071014] border border-white/15 focus:border-[#b8f55e]/60 rounded-xl px-3 py-2 text-xs text-white outline-none transition"
                       >
-                        <option value="DEV-A782|abcmotors@upiguard">DEV-A782 · ABC Motors (Known)</option>
-                        <option value="DEV-A782|nature.basket@icici">DEV-A782 · Trusted Merchant</option>
-                        <option value="DEV-NEW-88|new.merchant@okaxis">New Device · First-Time VPA</option>
-                        <option value="DEV-EMU-X99|scammer.refund@okaxis">Emulator · Flagged Scam VPA</option>
+                        <option value="DEV-A782|nature.basket@icici">DEV-A782 · Trusted Key (Nature Basket)</option>
+                        <option value="DEV-A782|abcmotors@upiguard">DEV-A782 · Trusted Key (ABC Motors)</option>
+                        <option value="DEV-NEW-88|new.merchant@okaxis">DEV-NEW-88 · Unregistered Device (New VPA)</option>
+                        <option value="DEV-EMU-X99|scammer.refund@okaxis">DEV-EMU-X99 · Rooted Emulator (Scam VPA)</option>
                       </select>
                     </div>
                   </div>
@@ -1322,6 +1443,85 @@ export default function UserRiskProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Security Emergency Modal */}
+        <AnimatePresence>
+          {showSecurityModal && securityModalData && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 10 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 10 }}
+                className="w-full max-w-md rounded-3xl border border-rose-500/40 bg-[#0c181a] p-6 space-y-5 shadow-2xl shadow-rose-950/50 relative overflow-hidden"
+              >
+                <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-rose-500/10 blur-2xl" />
+
+                <div className="flex items-center gap-3 border-b border-rose-500/20 pb-4">
+                  <div className="size-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="size-5 text-rose-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Emergency Account Protection</h3>
+                    <p className="text-xs text-rose-300">Unauthorized transaction flagged &amp; blocked</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 text-xs text-white/80">
+                  <div className="p-3 rounded-xl bg-white/[.03] border border-white/10 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-white/50">Incident Alert ID:</span>
+                      <span className="font-mono font-bold text-rose-400">{securityModalData.alertId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/50">Flagged Amount:</span>
+                      <span className="font-mono font-bold text-white">₹{securityModalData.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/50">Originating City:</span>
+                      <span className="text-white font-medium">{securityModalData.city}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/50">Device Signature:</span>
+                      <span className="font-mono text-white/80">{securityModalData.device}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 space-y-1">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <Lock className="size-3.5" /> Protective Measures Applied:
+                    </p>
+                    <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-200/90 pl-1">
+                      <li>Device hardware endpoint quarantined immediately</li>
+                      <li>Adaptive safety barrier tightened (-5.0 pts)</li>
+                      <li>Security event dispatched to Fraud Alerts &amp; Admin</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <Link
+                    href="/dashboard/alerts"
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold text-center transition"
+                  >
+                    View in Fraud Alerts
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowSecurityModal(false)}
+                    className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </UserLayout>
   )
