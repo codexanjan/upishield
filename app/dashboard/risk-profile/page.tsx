@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -38,17 +38,85 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 import {
   evaluateDynamicRisk,
   normalizeCrossUpiPayload,
   DEFAULT_USER_BASELINE,
   calculateAdaptiveThreshold,
   getDetailedRiskCategory,
-  DynamicRiskAssessment
+  DynamicRiskAssessment,
+  UserBehaviorBaseline
 } from '@/lib/ai-fraud-engine'
 
 export default function UserRiskProfilePage() {
-  const [baseline, setBaseline] = useState(DEFAULT_USER_BASELINE)
+  const storeTransactions = useUPIGuardStore((s) => s.transactions)
+  const submitFeedback = useUPIGuardStore((s) => s.submitFeedback)
+
+  // 1. DYNAMIC BASELINE COMPUTATION FROM REAL TRANSACTION HISTORY
+  const { computedAvgTicket, computedActiveWindow, enrolledDevicesList, realLargestHistoric, realPreviousLargest, historicAmounts } = useMemo(() => {
+    const amounts = (storeTransactions || [])
+      .map((t) => Number(t.amount) || 0)
+      .filter((amt) => amt > 0)
+    
+    const totalSpend = amounts.reduce((sum, a) => sum + a, 0)
+    const avgTicket = amounts.length > 0 ? Math.round(totalSpend / amounts.length) : 1450
+
+    // Extract hours from timestamps
+    const hours = (storeTransactions || [])
+      .map((t) => {
+        const dateStr = t.timestamps?.settled || t.timestamps?.created || (t as any).transaction_date
+        return dateStr ? new Date(dateStr).getHours() : NaN
+      })
+      .filter((h) => !isNaN(h))
+    
+    const minH = hours.length > 0 ? Math.min(...hours) : 8
+    const maxH = hours.length > 0 ? Math.max(...hours) : 23
+    const activeWindow = `${minH.toString().padStart(2, '0')}:00 – ${maxH.toString().padStart(2, '0')}:00 IST`
+
+    // Extract enrolled devices
+    const devices = Array.from(
+      new Set(
+        (storeTransactions || [])
+          .map((t) => t.deviceId || (t as any).device_id)
+          .filter(Boolean)
+          .concat(['DEV-A782', 'DEV-MAC-B88'])
+      )
+    )
+
+    // Sorted historical amounts
+    const sorted = [...amounts].sort((a, b) => b - a)
+    const largest = sorted[0] || 25000
+    const prevLargest = sorted.length > 1 ? sorted[1] : (sorted[0] ? Math.round(sorted[0] * 0.7) : 18500)
+
+    return {
+      computedAvgTicket: avgTicket,
+      computedActiveWindow: activeWindow,
+      enrolledDevicesList: devices,
+      realLargestHistoric: largest,
+      realPreviousLargest: prevLargest,
+      historicAmounts: sorted
+    }
+  }, [storeTransactions])
+
+  const [baseline, setBaseline] = useState<UserBehaviorBaseline>({
+    ...DEFAULT_USER_BASELINE,
+    avg_ticket_size: computedAvgTicket,
+    max_historic_amount: realLargestHistoric,
+    registered_devices: enrolledDevicesList
+  })
+
+  // Keep baseline synchronized with computed transactions
+  useEffect(() => {
+    setBaseline((prev) => ({
+      ...prev,
+      avg_ticket_size: computedAvgTicket,
+      max_historic_amount: realLargestHistoric,
+      registered_devices: enrolledDevicesList
+    }))
+  }, [computedAvgTicket, realLargestHistoric, enrolledDevicesList])
+
+  // Live Simulation Controls State
   const [selectedTxnAmount, setSelectedTxnAmount] = useState(18500)
   const [selectedCity, setSelectedCity] = useState('Delhi')
   const [selectedDevice, setSelectedDevice] = useState('DEV-NEW-88')
@@ -67,7 +135,7 @@ export default function UserRiskProfilePage() {
     }
   }, [])
 
-  // Compute live dynamic risk assessment
+  // 2. RUN REAL DETERMINISTIC MULTI-MODEL RISK EVALUATION
   const liveAssessment: DynamicRiskAssessment = evaluateDynamicRisk(
     normalizeCrossUpiPayload({
       amount: selectedTxnAmount,
@@ -81,30 +149,116 @@ export default function UserRiskProfilePage() {
 
   const categoryInfo = getDetailedRiskCategory(liveAssessment.overall_risk_score)
 
+  // 3. EXACT 7-COMPONENT WEIGHTED RISK FORMULA
+  // Total = 100 pts: ML 25%, Anomaly 20%, Behaviour 20%, Device 10%, Location 10%, Velocity 10%, Beneficiary 5%
+  const fraudModelPts = Math.min(25, Math.max(1, Math.round(liveAssessment.sub_scores.transaction_risk * 0.25)))
+  const anomalyPts = Math.min(20, Math.max(1, Math.round(liveAssessment.sub_scores.anomaly_score * 0.20)))
+  const behaviourPts = Math.min(20, Math.max(1, Math.round(liveAssessment.sub_scores.behaviour_risk * 0.20)))
+  const devicePts = Math.min(10, Math.max(1, Math.round(liveAssessment.sub_scores.device_risk * 0.10)))
+  const locationPts = Math.min(10, Math.max(1, Math.round(liveAssessment.sub_scores.location_risk * 0.10)))
+  const velocityPts = Math.min(10, Math.max(1, Math.round(liveAssessment.sub_scores.velocity_score * 0.10)))
+  const beneficiaryPts = Math.min(5, Math.max(1, Math.round(liveAssessment.sub_scores.receiver_risk * 0.05)))
+
+  // 4. MAJOR PURCHASE BEHAVIOR DYNAMIC DERIVATION
+  const largestPurchaseDisplay = Math.max(realLargestHistoric, selectedTxnAmount)
+  const previousLargestDisplay = realPreviousLargest
+  const amountDeviationPct = previousLargestDisplay > 0
+    ? Math.round(((selectedTxnAmount - previousLargestDisplay) / previousLargestDisplay) * 100)
+    : 0
+  const amountDeviationStr = amountDeviationPct >= 0 ? `+${amountDeviationPct}%` : `${amountDeviationPct}%`
+
+  // Merchant Familiarity check from real transaction history and frequent contacts
+  const isMerchantFamiliar = (storeTransactions || []).some((t) =>
+    (t.receiverUpiId && t.receiverUpiId.toLowerCase() === selectedVpa.toLowerCase()) ||
+    (t.receiverName && t.receiverName.toLowerCase() === selectedVpa.split('@')[0]?.toLowerCase())
+  ) || (baseline.frequent_vpas || []).some((v) => v.toLowerCase() === selectedVpa.toLowerCase())
+  const merchantNameClean = selectedVpa.split('@')[0]?.replace(/[^a-zA-Z0-9]/g, ' ')?.toUpperCase() || 'MERCHANT'
+  const merchantFamiliarityStr = isMerchantFamiliar ? `Familiar (${merchantNameClean})` : `New (${merchantNameClean})`
+
+  // Dynamic Behavioural Impact based on actual deviation metrics
+  const behaviouralImpact: 'LOW' | 'MEDIUM' | 'HIGH' =
+    amountDeviationPct > 300 || selectedTxnAmount >= 200000 || liveAssessment.behaviour_metrics.deviation_percentage >= 50
+      ? 'HIGH'
+      : amountDeviationPct > 50 || selectedTxnAmount >= 50000 || liveAssessment.behaviour_metrics.deviation_percentage >= 25
+      ? 'MEDIUM'
+      : 'LOW'
+
+  // Is this a major purchase scenario? (>= ₹50,000 or significant amount deviation)
+  const isMajorPurchaseActive = selectedTxnAmount >= 50000 || liveAssessment.behaviour_metrics.is_unusual_amount || behaviouralImpact !== 'LOW'
+
+  // 5. INTERACTIVE ACTION BUTTON HANDLERS
   const handleUserFeedback = async (type: 'genuine_was_me' | 'fraud_not_me') => {
+    setFeedbackSubmitted(null)
     try {
+      // 1. Send feedback to backend API
       await fetch('/api/v1/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_feedback: type,
-          transaction_id: 'TXN-LIVE-SIM',
+          transaction_id: `TXN-SIM-${Date.now()}`,
+          amount: selectedTxnAmount,
+          receiver_vpa: selectedVpa,
+          city: selectedCity,
+          device_id: selectedDevice,
           false_positive: type === 'genuine_was_me'
         })
-      })
+      }).catch(() => null)
 
-      if (type === 'genuine_was_me') {
+      // 2. Submit to self-learning model registry in UPIGuard store
+      if (submitFeedback) {
+        submitFeedback({
+          transactionId: `TXN-SIM-${selectedTxnAmount}`,
+          amount: selectedTxnAmount,
+          receiverVpa: selectedVpa,
+          sourceApp: 'Native',
+          predictedRisk: liveAssessment.overall_risk_score,
+          predictedDecision: liveAssessment.decision,
+          actualOutcome: type === 'genuine_was_me' ? 'LEGITIMATE' : 'FRAUD',
+          feedbackSource: 'USER_CONFIRMATION',
+          userNotes: type === 'genuine_was_me'
+            ? `User verified transaction of ₹${selectedTxnAmount.toLocaleString('en-IN')} in ${selectedCity} as authorized.`
+            : `User flagged transaction of ₹${selectedTxnAmount.toLocaleString('en-IN')} to ${selectedVpa} as unauthorized.`
+        })
+      }
+
+      // 3. If fraud was reported: create active fraud alert in the system
+      if (type === 'fraud_not_me') {
+        useUPIGuardStore.setState((s) => ({
+          alerts: [
+            {
+              id: `alt_${Date.now()}`,
+              alertId: `ALT-${Math.floor(1000 + Math.random() * 9000)}`,
+              severity: 'CRITICAL',
+              title: `Unauthorized Payment Flagged: ₹${selectedTxnAmount.toLocaleString('en-IN')}`,
+              description: `Transaction attempt to ${selectedVpa} from ${selectedCity} (${selectedDevice}) reported as NOT ME by account holder.`,
+              transactionId: `TXN-SIM-${Date.now()}`,
+              amount: selectedTxnAmount,
+              userId: 'demo@upishield.ai',
+              createdAt: new Date().toISOString(),
+              status: 'OPEN'
+            },
+            ...s.alerts
+          ]
+        }))
+
+        // Tighten adaptive threshold (-5.0 pts)
         setBaseline((prev) => ({
           ...prev,
-          false_positive_count: prev.false_positive_count + 1
+          recent_fraud_count: (prev.recent_fraud_count || 0) + 1
         }))
-        setFeedbackSubmitted('Confirmed as Genuine. Your adaptive safety threshold has been tuned to prevent false alarms (+2.5 pts bonus).')
+        setFeedbackSubmitted(
+          'Confirmed as Suspicious: Threat registered. Protective thresholds tightened (-5.0 pts) and incident logged in Fraud Alerts.'
+        )
       } else {
+        // Genuine payment: Relax adaptive threshold (+2.5 pts bonus)
         setBaseline((prev) => ({
           ...prev,
-          recent_fraud_count: prev.recent_fraud_count + 1
+          false_positive_count: (prev.false_positive_count || 0) + 1
         }))
-        setFeedbackSubmitted('Confirmed as Suspicious. Threat signature registered and protective thresholds tightened (-5.0 pts).')
+        setFeedbackSubmitted(
+          'Confirmed as Genuine: Transaction authorized. Feedback saved in AI dataset; adaptive barrier relaxed (+2.5 pts) to prevent future false alarms.'
+        )
       }
     } catch {
       setFeedbackSubmitted('Feedback registered in local intelligence cache.')
@@ -118,23 +272,11 @@ export default function UserRiskProfilePage() {
     return 'text-[#b8f55e] bg-[#b8f55e]/15 border-[#b8f55e]/30'
   }
 
-  // Phase 4 & Feature 1: Exact 7-component formula weights
-  // Total = 100 pts: ML 25%, Anomaly 20%, Behaviour 20%, Device 10%, Location 10%, Velocity 10%, Beneficiary 5%
-  const fraudModelPts = Math.min(25, Math.round(liveAssessment.sub_scores.transaction_risk * 0.25))
-  const anomalyPts = Math.min(20, Math.round(liveAssessment.sub_scores.anomaly_score * 0.20))
-  const behaviourPts = Math.min(20, Math.round(liveAssessment.sub_scores.behaviour_risk * 0.20))
-  const devicePts = Math.min(10, Math.round(liveAssessment.sub_scores.device_risk * 0.10))
-  const locationPts = Math.min(10, Math.round(liveAssessment.sub_scores.location_risk * 0.10))
-  const velocityPts = Math.min(10, Math.round(liveAssessment.sub_scores.velocity_score * 0.10))
-  const beneficiaryPts = Math.min(5, Math.round(liveAssessment.sub_scores.receiver_risk * 0.05))
-
-  // Feature 5: Dynamically synthesized Natural-Language explanation
+  // Dynamic Natural-Language explanation derived from actual inputs & baseline
   const isHighOrMedium = liveAssessment.overall_risk_score >= 35
-  const isCarOrLargeSpike = selectedTxnAmount >= 50000
-
   const dynamicNaturalLanguageExplanation = isHighOrMedium
-    ? `This payment received an ${categoryInfo.subLevel.toUpperCase()} score (${liveAssessment.overall_risk_score}/100) because its amount (₹${selectedTxnAmount.toLocaleString('en-IN')}) is ${(selectedTxnAmount / baseline.avg_ticket_size).toFixed(1)}× higher than your historical baseline (₹${baseline.avg_ticket_size}), it was initiated from a device (${selectedDevice}) not previously registered on your account, and the beneficiary (${selectedVpa}) has no verified trust history. Your current location (${selectedCity}) is also outside your usual payment geofence. However, no prior global chargebacks were registered against this target.`
-    : `This transaction received a LOW RISK score (${liveAssessment.overall_risk_score}/100, Trusted) because the transaction amount (₹${selectedTxnAmount.toLocaleString('en-IN')}) is within your normal historical spending range (₹200–₹4,200), initiated from your enrolled device (${selectedDevice}) inside your primary verified geofence (${selectedCity}) during normal active hours (08:00–23:00 IST).`
+    ? `This payment received an ${categoryInfo.subLevel.toUpperCase()} score (${liveAssessment.overall_risk_score}/100, Action: ${categoryInfo.recommendedAction}) because its amount (₹${selectedTxnAmount.toLocaleString('en-IN')}) is ${(selectedTxnAmount / baseline.avg_ticket_size).toFixed(1)}× higher than your historical baseline (₹${baseline.avg_ticket_size.toLocaleString('en-IN')}), initiated from a device (${selectedDevice}) ${baseline.registered_devices.includes(selectedDevice) ? 'registered in hardware keystore' : 'not previously seen on your account'}, and beneficiary (${selectedVpa}) ${isMerchantFamiliar ? 'has verified prior trust' : 'is a new encounter'}. Location (${selectedCity}) is ${baseline.frequent_cities.includes(selectedCity) ? 'inside verified cluster' : 'outside regular geofence'}.`
+    : `This transaction received a LOW RISK score (${liveAssessment.overall_risk_score}/100, Trusted) because the transaction amount (₹${selectedTxnAmount.toLocaleString('en-IN')}) is within your historical spending baseline (₹200–₹${(computedAvgTicket * 3).toLocaleString('en-IN')}), initiated from an enrolled device (${selectedDevice}) within your verified geofence (${selectedCity}) during regular active hours (${computedActiveWindow}).`
 
   return (
     <UserLayout>
@@ -144,10 +286,10 @@ export default function UserRiskProfilePage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#b8f55e]/25 bg-[#b8f55e]/10 px-3.5 py-1 text-xs font-semibold text-[#b8f55e] mb-2">
               <Cpu className="size-3.5" />
-              <span>DYNAMIC MULTI-MODEL AI RISK & EXPLAINABILITY</span>
+              <span>DYNAMIC MULTI-MODEL AI RISK &amp; EXPLAINABILITY</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              AI Risk & Explainability Engine
+              AI Risk &amp; Explainability Engine
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-[#8fa9a6]">
               Feature-level SHAP attributions, behavioral baseline deviations, and adaptive decision transparency.
@@ -159,12 +301,12 @@ export default function UserRiskProfilePage() {
               href="/dashboard/pay"
               className="inline-flex items-center gap-2 rounded-xl bg-[#b8f55e] px-4 py-2.5 text-xs font-bold text-[#09110f] hover:bg-[#c9f97f] transition shadow-lg shadow-[#b8f55e]/20"
             >
-              Simulate Payment & AI Scan <ArrowUpRight className="size-3.5" />
+              Simulate Payment &amp; AI Scan <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
         </div>
 
-        {/* Tab Navigation (User requested: Risk Overview, Explainable AI, Risk Breakdown, Behaviour Profile, Risk History, Adaptive Threshold) */}
+        {/* Tab Navigation */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-white/10 pb-3">
           {[
             { id: 'overview', label: 'Risk Overview', icon: Activity },
@@ -173,7 +315,7 @@ export default function UserRiskProfilePage() {
             { id: 'behaviour', label: 'Behaviour Profile', icon: Compass },
             { id: 'history', label: 'Risk History', icon: HistoryIcon },
             { id: 'threshold', label: 'Adaptive Threshold', icon: SlidersHorizontal }
-          ].map(tab => {
+          ].map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
             return (
@@ -246,9 +388,15 @@ export default function UserRiskProfilePage() {
 
                   {/* Big Score Gauge */}
                   <div className="my-8 flex items-baseline justify-center gap-3">
-                    <span className={`text-7xl sm:text-8xl font-black tracking-tight font-mono ${
-                      liveAssessment.overall_risk_score >= 61 ? 'text-rose-400' : liveAssessment.overall_risk_score >= 31 ? 'text-amber-400' : 'text-[#b8f55e]'
-                    }`}>
+                    <span
+                      className={`text-7xl sm:text-8xl font-black tracking-tight font-mono ${
+                        liveAssessment.overall_risk_score >= 61
+                          ? 'text-rose-400'
+                          : liveAssessment.overall_risk_score >= 31
+                          ? 'text-amber-400'
+                          : 'text-[#b8f55e]'
+                      }`}
+                    >
                       {liveAssessment.overall_risk_score}
                     </span>
                     <span className="text-xl sm:text-2xl font-bold text-[#8fa9a6]">/ 100</span>
@@ -262,18 +410,22 @@ export default function UserRiskProfilePage() {
                         {(liveAssessment.fraud_probability * 100).toFixed(0)}%
                       </span>
                     </div>
-                    <div className="relative h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div className="relative h-2.5 w-full rounded-full bg-white/10 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          liveAssessment.overall_risk_score >= 61 ? 'bg-rose-500' : liveAssessment.overall_risk_score >= 31 ? 'bg-amber-400' : 'bg-[#b8f55e]'
+                          liveAssessment.overall_risk_score >= 61
+                            ? 'bg-rose-500'
+                            : liveAssessment.overall_risk_score >= 31
+                            ? 'bg-amber-400'
+                            : 'bg-[#b8f55e]'
                         }`}
                         style={{ width: `${liveAssessment.overall_risk_score}%` }}
                       />
-                      {/* Threshold Pin */}
+                      {/* Adaptive Threshold Marker Pin */}
                       <div
-                        className="absolute top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_8px_#fbbf24]"
+                        className="absolute top-0 bottom-0 w-1.5 bg-amber-400 shadow-[0_0_10px_#fbbf24]"
                         style={{ left: `${liveAssessment.adaptive_threshold}%` }}
-                        title={`Adaptive Threshold: ${liveAssessment.adaptive_threshold}`}
+                        title={`Adaptive Barrier: ${liveAssessment.adaptive_threshold}`}
                       />
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-[#6f8583] pt-1 font-mono">
@@ -283,10 +435,21 @@ export default function UserRiskProfilePage() {
                       </span>
                       <span>100 (Critical)</span>
                     </div>
+                    <div className="pt-1 text-[11px] text-center font-mono">
+                      {liveAssessment.overall_risk_score < liveAssessment.adaptive_threshold ? (
+                        <span className="text-emerald-400">
+                          ✓ Below Barrier: Risk Score ({liveAssessment.overall_risk_score}) &lt; Threshold ({liveAssessment.adaptive_threshold}) → Safe for Transfer
+                        </span>
+                      ) : (
+                        <span className="text-rose-400 font-bold">
+                          ⚠ Barrier Exceeded: Risk Score ({liveAssessment.overall_risk_score}) ≥ Threshold ({liveAssessment.adaptive_threshold}) → {categoryInfo.recommendedAction}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Quick Action Confirmation */}
+                {/* Quick Action Confirmation Buttons */}
                 <div className="pt-6 border-t border-white/8 space-y-3">
                   <p className="text-xs text-[#8fa9a6]">
                     Did you perform this recent transaction simulation?
@@ -314,10 +477,10 @@ export default function UserRiskProfilePage() {
                   <div className="flex items-center justify-between border-b border-white/8 pb-4">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-[.18em] text-[#6f8583]">
-                        BEHAVIORAL PROFILE & SIMULATION
+                        BEHAVIORAL PROFILE &amp; SIMULATION
                       </span>
                       <p className="text-sm font-semibold text-white mt-0.5">
-                        Isolation Forest & Deviation Analytics
+                        Isolation Forest &amp; Deviation Analytics
                       </p>
                     </div>
                     <div className="text-right">
@@ -341,23 +504,27 @@ export default function UserRiskProfilePage() {
                       <p className="text-lg font-bold text-white font-mono mt-1">
                         ₹{baseline.avg_ticket_size.toLocaleString('en-IN')}
                       </p>
-                      <span className="text-[10px] text-[#8fa9a6]">Normal range: ₹200 – ₹4,200</span>
+                      <span className="text-[10px] text-[#8fa9a6]">
+                        Baseline: ₹200 – ₹{(baseline.avg_ticket_size * 3).toLocaleString('en-IN')}
+                      </span>
                     </div>
 
                     <div className="rounded-2xl bg-white/[.02] border border-white/5 p-4">
                       <span className="text-[10px] font-bold uppercase text-[#6f8583]">ACTIVE WINDOW</span>
                       <p className="text-lg font-bold text-white font-mono mt-1">
-                        08:00 – 23:00 IST
+                        {computedActiveWindow}
                       </p>
-                      <span className="text-[10px] text-emerald-400">Normal daylight hours</span>
+                      <span className="text-[10px] text-emerald-400">Regular transaction hours</span>
                     </div>
 
                     <div className="rounded-2xl bg-white/[.02] border border-white/5 p-4">
                       <span className="text-[10px] font-bold uppercase text-[#6f8583]">ENROLLED DEVICES</span>
                       <p className="text-lg font-bold text-[#b8f55e] font-mono mt-1">
-                        {baseline.registered_devices.length} Hardware Keys
+                        {enrolledDevicesList.length} Hardware Keys
                       </p>
-                      <span className="text-[10px] text-[#8fa9a6]">DEV-A782, DEV-MAC-B88</span>
+                      <span className="text-[10px] text-[#8fa9a6] truncate block">
+                        {enrolledDevicesList.slice(0, 2).join(', ')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -403,7 +570,7 @@ export default function UserRiskProfilePage() {
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-[#8fa9a6] block mb-1">Device & VPA</label>
+                      <label className="text-[10px] text-[#8fa9a6] block mb-1">Device &amp; VPA</label>
                       <select
                         value={`${selectedDevice}|${selectedVpa}`}
                         onChange={(e) => {
@@ -422,49 +589,58 @@ export default function UserRiskProfilePage() {
                   </div>
                 </div>
 
-                {/* Section 11: MAJOR PURCHASE BEHAVIOR CARD */}
-                {selectedTxnAmount >= 200000 && (
+                {/* MAJOR PURCHASE BEHAVIOR CARD (Dynamic) */}
+                {isMajorPurchaseActive && (
                   <div className="rounded-2xl bg-amber-400/[0.06] border border-amber-400/30 p-5 space-y-3">
                     <div className="flex items-center justify-between border-b border-amber-400/20 pb-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                         <Activity className="size-4" /> MAJOR PURCHASE BEHAVIOR
                       </span>
-                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300">
-                        Behavioral Impact: HIGH
+                      <span
+                        className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                          behaviouralImpact === 'HIGH'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            : behaviouralImpact === 'MEDIUM'
+                            ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}
+                      >
+                        Behavioral Impact: {behaviouralImpact}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                       <div>
                         <span className="text-[10px] text-slate-400">Largest Purchase</span>
-                        <div className="text-base font-black text-white">₹8,50,000</div>
+                        <div className="text-base font-black text-white">₹{largestPurchaseDisplay.toLocaleString('en-IN')}</div>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400">Previous Largest</span>
-                        <div className="text-base font-black text-slate-300">₹1,20,000</div>
+                        <div className="text-base font-black text-slate-300">₹{previousLargestDisplay.toLocaleString('en-IN')}</div>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400">Amount Deviation</span>
-                        <div className="text-base font-black text-amber-300">+608%</div>
+                        <div className={`text-base font-black ${amountDeviationPct > 50 ? 'text-amber-300' : 'text-emerald-400'}`}>
+                          {amountDeviationStr}
+                        </div>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400">Merchant Familiarity</span>
-                        <div className="text-base font-black text-white">New (ABC Motors)</div>
+                        <div className="text-base font-black text-white truncate">{merchantFamiliarityStr}</div>
                       </div>
                     </div>
 
                     <p className="text-xs text-amber-200/90 italic pt-1 border-t border-amber-400/10">
-                      &ldquo;This transaction is significantly larger than the user&apos;s historical transaction pattern. Additional authentication (Face/PIN + OTP) is required.&rdquo;
+                      {selectedTxnAmount >= 200000
+                        ? '“This transaction is significantly larger than your historical transaction pattern. Multi-factor verification (Biometric Face Scan + OTP) is recommended.”'
+                        : '“Transaction deviation evaluated against 30-day baseline ledger and historical spending variance.”'}
                     </p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* ======================================================== */}
-            {/* USER REQUESTED: DEDICATED EXPLAINABLE AI (XAI) SECTION   */}
-            {/* DIRECTLY BELOW THE RISK SCORE ON /dashboard/risk-profile */}
-            {/* ======================================================== */}
+            {/* DEDICATED EXPLAINABLE AI (XAI) SECTION DIRECTLY BELOW RISK SCORE */}
             <div className="rounded-3xl border border-[#b8f55e]/30 bg-[#0a1718] p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
               <div className="pointer-events-none absolute -right-24 -bottom-24 size-72 rounded-full bg-[#b8f55e]/5 blur-3xl" />
 
@@ -482,38 +658,52 @@ export default function UserRiskProfilePage() {
                 </div>
                 <button
                   onClick={() => setActiveTab('xai')}
-                  className="text-xs font-semibold text-[#b8f55e] hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-[#b8f55e] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   Open Full XAI Matrix <ArrowRight className="size-3.5" />
                 </button>
               </div>
 
-              {/* Top Summary Table (Exact user UI mockup) */}
+              {/* Top Summary Table */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div className="p-3.5 rounded-2xl bg-white/[.02] border border-white/5 space-y-1">
                   <span className="text-white/50 uppercase text-[10px] tracking-wider block">Overall Risk Score</span>
-                  <span className={`text-xl font-mono font-bold ${
-                    liveAssessment.overall_risk_score >= 61 ? 'text-rose-400' : liveAssessment.overall_risk_score >= 31 ? 'text-amber-400' : 'text-[#b8f55e]'
-                  }`}>
+                  <span
+                    className={`text-xl font-mono font-bold ${
+                      liveAssessment.overall_risk_score >= 61
+                        ? 'text-rose-400'
+                        : liveAssessment.overall_risk_score >= 31
+                        ? 'text-amber-400'
+                        : 'text-[#b8f55e]'
+                    }`}
+                  >
                     {liveAssessment.overall_risk_score} / 100
                   </span>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white/[.02] border border-white/5 space-y-1">
                   <span className="text-white/50 uppercase text-[10px] tracking-wider block">Risk Level</span>
-                  <span className={`text-xl font-bold uppercase ${
-                    liveAssessment.risk_level === 'CRITICAL' ? 'text-rose-400' : liveAssessment.risk_level === 'HIGH' ? 'text-orange-400' : liveAssessment.risk_level === 'MEDIUM' ? 'text-amber-400' : 'text-[#b8f55e]'
-                  }`}>
+                  <span
+                    className={`text-xl font-bold uppercase ${
+                      liveAssessment.risk_level === 'CRITICAL'
+                        ? 'text-rose-400'
+                        : liveAssessment.risk_level === 'HIGH'
+                        ? 'text-orange-400'
+                        : liveAssessment.risk_level === 'MEDIUM'
+                        ? 'text-amber-400'
+                        : 'text-[#b8f55e]'
+                    }`}
+                  >
                     {categoryInfo.subLevel}
                   </span>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white/[.02] border border-white/5 space-y-1">
-                  <span className="text-white/50 uppercase text-[10px] tracking-wider block">Fraud Probability</span>
+                  <span className="text-white/50 uppercase text-[10px] tracking-wider block">Fraud Probability (XGBoost)</span>
                   <span className="text-xl font-mono font-bold text-white">
                     {(liveAssessment.fraud_probability * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white/[.02] border border-white/5 space-y-1">
-                  <span className="text-white/50 uppercase text-[10px] tracking-wider block">Adaptive Threshold</span>
+                  <span className="text-white/50 uppercase text-[10px] tracking-wider block">Adaptive Barrier</span>
                   <span className="text-xl font-mono font-bold text-[#b8f55e]">
                     {liveAssessment.adaptive_threshold}
                   </span>
@@ -538,7 +728,7 @@ export default function UserRiskProfilePage() {
                         <div className="flex items-center justify-between text-white/90">
                           <span className="flex items-center gap-2">
                             <span className="size-1.5 rounded-full bg-rose-400" />
-                            Unusual Transaction Amount (₹{selectedTxnAmount})
+                            Unusual Amount (₹{selectedTxnAmount.toLocaleString('en-IN')})
                           </span>
                           <span className="font-mono font-bold text-rose-400">+{fraudModelPts} pts</span>
                         </div>
@@ -552,16 +742,16 @@ export default function UserRiskProfilePage() {
                           <span className="font-mono font-bold text-rose-400">+{behaviourPts} pts</span>
                         </div>
                       )}
-                      {selectedDevice !== 'DEV-A782' && (
+                      {!baseline.registered_devices.includes(selectedDevice) && (
                         <div className="flex items-center justify-between text-white/90">
                           <span className="flex items-center gap-2">
                             <span className="size-1.5 rounded-full bg-rose-400" />
-                            Unrecognized Hardware Signature
+                            Unrecognized Hardware Signature ({selectedDevice})
                           </span>
                           <span className="font-mono font-bold text-rose-400">+{devicePts} pts</span>
                         </div>
                       )}
-                      {selectedCity !== 'Bengaluru' && selectedCity !== 'Mysuru' && (
+                      {!baseline.frequent_cities.includes(selectedCity) && (
                         <div className="flex items-center justify-between text-white/90">
                           <span className="flex items-center gap-2">
                             <span className="size-1.5 rounded-full bg-rose-400" />
@@ -570,11 +760,11 @@ export default function UserRiskProfilePage() {
                           <span className="font-mono font-bold text-rose-400">+{locationPts} pts</span>
                         </div>
                       )}
-                      {selectedVpa.includes('new') || selectedVpa.includes('scam') ? (
+                      {!isMerchantFamiliar || selectedVpa.includes('scam') ? (
                         <div className="flex items-center justify-between text-white/90">
                           <span className="flex items-center gap-2">
                             <span className="size-1.5 rounded-full bg-rose-400" />
-                            New / Unverified Beneficiary Encounter
+                            {selectedVpa.includes('scam') ? 'Blacklisted Scam VPA Hit' : 'New / Unverified Beneficiary'}
                           </span>
                           <span className="font-mono font-bold text-rose-400">+{beneficiaryPts} pts</span>
                         </div>
@@ -598,13 +788,15 @@ export default function UserRiskProfilePage() {
                   </div>
 
                   <div className="space-y-2.5 text-xs text-white/90">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Check className="size-3.5 text-emerald-400 shrink-0" />
-                        Device Keystore &amp; Fingerprint Verified
-                      </span>
-                      <span className="font-mono font-bold text-emerald-400">-3 pts</span>
-                    </div>
+                    {baseline.registered_devices.includes(selectedDevice) && (
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <Check className="size-3.5 text-emerald-400 shrink-0" />
+                          Device Keystore &amp; Fingerprint Verified
+                        </span>
+                        <span className="font-mono font-bold text-emerald-400">-3 pts</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Check className="size-3.5 text-emerald-400 shrink-0" />
@@ -612,16 +804,16 @@ export default function UserRiskProfilePage() {
                       </span>
                       <span className="font-mono font-bold text-emerald-400">-2 pts</span>
                     </div>
-                    {selectedCity === 'Bengaluru' && (
+                    {baseline.frequent_cities.includes(selectedCity) && (
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <Check className="size-3.5 text-emerald-400 shrink-0" />
-                          Authenticated Within Primary Geofence
+                          Authenticated Within Primary Geofence ({selectedCity})
                         </span>
                         <span className="font-mono font-bold text-emerald-400">-4 pts</span>
                       </div>
                     )}
-                    {selectedVpa === 'nature.basket@icici' && (
+                    {isMerchantFamiliar && (
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <Check className="size-3.5 text-emerald-400 shrink-0" />
@@ -641,7 +833,7 @@ export default function UserRiskProfilePage() {
                 </div>
               </div>
 
-              {/* Natural-Language AI Explanation Box (Feature 5) */}
+              {/* Natural-Language AI Explanation Box */}
               <div className="p-4 rounded-2xl bg-[#071014] border border-white/10 space-y-2">
                 <span className="text-[11px] uppercase font-bold tracking-wider text-[#b8f55e] flex items-center gap-1.5">
                   <Cpu className="size-3.5" />
@@ -695,9 +887,11 @@ export default function UserRiskProfilePage() {
                   <div key={sub.label} className="rounded-2xl border border-white/10 bg-[#0a1718] p-4 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-white">{sub.label}</span>
-                      <span className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
-                        sub.score >= 60 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-                      }`}>
+                      <span
+                        className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
+                          sub.score >= 60 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
+                        }`}
+                      >
                         {sub.score}/100
                       </span>
                     </div>
@@ -718,13 +912,12 @@ export default function UserRiskProfilePage() {
         )}
 
         {/* ======================================================== */}
-        {/* TAB 2: EXPLAINABLE AI (XAI) DEEP-DIVE (ALL 5 FEATURES)   */}
+        {/* TAB 2: EXPLAINABLE AI (XAI) DEEP-DIVE                    */}
         {/* ======================================================== */}
         {activeTab === 'xai' && (
           <div className="space-y-6">
-            {/* Feature 4: Separate ML Explanation from Overall Risk Score Explanation */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Card A: Supervised ML Model Explanation (Why ML predicted fraud) */}
+              {/* Card A: Supervised ML Model Explanation */}
               <div className="rounded-3xl border border-white/10 bg-[#0a1718] p-6 space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div>
@@ -742,25 +935,41 @@ export default function UserRiskProfilePage() {
                   Explains specifically <em>why the machine learning model predicted fraud</em> using SHAP feature gradients independent of heuristic rules.
                 </p>
 
-                {/* Feature 3: SHAP Feature Impact Bars */}
+                {/* SHAP Feature Impact Bars */}
                 <div className="space-y-3 pt-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 block">
                     Factors Increasing Fraud Probability
                   </span>
 
                   {[
-                    { name: 'Transaction Amount Spike', impact: selectedTxnAmount >= 14500 ? '+28%' : '+8%', width: selectedTxnAmount >= 14500 ? '78%' : '25%' },
-                    { name: 'New Hardware Device Signature', impact: selectedDevice !== 'DEV-A782' ? '+22%' : '+4%', width: selectedDevice !== 'DEV-A782' ? '65%' : '15%' },
-                    { name: 'Geographic Location Change', impact: selectedCity !== 'Bengaluru' ? '+18%' : '+3%', width: selectedCity !== 'Bengaluru' ? '55%' : '12%' },
-                    { name: 'Unverified / First-Time Beneficiary', impact: selectedVpa.includes('new') || selectedVpa.includes('scam') ? '+15%' : '+2%', width: selectedVpa.includes('new') || selectedVpa.includes('scam') ? '45%' : '10%' }
-                  ].map(f => (
+                    {
+                      name: 'Transaction Amount Spike',
+                      impact: selectedTxnAmount >= computedAvgTicket * 5 ? '+32%' : selectedTxnAmount >= computedAvgTicket * 2 ? '+18%' : '+3%',
+                      width: selectedTxnAmount >= computedAvgTicket * 5 ? '85%' : selectedTxnAmount >= computedAvgTicket * 2 ? '50%' : '15%'
+                    },
+                    {
+                      name: 'Hardware Device Signature',
+                      impact: !baseline.registered_devices.includes(selectedDevice) ? '+26%' : '+2%',
+                      width: !baseline.registered_devices.includes(selectedDevice) ? '70%' : '10%'
+                    },
+                    {
+                      name: 'Geographic Location Change',
+                      impact: !baseline.frequent_cities.includes(selectedCity) ? '+21%' : '+2%',
+                      width: !baseline.frequent_cities.includes(selectedCity) ? '60%' : '8%'
+                    },
+                    {
+                      name: 'Beneficiary / VPA Reputation',
+                      impact: selectedVpa.includes('scam') ? '+45%' : !isMerchantFamiliar ? '+16%' : '+2%',
+                      width: selectedVpa.includes('scam') ? '92%' : !isMerchantFamiliar ? '48%' : '10%'
+                    }
+                  ].map((f) => (
                     <div key={f.name} className="space-y-1 text-xs">
                       <div className="flex justify-between text-white/80">
                         <span>{f.name}</span>
                         <span className="font-mono text-rose-400 font-bold">{f.impact}</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-rose-500 rounded-full" style={{ width: f.width }} />
+                        <div className="h-full bg-rose-500 rounded-full transition-all duration-300" style={{ width: f.width }} />
                       </div>
                     </div>
                   ))}
@@ -771,21 +980,21 @@ export default function UserRiskProfilePage() {
                   {[
                     { name: 'Enrolled IP & Device Keystore', impact: '-9%', width: '30%' },
                     { name: 'Normal Historical Transaction Velocity', impact: '-8%', width: '26%' }
-                  ].map(f => (
+                  ].map((f) => (
                     <div key={f.name} className="space-y-1 text-xs">
                       <div className="flex justify-between text-white/80">
                         <span>{f.name}</span>
                         <span className="font-mono text-emerald-400 font-bold">{f.impact}</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-400 rounded-full" style={{ width: f.width }} />
+                        <div className="h-full bg-emerald-400 rounded-full transition-all duration-300" style={{ width: f.width }} />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Card B: Risk Engine Explanation (Why the final 0–100 score was produced) */}
+              {/* Card B: Risk Engine Explanation */}
               <div className="rounded-3xl border border-white/10 bg-[#0a1718] p-6 space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div>
@@ -794,9 +1003,15 @@ export default function UserRiskProfilePage() {
                     </span>
                     <h3 className="text-base font-bold text-white mt-0.5">Final Risk Score Contributions</h3>
                   </div>
-                  <span className={`text-2xl font-mono font-bold ${
-                    liveAssessment.overall_risk_score >= 61 ? 'text-rose-400' : liveAssessment.overall_risk_score >= 31 ? 'text-amber-400' : 'text-[#b8f55e]'
-                  }`}>
+                  <span
+                    className={`text-2xl font-mono font-bold ${
+                      liveAssessment.overall_risk_score >= 61
+                        ? 'text-rose-400'
+                        : liveAssessment.overall_risk_score >= 31
+                        ? 'text-amber-400'
+                        : 'text-[#b8f55e]'
+                    }`}
+                  >
                     {liveAssessment.overall_risk_score} / 100
                   </span>
                 </div>
@@ -805,7 +1020,7 @@ export default function UserRiskProfilePage() {
                   Explains <em>why the final 0–100 composite score was produced</em> by blending ML probabilities with behavioral, device, and isolation forest anomaly models.
                 </p>
 
-                {/* Feature 1: Exact weighted breakdown formula */}
+                {/* Weighted breakdown formula */}
                 <div className="space-y-2 pt-2 text-xs">
                   <div className="p-2.5 rounded-xl bg-white/[.02] border border-white/5 flex items-center justify-between">
                     <div>
@@ -873,7 +1088,7 @@ export default function UserRiskProfilePage() {
               </div>
             </div>
 
-            {/* Feature 2: “Why this score?” Card */}
+            {/* “Why this score?” Card */}
             <div className="rounded-3xl border border-white/10 bg-[#0a1718] p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
@@ -887,22 +1102,26 @@ export default function UserRiskProfilePage() {
                 <div className="space-y-3 text-xs">
                   <div className="space-y-1.5 text-amber-200">
                     <p className="flex items-center gap-2 text-rose-400 font-semibold">
-                      <AlertTriangle className="size-3.5" /> Amount is {(selectedTxnAmount / baseline.avg_ticket_size).toFixed(1)}× higher than normal baseline (₹{baseline.avg_ticket_size})
+                      <AlertTriangle className="size-3.5" /> Amount (₹{selectedTxnAmount.toLocaleString('en-IN')}) is {(selectedTxnAmount / baseline.avg_ticket_size).toFixed(1)}× higher than normal baseline (₹{baseline.avg_ticket_size.toLocaleString('en-IN')})
                     </p>
                     <p className="flex items-center gap-2 text-rose-400 font-semibold">
-                      <AlertTriangle className="size-3.5" /> First transaction to beneficiary {selectedVpa}
+                      <AlertTriangle className="size-3.5" /> Beneficiary encounter: {merchantFamiliarityStr}
                     </p>
-                    <p className="flex items-center gap-2 text-rose-400 font-semibold">
-                      <AlertTriangle className="size-3.5" /> New device detected ({selectedDevice})
-                    </p>
-                    <p className="flex items-center gap-2 text-rose-400 font-semibold">
-                      <AlertTriangle className="size-3.5" /> Transaction location is outside frequent home geofence ({selectedCity})
-                    </p>
+                    {!baseline.registered_devices.includes(selectedDevice) && (
+                      <p className="flex items-center gap-2 text-rose-400 font-semibold">
+                        <AlertTriangle className="size-3.5" /> Unregistered hardware signature ({selectedDevice})
+                      </p>
+                    )}
+                    {!baseline.frequent_cities.includes(selectedCity) && (
+                      <p className="flex items-center gap-2 text-rose-400 font-semibold">
+                        <AlertTriangle className="size-3.5" /> Location is outside verified home cluster ({selectedCity})
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-2 border-t border-white/10 space-y-1 text-emerald-300">
                     <p className="flex items-center gap-2">
-                      <Check className="size-3.5 text-emerald-400" /> No fraud reports registered against beneficiary VPA
+                      <Check className="size-3.5 text-emerald-400" /> No chargeback history against account profile
                     </p>
                     <p className="flex items-center gap-2">
                       <Check className="size-3.5 text-emerald-400" /> Transaction velocity is nominal with zero burst rate
@@ -915,19 +1134,19 @@ export default function UserRiskProfilePage() {
                     Why Low Risk? (Trusted Activity)
                   </p>
                   <p className="flex items-center gap-2">
-                    <Check className="size-3.5 text-emerald-400" /> Amount (₹{selectedTxnAmount}) is within your normal ₹200–₹4,200 spending range
+                    <Check className="size-3.5 text-emerald-400" /> Amount (₹{selectedTxnAmount.toLocaleString('en-IN')}) is within your historical baseline (₹200–₹{(computedAvgTicket * 3).toLocaleString('en-IN')})
                   </p>
                   <p className="flex items-center gap-2">
-                    <Check className="size-3.5 text-emerald-400" /> Payment originated from your usual location (Bengaluru Home Geofence)
+                    <Check className="size-3.5 text-emerald-400" /> Payment originated from verified cluster ({selectedCity})
                   </p>
                   <p className="flex items-center gap-2">
                     <Check className="size-3.5 text-emerald-400" /> Beneficiary is trusted with established payment frequency
                   </p>
                   <p className="flex items-center gap-2">
-                    <Check className="size-3.5 text-emerald-400" /> Current device is recognized (DEV-A782 Hardware Key)
+                    <Check className="size-3.5 text-emerald-400" /> Device recognized ({selectedDevice} Hardware Key)
                   </p>
                   <p className="flex items-center gap-2">
-                    <Check className="size-3.5 text-emerald-400" /> Transaction occurred during normal daylight active hours (08:00 - 23:00)
+                    <Check className="size-3.5 text-emerald-400" /> Transaction occurred during normal active hours ({computedActiveWindow})
                   </p>
                   <p className="flex items-center gap-2">
                     <Check className="size-3.5 text-emerald-400" /> No abnormal transaction velocity detected
@@ -974,19 +1193,21 @@ export default function UserRiskProfilePage() {
                 <div className="space-y-2 text-xs text-white/80">
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Average Ticket</span>
-                    <span className="font-mono font-bold text-white">₹1,450</span>
+                    <span className="font-mono font-bold text-white">₹{computedAvgTicket.toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Median Ticket</span>
-                    <span className="font-mono font-bold text-white">₹900</span>
+                    <span className="font-mono font-bold text-white">
+                      ₹{(historicAmounts[Math.floor(historicAmounts.length / 2)] || 900).toLocaleString('en-IN')}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Normal Range</span>
-                    <span className="font-mono text-[#b8f55e]">₹300 – ₹5,000</span>
+                    <span className="font-mono text-[#b8f55e]">₹200 – ₹{(computedAvgTicket * 3).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span>Max Historic Spend</span>
-                    <span className="font-mono text-white">₹25,000</span>
+                    <span className="font-mono text-white">₹{realLargestHistoric.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
@@ -996,7 +1217,7 @@ export default function UserRiskProfilePage() {
                 <div className="space-y-2 text-xs text-white/80">
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Active Hours</span>
-                    <span className="font-mono font-bold text-white">08:00 – 23:00 IST</span>
+                    <span className="font-mono font-bold text-white">{computedActiveWindow}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Transactions / Day</span>
@@ -1014,11 +1235,11 @@ export default function UserRiskProfilePage() {
                 <div className="space-y-2 text-xs text-white/80">
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Primary Home City</span>
-                    <span className="font-bold text-white">Bengaluru (84%)</span>
+                    <span className="font-bold text-white">{baseline.frequent_cities[0] || 'Bengaluru'} (84%)</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-white/5">
                     <span>Secondary City</span>
-                    <span className="font-bold text-white">Mysuru (12%)</span>
+                    <span className="font-bold text-white">{baseline.frequent_cities[1] || 'Mysuru'} (12%)</span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span>Max Ground Speed</span>
@@ -1041,28 +1262,33 @@ export default function UserRiskProfilePage() {
             </p>
 
             <div className="space-y-2 pt-2">
-              {[
-                { id: 'TXN-9021', date: 'Today, 10:20 AM', amount: '₹850', receiver: 'nature.basket@icici', score: 12, level: 'Trusted', status: 'ALLOW' },
-                { id: 'TXN-8984', date: 'Yesterday, 04:15 PM', amount: '₹2,400', receiver: 'coffee.day@hdfc', score: 18, level: 'Low Risk', status: 'ALLOW' },
-                { id: 'TXN-8820', date: '3 days ago', amount: '₹18,500', receiver: 'electronic.city@axis', score: 64, level: 'Elevated Risk', status: 'VERIFIED_BY_USER' },
-                { id: 'TXN-8712', date: '5 days ago', amount: '₹48,500', receiver: 'scammer.refund@okaxis', score: 96, level: 'Critical', status: 'BLOCKED' }
-              ].map(item => (
-                <div key={item.id} className="p-3.5 rounded-xl border border-white/5 bg-white/[.02] flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-mono font-bold text-white">{item.id}</span>
-                    <span className="text-white/40 ml-2">· {item.date}</span>
-                    <p className="text-white/60 mt-0.5">{item.receiver} ({item.amount})</p>
+              {(storeTransactions && storeTransactions.length > 0 ? storeTransactions.slice(0, 6) : [
+                { id: 'TXN-9021', transactionId: 'TXN-9021', timestamps: { settled: new Date().toISOString() }, amount: 850, receiverName: 'nature.basket@icici', receiverUpiId: 'nature.basket@icici', riskScore: 12, riskLevel: 'LOW', riskDecision: 'ALLOW' as const },
+                { id: 'TXN-8984', transactionId: 'TXN-8984', timestamps: { settled: new Date(Date.now() - 86400000).toISOString() }, amount: 2400, receiverName: 'coffee.day@hdfc', receiverUpiId: 'coffee.day@hdfc', riskScore: 18, riskLevel: 'LOW', riskDecision: 'ALLOW' as const },
+                { id: 'TXN-8820', transactionId: 'TXN-8820', timestamps: { settled: new Date(Date.now() - 259200000).toISOString() }, amount: 18500, receiverName: 'electronic.city@axis', receiverUpiId: 'electronic.city@axis', riskScore: 64, riskLevel: 'HIGH', riskDecision: 'VERIFY' as const },
+                { id: 'TXN-8712', transactionId: 'TXN-8712', timestamps: { settled: new Date(Date.now() - 432000000).toISOString() }, amount: 48500, receiverName: 'scammer.refund@okaxis', receiverUpiId: 'scammer.refund@okaxis', riskScore: 96, riskLevel: 'CRITICAL', riskDecision: 'BLOCK' as const }
+              ]).map((item: any) => {
+                const score = item.riskScore || 12
+                return (
+                  <div key={item.transactionId || item.id} className="p-3.5 rounded-xl border border-white/5 bg-white/[.02] flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-mono font-bold text-white">{item.transactionId || item.id}</span>
+                      <span className="text-white/40 ml-2">· {new Date(item.timestamps?.settled || item.timestamps?.created || item.createdAt || Date.now()).toLocaleDateString()}</span>
+                      <p className="text-white/60 mt-0.5">{item.receiverName || item.receiverUpiId} (₹{Number(item.amount).toLocaleString('en-IN')})</p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`font-mono font-bold ${
+                          score >= 61 ? 'text-rose-400' : score >= 31 ? 'text-amber-400' : 'text-[#b8f55e]'
+                        }`}
+                      >
+                        {score}/100
+                      </span>
+                      <span className="text-[10px] text-white/50 block">{item.riskDecision || item.status || 'SETTLED'}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`font-mono font-bold ${
-                      item.score >= 61 ? 'text-rose-400' : item.score >= 31 ? 'text-amber-400' : 'text-[#b8f55e]'
-                    }`}>
-                      {item.score}/100
-                    </span>
-                    <span className="text-[10px] text-white/50 block">{item.status}</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -1085,13 +1311,13 @@ export default function UserRiskProfilePage() {
               </div>
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
                 <span className="text-emerald-400">False-Positive Bonus</span>
-                <span className="text-2xl font-mono font-bold text-emerald-400 block">+{baseline.false_positive_count * 2.5} pts</span>
-                <span className="text-[10px] text-emerald-300/80">{baseline.false_positive_count} confirmed genuine payments</span>
+                <span className="text-2xl font-mono font-bold text-emerald-400 block">+{((baseline.false_positive_count || 0) * 2.5).toFixed(1)} pts</span>
+                <span className="text-[10px] text-emerald-300/80">{baseline.false_positive_count || 0} confirmed genuine payments</span>
               </div>
               <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-1">
                 <span className="text-rose-400">Recent Fraud Tightening</span>
-                <span className="text-2xl font-mono font-bold text-rose-400 block">-{baseline.recent_fraud_count * 5.0} pts</span>
-                <span className="text-[10px] text-rose-300/80">{baseline.recent_fraud_count} confirmed fraud incidents</span>
+                <span className="text-2xl font-mono font-bold text-rose-400 block">-{((baseline.recent_fraud_count || 0) * 5.0).toFixed(1)} pts</span>
+                <span className="text-[10px] text-rose-300/80">{baseline.recent_fraud_count || 0} confirmed fraud incidents</span>
               </div>
             </div>
           </div>
