@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { ReactNode } from 'react'
 
 interface MotionTextProps {
@@ -39,7 +39,7 @@ export function MotionWordReveal({
 }) {
   const words = text.split(' ')
 
-  const container = {
+  const container: Variants = {
     hidden: { opacity: 0 },
     visible: (i = 1) => ({
       opacity: 1,
@@ -47,7 +47,7 @@ export function MotionWordReveal({
     }),
   }
 
-  const child = {
+  const child: Variants = {
     visible: {
       opacity: 1,
       y: 0,
@@ -94,7 +94,17 @@ export function MotionWordReveal({
 }
 
 // Animated Pill Badge
-export function MotionBadge({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function MotionBadge({
+  children,
+  text,
+  variant,
+  className = ''
+}: {
+  children?: ReactNode
+  text?: string
+  variant?: string
+  className?: string
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9, y: 6 }}
@@ -103,7 +113,7 @@ export function MotionBadge({ children, className = '' }: { children: ReactNode;
       whileHover={{ scale: 1.03 }}
       className={`inline-flex items-center gap-2 ${className}`}
     >
-      {children}
+      {text ? <span>{text}</span> : children}
     </motion.div>
   )
 }

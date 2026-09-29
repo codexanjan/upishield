@@ -17,10 +17,42 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
 
+function mapSimulationTxnToTableRow(simTxn: any) {
+  const isSuspicious = (simTxn.riskScore && simTxn.riskScore >= 60) || simTxn.riskLevel === 'HIGH' || simTxn.riskLevel === 'CRITICAL' || simTxn.flag_status === 'Suspicious'
+  const isReview = (simTxn.riskScore && simTxn.riskScore >= 30 && simTxn.riskScore < 60) || simTxn.flag_status === 'Review'
+  const flag_status = isSuspicious ? 'Suspicious' : isReview ? 'Review' : 'Normal'
+  const reasons: string[] = []
+  if (simTxn.xaiReason) reasons.push(simTxn.xaiReason)
+  if (Array.isArray(simTxn.factors)) reasons.push(...simTxn.factors)
+  if (Array.isArray(simTxn.flag_reasons)) reasons.push(...simTxn.flag_reasons)
+  if (reasons.length === 0 && isSuspicious) {
+    reasons.push('Elevated AI risk indicator detected')
+  }
+
+  return {
+    id: simTxn.transactionId || simTxn.id || `sim-${Date.now()}`,
+    transaction_reference: simTxn.transactionId || simTxn.transaction_reference || `TXN-${Math.floor(10000 + Math.random() * 90000)}`,
+    transaction_type: simTxn.transaction_type || 'UPI',
+    merchant: simTxn.receiverName || simTxn.merchant || 'UPI Transfer',
+    payment_method: simTxn.payment_method || 'UPI',
+    amount: Number(simTxn.amount) || 0,
+    status: simTxn.status === 'SETTLED' ? 'Completed' : simTxn.status === 'BLOCKED' ? 'Blocked' : simTxn.status || 'Completed',
+    flag_status,
+    flag_reasons: reasons,
+    transaction_date: simTxn.timestamps?.settled || simTxn.timestamps?.created || simTxn.transaction_date || new Date().toISOString(),
+    upi_details: {
+      receiver_name: simTxn.receiverName || simTxn.merchant,
+      receiver_upi: simTxn.receiverUpiId || simTxn.upi_details?.receiver_upi || 'receiver@upi'
+    }
+  }
+}
+
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([])
+  const storeTransactions = useUPIGuardStore((s) => s.transactions)
+  const [apiTransactions, setApiTransactions] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [flagFilter, setFlagFilter] = useState('All')
@@ -32,10 +64,10 @@ export default function TransactionsPage() {
       try {
         const data = await apiRequest('/transactions?limit=100')
         if (Array.isArray(data) && data.length > 0) {
-          setTransactions(data)
+          setApiTransactions(data)
         } else {
           // Default initial transactions
-          setTransactions([
+          setApiTransactions([
             {
               id: 1,
               transaction_reference: 'TXN-2026-A101',
@@ -95,7 +127,30 @@ export default function TransactionsPage() {
     fetchTxns()
   }, [])
 
-  const filtered = (transactions || []).filter((t) => {
+  // Merge store transactions and api transactions (dedup by transaction_reference)
+  const mappedStore = (storeTransactions || []).map(mapSimulationTxnToTableRow)
+  const seenRefs = new Set<string>()
+  const mergedTransactions: any[] = []
+
+  // Add store transactions first (most recent Send UPI transactions)
+  mappedStore.forEach((tx) => {
+    const ref = tx.transaction_reference || String(tx.id)
+    if (!seenRefs.has(ref)) {
+      seenRefs.add(ref)
+      mergedTransactions.push(tx)
+    }
+  })
+
+  // Add API transactions
+  ;(apiTransactions || []).forEach((tx) => {
+    const ref = tx.transaction_reference || String(tx.id)
+    if (!seenRefs.has(ref)) {
+      seenRefs.add(ref)
+      mergedTransactions.push(tx)
+    }
+  })
+
+  const filtered = (mergedTransactions || []).filter((t) => {
     const matchesSearch =
       t.merchant?.toLowerCase().includes(search.toLowerCase()) ||
       t.transaction_reference?.toLowerCase().includes(search.toLowerCase())

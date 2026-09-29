@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ShieldCheck, Lock, Mail, User, Phone, ArrowUpRight, ArrowLeft, Check, Sparkles } from 'lucide-react'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, saveRegisteredUser } from '@/lib/store'
 import { apiRequest } from '@/lib/api'
 
 export default function RegisterPage() {
@@ -23,6 +23,14 @@ export default function RegisterPage() {
     e.preventDefault()
     setError(null)
 
+    if (!name.trim()) {
+      setError('Please enter your full name')
+      return
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address')
+      return
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -39,44 +47,44 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
+      // 1. Save locally with password hashed (zero plaintext storage)
+      const saved = await saveRegisteredUser({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        mobile: mobile.trim() || '+91 98000 00000',
+        password,
+        role: 'user'
+      })
+
+      // 2. Also register via API
       const data = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          name,
-          email,
-          mobile,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          mobile: mobile.trim(),
           password,
           confirm_password: confirmPassword,
           accept_terms: acceptTerms
         }),
       }).catch(() => null)
 
+      const token = data?.access_token || `token-${Date.now()}-user`
       setUser(
         {
-          id: data?.user_id || data?.user?.id || Date.now(),
+          id: data?.user_id || saved.id,
           name: name.trim(),
           email: email.trim().toLowerCase(),
           mobile: mobile.trim(),
           role: 'user',
           status: 'active',
+          primary_city: 'Bengaluru'
         },
-        data?.access_token || 'demo-jwt-token'
+        token
       )
       router.push('/dashboard')
     } catch (err: any) {
-      // Fallback register
-      setUser(
-        {
-          id: Date.now(),
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          mobile: mobile.trim(),
-          role: 'user',
-          status: 'active',
-        },
-        'demo-jwt-token'
-      )
-      router.push('/dashboard')
+      setError(err?.message || 'Failed to create account. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -128,9 +128,13 @@ export default function AdminAuditLogsPage() {
               className="bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-[#b8f55e]"
             >
               <option value="ALL">All Audit Actions</option>
+              <option value="Model">Model Retrain & Versions</option>
+              <option value="Feedback">Feedback & Ground Truth</option>
+              <option value="Threshold">Threshold Adaptation</option>
+              <option value="Rule">Fraud Rule Updates</option>
+              <option value="UPI">UPI Ingestion & Sources</option>
+              <option value="Prediction">Prediction Generated</option>
               <option value="Case">Case Events</option>
-              <option value="Rule">Rule Changes</option>
-              <option value="User">User Access Controls</option>
               <option value="Login">Authentication Events</option>
             </select>
           </div>

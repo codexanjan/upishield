@@ -107,30 +107,24 @@ export default function LandingPage() {
             <Link href="/docs" className="text-[#b8f55e] hover:brightness-110 transition font-semibold">API Docs</Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Link
-              href="/docs"
-              className="hidden lg:inline-flex rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[.08] transition"
-            >
-              API Docs
-            </Link>
-            <Link
-              href="/admin/dashboard"
+              href="/admin/login"
               className="rounded-xl border border-[#b8f55e]/30 bg-[#b8f55e]/10 px-3.5 py-2 text-xs font-semibold text-[#b8f55e] hover:bg-[#b8f55e]/20 transition"
             >
-              Admin Portal
+              Admin Login
             </Link>
             <Link
-              href="/dashboard"
-              className="hidden sm:inline-flex rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-xs font-medium text-white hover:bg-white/[.08] transition"
+              href="/login"
+              className="rounded-xl border border-white/12 bg-white/[.04] px-3.5 py-2 text-xs font-medium text-white hover:bg-white/[.08] transition"
             >
-              User Portal
+              User Login
             </Link>
             <Link
-              href="/dashboard/pay"
+              href="/register"
               className="rounded-xl bg-[#b8f55e] px-4 py-2 text-xs font-semibold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/20"
             >
-              Launch Vault
+              User Signup
             </Link>
           </div>
         </div>
@@ -164,18 +158,30 @@ export default function LandingPage() {
               </p>
             </MotionFadeUp>
 
-            <MotionFadeUp delay={0.45} className="flex flex-wrap items-center gap-4 pt-2">
+            <MotionFadeUp delay={0.45} className="flex flex-wrap items-center gap-3 pt-2">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-full bg-[#b8f55e] px-7 py-3.5 text-sm font-semibold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/25"
+                className="inline-flex items-center gap-2 rounded-full bg-[#b8f55e] px-6 py-3.5 text-sm font-semibold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/25"
               >
-                Get protected <ArrowUpRight className="size-4" />
+                User Signup <ArrowUpRight className="size-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.04] px-6 py-3.5 text-sm font-medium text-white hover:bg-white/[.08] transition"
+              >
+                User Login
+              </Link>
+              <Link
+                href="/admin/login"
+                className="inline-flex items-center gap-2 rounded-full border border-[#b8f55e]/30 bg-[#b8f55e]/10 px-5 py-3.5 text-sm font-medium text-[#b8f55e] hover:bg-[#b8f55e]/20 transition"
+              >
+                Admin Login
               </Link>
               <a
                 href="#simulator"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.04] px-7 py-3.5 text-sm font-medium text-white hover:bg-white/[.08] transition"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-3.5 text-xs text-[#8fa9a6] hover:text-white transition"
               >
-                Test Simulator
+                Test Simulator ↓
               </a>
             </MotionFadeUp>
 

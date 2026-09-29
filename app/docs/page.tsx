@@ -635,7 +635,7 @@ export default function ApiDocsPage() {
         }
       }
 
-      if (selectedEndpoint.method !== 'GET' && selectedEndpoint.method !== 'HEAD') {
+      if ((selectedEndpoint.method as string) !== 'GET' && (selectedEndpoint.method as string) !== 'HEAD') {
         options.body = requestBodyText
       }
 

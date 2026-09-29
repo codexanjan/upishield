@@ -28,41 +28,38 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Protected User Dashboard Routes (/dashboard/*)
   // Protected Admin Routes (/admin/*)
-  const isProtectedPath = pathname.startsWith('/dashboard') || (pathname.startsWith('/admin') && pathname !== '/admin/login')
-
-  if (isProtectedPath) {
-    // 1. If valid session exists, grant immediate access to both user and admin portals (Unified SSO)
-    if (session && (session.authenticated || session.role === 'admin' || session.role === 'user')) {
-      return NextResponse.next()
-    }
-
-    // 2. If user explicitly signed out, direct to sign-in page
-    if (isManualLogout) {
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    // If not authenticated, redirect to Admin Login
+    if (!session || !session.authenticated) {
       const url = request.nextUrl.clone()
-      url.pathname = pathname.startsWith('/admin') ? '/admin/login' : '/login'
+      url.pathname = '/admin/login'
       url.searchParams.set('redirect', pathname)
       return NextResponse.redirect(url)
     }
 
-    // 3. For first-time visitors clicking any feature button, auto-grant persistent demo session
-    // This completely prevents "redirect to login screen when clicking buttons"
-    const response = NextResponse.next()
-    const defaultSession = {
-      authenticated: true,
-      role: 'admin',
-      userRole: 'user',
-      email: 'demo@upishield.ai',
-      name: 'Anjan Sharma',
-      token: 'demo-unified-token'
+    // Role-based access control: Only 'admin' role can access admin portal
+    if (session.role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      url.searchParams.set('unauthorized', 'admin_required')
+      return NextResponse.redirect(url)
     }
-    response.cookies.set('upishield_session', encodeURIComponent(JSON.stringify(defaultSession)), {
-      path: '/',
-      maxAge: 31536000,
-      sameSite: 'lax'
-    })
-    return response
+
+    return NextResponse.next()
+  }
+
+  // Protected User Dashboard Routes (/dashboard/*)
+  if (pathname.startsWith('/dashboard')) {
+    // If not authenticated, redirect to User Login
+    if (!session || !session.authenticated) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    return NextResponse.next()
   }
 
   return NextResponse.next()

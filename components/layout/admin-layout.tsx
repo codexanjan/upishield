@@ -35,16 +35,25 @@ import {
   FileCode,
   Cpu,
   Share2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Gem,
+  Compass
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
 
 const adminNavItems = [
   { label: 'Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'AI Model Center', href: '/admin/models', icon: Cpu },
-  { label: 'Fraud Network Graph', href: '/admin/network-graph', icon: Share2 },
+  { label: 'AI Model Learning', href: '/admin/models', icon: Cpu },
+  { label: 'Fraud Patterns', href: '/admin/fraud-patterns', icon: ShieldAlert },
   { label: 'Adaptive Thresholds', href: '/admin/adaptive-thresholds', icon: SlidersHorizontal },
+  { label: 'UPI Integrations', href: '/admin/upi-integrations', icon: Share2 },
+  { label: 'System Monitoring', href: '/admin/system-monitoring', icon: BarChart3 },
+  { label: 'Virtual Cards', href: '/admin/cards', icon: CreditCard },
+  { label: 'Cards Simulator', href: '/admin/cards/simulator', icon: Sliders },
+  { label: 'Unified Locations', href: '/admin/locations', icon: Compass },
+  { label: 'Large Value Monitor', href: '/admin/fraud/large-transactions', icon: Gem },
+  { label: 'Fraud Network Graph', href: '/admin/network-graph', icon: Share2 },
   { label: 'Live Transactions', href: '/admin/transactions', icon: ArrowLeftRight },
   { label: 'Payment Map', href: '/admin/payment-map', icon: MapPin },
   { label: 'Fraud Map', href: '/admin/fraud-map', icon: Flame },

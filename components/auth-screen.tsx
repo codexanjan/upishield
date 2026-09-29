@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, verifyUserCredentials, verifyAdminCredentials } from '@/lib/store'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
 
@@ -36,8 +36,8 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
   const { user, admin: adminUser, setUser, setAdmin } = useAppStore()
   const credentials = admin ? DEMO_CREDENTIALS.admin : DEMO_CREDENTIALS.user
 
-  const [email, setEmail] = useState(credentials.email)
-  const [password, setPassword] = useState(credentials.password)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -63,39 +63,30 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     }
   }
 
-  // Quick Demo Login bypassing network delays
-  const handleQuickDemoLogin = () => {
+  // Quick Demo Autofill & Login using verified demo credentials
+  const handleQuickDemoLogin = async () => {
     setLoading(true)
     setError('')
-    setTimeout(() => {
-      if (admin) {
-        executeLogin(
-          {
-            id: 99,
-            name: 'Platform Administrator',
-            email: 'admin@upishield.ai',
-            role: 'admin',
-            status: 'active'
-          },
-          'demo-admin-token'
-        )
+    setEmail(credentials.email)
+    setPassword(credentials.password)
+
+    if (admin) {
+      const result = verifyAdminCredentials(credentials.email, credentials.password)
+      if (result.success && result.admin) {
+        executeLogin(result.admin, 'demo-admin-token')
       } else {
-        executeLogin(
-          {
-            id: 1,
-            name: 'Anjan Sharma',
-            email: 'demo@upishield.ai',
-            mobile: '+91 98765 43210',
-            role: 'user',
-            status: 'active',
-            primary_city: 'Bengaluru',
-            secondary_city: 'Udupi'
-          },
-          'demo-user-token'
-        )
+        setError(result.message || 'Invalid administrator credentials.')
+        setLoading(false)
       }
-      setLoading(false)
-    }, 250)
+    } else {
+      const result = await verifyUserCredentials(credentials.email, credentials.password)
+      if (result.success && result.user) {
+        executeLogin(result.user, 'demo-user-token')
+      } else {
+        setError(result.message || 'Invalid user credentials.')
+        setLoading(false)
+      }
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,52 +94,64 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     setError('')
     setLoading(true)
 
-    // Setup an abort timeout to guarantee login never hangs
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 2800)
+    const cleanEmail = email.trim().toLowerCase()
+    const cleanPassword = password
 
+    if (!cleanEmail || !cleanPassword) {
+      setError('Please provide both email and password.')
+      setLoading(false)
+      return
+    }
+
+    // 1. Try server API login first
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
       const endpoint = admin ? '/auth/admin-login' : '/auth/login'
-      const data = await apiRequest(endpoint, {
+      const response = await fetch(`/api/v1${endpoint}`, {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
         signal: controller.signal
-      }).catch(() => null)
-
+      })
       clearTimeout(timeoutId)
 
-      if (admin) {
-        executeLogin(
-          {
-            id: data?.user_id || data?.user?.id || 99,
-            name: data?.user_name || data?.user?.name || 'Platform Administrator',
-            email: email,
-            role: 'admin',
-            status: 'active'
-          },
-          data?.access_token || 'demo-admin-token'
-        )
-      } else {
-        executeLogin(
-          {
-            id: data?.user_id || data?.user?.id || 1,
-            name: data?.user_name || data?.user?.name || 'Anjan Sharma',
-            email: email,
-            mobile: '+91 98765 43210',
-            role: 'user',
-            status: 'active',
-            primary_city: 'Bengaluru',
-            secondary_city: 'Udupi'
-          },
-          data?.access_token || 'demo-user-token'
-        )
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.user) {
+          executeLogin(data.user, data.access_token || (admin ? 'demo-admin-token' : 'demo-user-token'))
+          return
+        }
+      } else if (response.status === 401 || response.status === 403) {
+        const data = await response.json().catch(() => ({}))
+        setError(data.error || (admin ? 'Invalid administrator credentials. Access restricted.' : 'Invalid email or password. Please verify your credentials.'))
+        setLoading(false)
+        return
       }
     } catch {
-      // In case of network timeout, use permitted demo session
-      handleQuickDemoLogin()
-    } finally {
-      setLoading(false)
+      // Network failure / offline: proceed to client verification below
     }
+
+    // 2. Client verification against registered users and demo credentials
+    if (admin) {
+      const result = verifyAdminCredentials(cleanEmail, cleanPassword)
+      if (result.success && result.admin) {
+        executeLogin(result.admin, 'demo-admin-token')
+        return
+      } else {
+        setError(result.message || 'Invalid administrator credentials. Access restricted.')
+      }
+    } else {
+      const result = await verifyUserCredentials(cleanEmail, cleanPassword)
+      if (result.success && result.user) {
+        executeLogin(result.user, 'demo-user-token')
+        return
+      } else {
+        setError(result.message || 'Invalid email or password. Please verify your credentials.')
+      }
+    }
+
+    setLoading(false)
   }
 
   return (
@@ -287,9 +290,6 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
               <div role="alert" className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300 flex items-center gap-2">
                 <AlertCircle className="size-4 text-rose-400 shrink-0" />
                 <span>{error}</span>
-                <button onClick={handleQuickDemoLogin} className="ml-auto underline text-[#b8f55e]">
-                  Use Demo Session
-                </button>
               </div>
             )}
 
@@ -345,19 +345,30 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
               </button>
             </form>
 
-            <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-              {admin ? (
-                <Link href="/login" className="text-[#b8f55e] hover:underline">
-                  Switch to User Portal
-                </Link>
-              ) : (
-                <Link href="/docs" className="text-slate-400 hover:text-white transition">
-                  Security Documentation
-                </Link>
+            <div className="mt-6 pt-5 border-t border-white/5 space-y-3">
+              {!admin && (
+                <div className="text-center text-xs text-slate-400">
+                  Don&apos;t have an account?{' '}
+                  <Link href="/register" className="font-semibold text-[#b8f55e] hover:underline">
+                    Create User Account (Sign Up)
+                  </Link>
+                </div>
               )}
-              <Link href="/" className="hover:text-white transition">
-                Platform Terms
-              </Link>
+
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                {admin ? (
+                  <Link href="/login" className="text-[#b8f55e] hover:underline">
+                    ← Regular User Login
+                  </Link>
+                ) : (
+                  <Link href="/admin/login" className="text-slate-400 hover:text-[#b8f55e] transition">
+                    Admin Portal Sign-In →
+                  </Link>
+                )}
+                <Link href="/" className="hover:text-white transition">
+                  Platform Home
+                </Link>
+              </div>
             </div>
           </div>
         </section>

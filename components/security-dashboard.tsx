@@ -6,6 +6,7 @@ import { Activity, AlertTriangle, ArrowUpRight, BarChart3, Bell, CircleDollarSig
 
 type SecurityDashboardProps = { admin?: boolean }
 type Row = [string, string, string]
+type StatTuple = [string, string, string, React.ComponentType<{ className?: string }>]
 
 const userNav = [['Overview', LayoutDashboard], ['Expenses', WalletCards], ['Pay & Scan', ScanLine], ['Fraud scanner', ShieldCheck], ['Reports', FileWarning]] as const
 const adminNav = [['Command center', LayoutDashboard], ['Investigations', Search], ['Live fraud feed', Activity], ['Users & transactions', Users], ['Model monitoring', BarChart3], ['Fraud network', Network]] as const
@@ -13,13 +14,27 @@ const adminNav = [['Command center', LayoutDashboard], ['Investigations', Search
 const userRows: Row[] = [['Review', 'New device sign-in', 'Just now'], ['Protected', 'Payment verified', '12 min ago'], ['Review', 'Large payment detected', 'Yesterday']]
 const adminRows: Row[] = [['97', '₹42,500 · UPI', 'Critical'], ['81', '₹18,200 · Card', 'High'], ['12', '₹1,250 · Card', 'Safe']]
 
+const adminStats: StatTuple[] = [
+  ['Total users', '18,429', '+8.4%', Users],
+  ['Transactions today', '42,812', '+12.8%', Activity],
+  ['Flagged transactions', '247', '+4.2%', AlertTriangle],
+  ['Amount at risk', '₹18.4L', '-6.1%', CircleDollarSign]
+]
+
+const userStats: StatTuple[] = [
+  ['Tracked balance', '₹48,520', '+6.2%', CircleDollarSign],
+  ['Monthly spend', '₹17,420', '-3.8%', WalletCards],
+  ['Transactions', '342', '+18.4%', Activity],
+  ['Security score', '87 / 100', 'Excellent', ShieldCheck]
+]
+
 export function SecurityDashboard({ admin = false }: SecurityDashboardProps) {
   const [active, setActive] = useState(admin ? 'Command center' : 'Overview')
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifications, setNotifications] = useState(false)
   const [customized, setCustomized] = useState(false)
   const nav = admin ? adminNav : userNav
-  const stats = admin ? [['Total users', '18,429', '+8.4%', Users], ['Transactions today', '42,812', '+12.8%', Activity], ['Flagged transactions', '247', '+4.2%', AlertTriangle], ['Amount at risk', '₹18.4L', '-6.1%', CircleDollarSign]] : [['Tracked balance', '₹48,520', '+6.2%', CircleDollarSign], ['Monthly spend', '₹17,420', '-3.8%', WalletCards], ['Transactions', '342', '+18.4%', Activity], ['Security score', '87 / 100', 'Excellent', ShieldCheck]]
+  const stats = admin ? adminStats : userStats
   const rows = admin ? adminRows : userRows
 
   return <main className="min-h-screen bg-[#071014] text-[#edf8f5]">

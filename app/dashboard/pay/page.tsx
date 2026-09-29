@@ -42,6 +42,8 @@ import {
   DynamicRiskAssessment,
   UnifiedUpiTransaction
 } from '@/lib/ai-fraud-engine'
+import { UPIGuardPaymentFlow } from '@/components/payments/upiguard-payment-flow'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 const recentPayees = [
   { name: 'Blue Tokai Coffee', upi: 'bluetokai@icici', avatar: 'BT', risk: 'Safe' },
@@ -53,6 +55,7 @@ const recentPayees = [
 
 export default function SendUpiPage() {
   const router = useRouter()
+  const [flowMode, setFlowMode] = useState<'upiguard_viva' | 'legacy_intent'>('upiguard_viva')
   const [activeTab, setActiveTab] = useState<'id' | 'recent' | 'qr'>('id')
   
   // Phase 1: Data Collection Layer
@@ -261,10 +264,28 @@ export default function SendUpiPage() {
 
     setTimeout(async () => {
       setSimulationState('completed')
+
+      // Record to universal single source of truth store
+      useUPIGuardStore.getState().addSimulationTransaction({
+        transactionId: intentData.transaction_id,
+        amount: intentData.amount,
+        merchant: intentData.receiver_name,
+        receiverName: intentData.receiver_name,
+        receiverUpiId: intentData.receiver_upi,
+        payment_method: intentData.source_app || 'UPI',
+        sourceApp: intentData.source_app,
+        note: intentData.note,
+        riskScore: riskAssessment?.overall_risk_score || 15,
+        riskLevel: riskAssessment?.risk_level || 'LOW',
+        decision: riskAssessment?.decision || 'ALLOW',
+        status: riskAssessment?.decision === 'BLOCK' ? 'BLOCKED' : 'SETTLED'
+      })
+
       try {
         await apiRequest('/transactions', {
           method: 'POST',
           body: JSON.stringify({
+            transaction_reference: intentData.transaction_id,
             transaction_type: 'UPI',
             amount: intentData.amount,
             currency: 'INR',
@@ -273,7 +294,7 @@ export default function SendUpiPage() {
             receiver_upi: intentData.receiver_upi,
             receiver_name: intentData.receiver_name,
             upi_note: intentData.note,
-            status: 'Completed',
+            status: riskAssessment?.decision === 'BLOCK' ? 'Blocked' : 'Completed',
             risk_score: riskAssessment?.overall_risk_score || 15
           })
         })
@@ -317,6 +338,39 @@ export default function SendUpiPage() {
           </MotionFadeUp>
         </div>
 
+        {/* UPIGuard AI Mode Toggle */}
+        <div className="flex rounded-2xl border border-white/10 bg-[#06101D] p-1.5 mb-6">
+          <button
+            onClick={() => setFlowMode('upiguard_viva')}
+            className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition flex items-center justify-center gap-2 ${
+              flowMode === 'upiguard_viva'
+                ? 'bg-gradient-to-r from-[#438EFF] to-[#5BD6FF] text-[#06101D] shadow-lg shadow-[#438EFF]/25'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="size-4" /> UPIGuard AI Simulator (Live Viva Demonstration)
+          </button>
+          <button
+            onClick={() => setFlowMode('legacy_intent')}
+            className={`flex-1 rounded-xl py-2.5 text-xs font-medium transition ${
+              flowMode === 'legacy_intent'
+                ? 'bg-white/10 text-white font-bold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Legacy Form Mode
+          </button>
+        </div>
+
+        {flowMode === 'upiguard_viva' ? (
+          <UPIGuardPaymentFlow
+            initialRecipientUpi={receiverUpi || 'abc@upiguard'}
+            initialAmount={amount || '5000'}
+            initialNote={note || 'Electronics Purchase'}
+            source="QR"
+          />
+        ) : (
+          <>
         {/* Tab Selector */}
         <div className="flex rounded-xl border border-white/10 bg-[#071014] p-1 mb-6">
           <button
@@ -947,6 +1001,8 @@ export default function SendUpiPage() {
               </button>
             </div>
           </motion.div>
+        )}
+        </>
         )}
       </div>
     </UserLayout>

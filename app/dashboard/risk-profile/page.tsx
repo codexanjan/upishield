@@ -382,7 +382,8 @@ export default function UserRiskProfilePage() {
                         <option value={850}>₹850 (Normal Grocery)</option>
                         <option value={1450}>₹1,450 (Baseline Average)</option>
                         <option value={18500}>₹18,500 (Elevated Spike)</option>
-                        <option value={200000}>₹2,00,000 (Car Purchase)</option>
+                        <option value={200000}>₹2,00,000 (Vehicle Advance)</option>
+                        <option value={850000}>₹8,50,000 (Car Purchase - ABC Motors)</option>
                       </select>
                     </div>
 
@@ -393,10 +394,11 @@ export default function UserRiskProfilePage() {
                         onChange={(e) => setSelectedCity(e.target.value)}
                         className="w-full bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
                       >
-                        <option value="Bengaluru">Bengaluru (Home Geofence)</option>
+                        <option value="Hubballi">Hubballi (Home Geofence)</option>
+                        <option value="Bengaluru">Bengaluru (Verified Cluster)</option>
                         <option value="Mysuru">Mysuru (Frequent City)</option>
-                        <option value="Delhi">Delhi (Flight Velocity Check)</option>
-                        <option value="Dubai">Dubai (Cross-Border)</option>
+                        <option value="Mumbai">Mumbai (Velocity Anomaly / Untrusted)</option>
+                        <option value="Dubai">Dubai (Cross-Border Alert)</option>
                       </select>
                     </div>
 
@@ -411,6 +413,7 @@ export default function UserRiskProfilePage() {
                         }}
                         className="w-full bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
                       >
+                        <option value="DEV-A782|abcmotors@upiguard">DEV-A782 · ABC Motors (Known)</option>
                         <option value="DEV-A782|nature.basket@icici">DEV-A782 · Trusted Merchant</option>
                         <option value="DEV-NEW-88|new.merchant@okaxis">New Device · First-Time VPA</option>
                         <option value="DEV-EMU-X99|scammer.refund@okaxis">Emulator · Flagged Scam VPA</option>
@@ -418,6 +421,43 @@ export default function UserRiskProfilePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Section 11: MAJOR PURCHASE BEHAVIOR CARD */}
+                {selectedTxnAmount >= 200000 && (
+                  <div className="rounded-2xl bg-amber-400/[0.06] border border-amber-400/30 p-5 space-y-3">
+                    <div className="flex items-center justify-between border-b border-amber-400/20 pb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                        <Activity className="size-4" /> MAJOR PURCHASE BEHAVIOR
+                      </span>
+                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300">
+                        Behavioral Impact: HIGH
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                      <div>
+                        <span className="text-[10px] text-slate-400">Largest Purchase</span>
+                        <div className="text-base font-black text-white">₹8,50,000</div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400">Previous Largest</span>
+                        <div className="text-base font-black text-slate-300">₹1,20,000</div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400">Amount Deviation</span>
+                        <div className="text-base font-black text-amber-300">+608%</div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400">Merchant Familiarity</span>
+                        <div className="text-base font-black text-white">New (ABC Motors)</div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-amber-200/90 italic pt-1 border-t border-amber-400/10">
+                      &ldquo;This transaction is significantly larger than the user&apos;s historical transaction pattern. Additional authentication (Face/PIN + OTP) is required.&rdquo;
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

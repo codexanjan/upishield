@@ -30,7 +30,8 @@ import {
   Smartphone,
   AlertOctagon,
   FileCode,
-  Cpu
+  Cpu,
+  Gem
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
@@ -45,7 +46,7 @@ const navGroups = [
     ],
   },
   {
-    title: 'MONEY MANAGEMENT',
+    title: 'PERSONAL FINANCE',
     items: [
       { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Transactions', href: '/dashboard/transactions', icon: ArrowLeftRight },
@@ -53,13 +54,14 @@ const navGroups = [
       { label: 'Cards', href: '/dashboard/cards', icon: CreditCard },
       { label: 'Budgets', href: '/dashboard/budgets', icon: PieChart },
       { label: 'Income', href: '/dashboard/income', icon: Wallet },
+      { label: 'Major Purchases', href: '/dashboard/major-purchases', icon: Gem },
     ],
   },
   {
     title: 'SECURITY',
     items: [
       { label: 'AI Risk & Behaviour', href: '/dashboard/risk-profile', icon: Cpu },
-      { label: 'Explainable AI (XAI)', href: '/dashboard/risk-profile?tab=xai', icon: Sparkles },
+      { label: 'Explainable AI (XAI)', href: '/dashboard/xai', icon: Sparkles },
       { label: 'Location History', href: '/dashboard/location-history', icon: Compass },
       { label: 'Devices', href: '/dashboard/devices', icon: Smartphone },
       { label: 'Fraud Alerts', href: '/dashboard/alerts', icon: AlertOctagon },

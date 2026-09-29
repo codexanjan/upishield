@@ -110,14 +110,14 @@ export default function ProfilePage() {
         })
       }
       setUser({
-        ...(user || { id: 1, email: 'demo@upishield.ai', role: 'user' }),
+        ...(user || { id: 1, email: 'demo@upishield.ai', role: 'user', status: 'active' }),
         name,
         email
       })
       setMessage('Profile and location safety preferences updated successfully.')
     } catch {
       setUser({
-        ...(user || { id: 1, email: 'demo@upishield.ai', role: 'user' }),
+        ...(user || { id: 1, email: 'demo@upishield.ai', role: 'user', status: 'active' }),
         name,
         email
       })

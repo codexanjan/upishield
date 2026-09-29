@@ -28,34 +28,55 @@ import {
   Smartphone,
   Eye,
   KanbanSquare,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 export default function AdminDashboardPage() {
   const [mounted, setMounted] = useState(false)
+  const { transactions, alerts } = useUPIGuardStore()
+
+  // Section 53 Command Center KPIs
+  const totalTransactions = 12482 + transactions.length
+  const settledCount = transactions.filter((t) => t.status === 'SETTLED').length
+  const blockedCount = transactions.filter((t) => t.status === 'BLOCKED').length
+  const totalSuccessful = 11920 + settledCount
+  const totalBlocked = 562 + blockedCount
+  const fraudRate = ((totalBlocked / totalTransactions) * 100).toFixed(1)
+  const blockedSum = transactions
+    .filter((t) => t.status === 'BLOCKED')
+    .reduce((acc, curr) => acc + (curr.amount || 0), 0)
+  const amountProtected = (1870000 + blockedSum) / 100000
 
   // Section 26 Stat Cards
   const stats = {
     active_users: 1248,
-    transactions_today: 18420,
-    new_devices: 184,
+    transactions_today: totalTransactions,
+    new_devices: 184 + (transactions.some((t) => t.deviceId?.includes('Unknown')) ? 1 : 0),
     new_locations: 297,
-    location_alerts: 63,
+    location_alerts: 63 + (transactions.some((t) => t.location?.city === 'Mumbai') ? 1 : 0),
     fraud_reports: 38,
-    critical_cases: 7,
+    critical_cases: 7 + blockedCount,
     open_investigations: 42
   }
 
   // Section 33 Live Alert Stream
-  const liveAlerts = [
+  const dynamicLiveAlerts = [
+    ...transactions.slice(0, 4).map((t) => ({
+      time: new Date(t.timestamps.settled || t.timestamps.created).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      title: `${t.riskLevel === 'CRITICAL' ? 'Critical Fraud Blocked' : 'Simulated Payment'}: ${t.senderUpiId}`,
+      amount: `₹${t.amount.toLocaleString('en-IN')}`,
+      detail: `${t.location.city} · ${t.receiverUpiId}`,
+      severity: t.riskLevel === 'CRITICAL' ? 'critical' : t.riskLevel === 'HIGH' ? 'high' : 'normal'
+    })),
     { time: '10:43 PM', title: 'New device + new city', amount: '₹32,000', detail: 'Delhi · Apple Pay Gateway', severity: 'high' },
     { time: '10:41 PM', title: 'Impossible travel detected', amount: 'USER-192', detail: 'Bengaluru ➔ Delhi (22 min)', severity: 'critical' },
-    { time: '10:38 PM', title: 'Reported UPI scanned', amount: 'abc@upi', detail: 'Rohini Sector 7, Delhi', severity: 'warning' },
-    { time: '10:36 PM', title: 'Multiple users at same device', amount: 'DEV-A91', detail: '4 user sessions mapped', severity: 'warning' },
   ]
+  const liveAlerts = dynamicLiveAlerts
 
   // City reports distribution
   const cityTrends = [
@@ -96,6 +117,65 @@ export default function AdminDashboardPage() {
             >
               <MapPin className="size-3.5" /> Live Map
             </Link>
+          </div>
+        </div>
+
+        {/* UPIGuard AI Master Command Center Banner (Prompt Section 53) */}
+        <div className="rounded-3xl border border-[#0B1B2D] bg-gradient-to-r from-[#091726] to-[#0B1B2D] p-6 shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+            <div>
+              <span className="text-[10px] font-bold text-[#5BD6FF] uppercase tracking-widest font-mono">
+                TELEMETRY COMMAND DESK · LIVE SOCKET
+              </span>
+              <h2 className="text-xl font-extrabold text-white mt-0.5">
+                UPIGuard AI Real-Time Fraud Operations
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+                LIVE TRANSACTIONS ● CONNECTED
+              </span>
+              <Link
+                href="/admin/fraud/simulator"
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#438EFF] to-[#5BD6FF] text-[#06101D] text-xs font-bold shadow-md hover:brightness-110 transition flex items-center gap-1.5"
+              >
+                <Flame className="size-3.5" /> Fraud Simulator
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+            <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400">TOTAL TRANSACTIONS</span>
+              <div className="text-2xl font-black text-white font-mono">{totalTransactions.toLocaleString()}</div>
+              <span className="text-[10px] text-emerald-400">All channels</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400">SUCCESSFUL</span>
+              <div className="text-2xl font-black text-emerald-400 font-mono">{totalSuccessful.toLocaleString()}</div>
+              <span className="text-[10px] text-slate-500">Settled cleanly</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400">BLOCKED</span>
+              <div className="text-2xl font-black text-rose-400 font-mono">{totalBlocked}</div>
+              <span className="text-[10px] text-rose-400/80">Critical risk</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400">FRAUD RATE</span>
+              <div className="text-2xl font-black text-[#5BD6FF] font-mono">{fraudRate}%</div>
+              <span className="text-[10px] text-slate-500">&lt; 5% target</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400">AMOUNT PROTECTED</span>
+              <div className="text-2xl font-black text-emerald-400 font-mono">₹{amountProtected.toFixed(1)}L</div>
+              <span className="text-[10px] text-emerald-400/80">Saved before debit</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
+              <span className="text-[10px] uppercase font-semibold text-slate-400">ACTIVE ALERTS</span>
+              <div className="text-2xl font-black text-amber-400 font-mono">{24 + alerts.filter(a => a.status === 'OPEN').length}</div>
+              <span className="text-[10px] text-amber-400/80">Triage queue</span>
+            </div>
           </div>
         </div>
 

@@ -37,6 +37,7 @@ import {
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 
 const CATEGORIES = [
@@ -49,36 +50,9 @@ const COLORS = ['#b8f55e', '#22C55E', '#10B981', '#F59E0B', '#EF4444', '#84CC16'
 
 export default function ExpensesPage() {
   const { privacyMasked, togglePrivacyMask } = useAppStore()
-  const [expenses, setExpenses] = useState<any[]>([])
+  const storeExpenses = useUPIGuardStore((s) => s.expenses)
+  const [apiExpenses, setApiExpenses] = useState<any[]>([])
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL')
-  const [summary, setSummary] = useState({
-    total_expenses: 27420.0,
-    monthly_budget: 35000.0,
-    remaining_budget: 7580.0,
-    today_spend: 850.0,
-    avg_daily_expense: 914.0,
-    highest_category: 'Food',
-    category_distribution: {
-      Food: 8400,
-      Shopping: 6200,
-      Groceries: 5120,
-      Bills: 4200,
-      Travel: 3500
-    } as Record<string, number>,
-    monthly_trend: [
-      { month: 'Apr', amount: 21200 },
-      { month: 'May', amount: 24800 },
-      { month: 'Jun', amount: 22300 },
-      { month: 'Jul', amount: 26900 },
-      { month: 'Aug', amount: 23100 },
-      { month: 'Sep', amount: 27420 }
-    ],
-    payment_method_distribution: {
-      UPI: 17200,
-      Card: 7720,
-      Cash: 2500
-    } as Record<string, number>
-  })
 
   const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -94,23 +68,20 @@ export default function ExpensesPage() {
 
   const loadData = async () => {
     try {
-      const [expList, expSum] = await Promise.all([
-        apiRequest('/expenses?limit=100').catch(() => null),
-        apiRequest('/expenses/summary').catch(() => null)
-      ])
-      if (Array.isArray(expList) && expList.length > 0) setExpenses(expList)
-      if (expSum && expSum.total_expenses !== undefined) setSummary(expSum)
+      const expList = await apiRequest('/expenses?limit=100').catch(() => null)
+      if (Array.isArray(expList) && expList.length > 0) {
+        setApiExpenses(expList)
+      } else {
+        setApiExpenses([
+          { id: 1, amount: 850, category: 'Food', merchant: 'Star Cafe Koramangala', payment_method: 'UPI', date: new Date().toISOString(), description: 'Espresso & lunch meeting' },
+          { id: 2, amount: 2100, category: 'Groceries', merchant: "Nature's Basket", payment_method: 'Card', date: new Date(Date.now() - 86400000).toISOString(), description: 'Pantry restocking' },
+          { id: 3, amount: 5800, category: 'Shopping', merchant: 'Uniqlo Indiranagar', payment_method: 'UPI', date: new Date(Date.now() - 172800000).toISOString(), description: 'Workwear' },
+          { id: 4, amount: 4200, category: 'Bills', merchant: 'BESCOM & ACT Fiber', payment_method: 'UPI', date: new Date(Date.now() - 259200000).toISOString(), description: 'Utilities bill' },
+          { id: 5, amount: 1250, category: 'Travel', merchant: 'Uber India', payment_method: 'UPI', date: new Date(Date.now() - 345600000).toISOString(), description: 'Airport commute' }
+        ])
+      }
     } catch {
       // Demo fallback
-    }
-    if (expenses.length === 0) {
-      setExpenses([
-        { id: 1, amount: 850, category: 'Food', merchant: 'Star Cafe Koramangala', payment_method: 'UPI', date: new Date().toISOString(), description: 'Espresso & lunch meeting' },
-        { id: 2, amount: 2100, category: 'Groceries', merchant: "Nature's Basket", payment_method: 'Card', date: new Date(Date.now() - 86400000).toISOString(), description: 'Pantry restocking' },
-        { id: 3, amount: 5800, category: 'Shopping', merchant: 'Uniqlo Indiranagar', payment_method: 'UPI', date: new Date(Date.now() - 172800000).toISOString(), description: 'Workwear' },
-        { id: 4, amount: 4200, category: 'Bills', merchant: 'BESCOM & ACT Fiber', payment_method: 'UPI', date: new Date(Date.now() - 259200000).toISOString(), description: 'Utilities bill' },
-        { id: 5, amount: 1250, category: 'Travel', merchant: 'Uber India', payment_method: 'UPI', date: new Date(Date.now() - 345600000).toISOString(), description: 'Airport commute' }
-      ])
     }
   }
 
@@ -118,22 +89,94 @@ export default function ExpensesPage() {
     loadData()
   }, [])
 
+  // Merge store expenses (including newly created Send UPI transactions) with apiExpenses
+  const seenRefs = new Set<string>()
+  const mergedExpenses: any[] = []
+
+  ;(storeExpenses || []).forEach((e) => {
+    const key = e.transaction_ref || `exp-${e.id}`
+    if (!seenRefs.has(key)) {
+      seenRefs.add(key)
+      mergedExpenses.push(e)
+    }
+  })
+
+  ;(apiExpenses || []).forEach((e) => {
+    const key = e.transaction_ref || `exp-${e.id}`
+    if (!seenRefs.has(key)) {
+      seenRefs.add(key)
+      mergedExpenses.push(e)
+    }
+  })
+
+  // Dynamic calculations based on mergedExpenses
+  const total_expenses = mergedExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+  const monthly_budget = 35000.0
+  const remaining_budget = Math.max(0, monthly_budget - total_expenses)
+  const todayStr = new Date().toISOString().split('T')[0]
+  const today_spend = mergedExpenses
+    .filter((e) => (e.date || '').startsWith(todayStr))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+
+  const category_distribution: Record<string, number> = {}
+  const payment_method_distribution: Record<string, number> = {}
+
+  mergedExpenses.forEach((e) => {
+    const cat = e.category || 'Other'
+    const amt = Number(e.amount) || 0
+    category_distribution[cat] = (category_distribution[cat] || 0) + amt
+
+    const method = e.payment_method || 'UPI'
+    payment_method_distribution[method] = (payment_method_distribution[method] || 0) + amt
+  })
+
+  let highest_category = 'Food'
+  let maxCatAmt = -1
+  Object.entries(category_distribution).forEach(([c, val]) => {
+    if (val > maxCatAmt) {
+      maxCatAmt = val
+      highest_category = c
+    }
+  })
+
+  const summary = {
+    total_expenses,
+    monthly_budget,
+    remaining_budget,
+    today_spend: today_spend > 0 ? today_spend : 850.0,
+    avg_daily_expense: Number((total_expenses / 30).toFixed(1)),
+    highest_category,
+    category_distribution,
+    monthly_trend: [
+      { month: 'Apr', amount: 21200 },
+      { month: 'May', amount: 24800 },
+      { month: 'Jun', amount: 22300 },
+      { month: 'Jul', amount: 26900 },
+      { month: 'Aug', amount: 23100 },
+      { month: 'Sep', amount: Math.max(27420, total_expenses) }
+    ],
+    payment_method_distribution
+  }
+
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount || !merchant) return
     setLoading(true)
     const numAmt = parseFloat(amount)
 
+    const payload = {
+      id: Date.now(),
+      amount: numAmt,
+      category,
+      merchant,
+      payment_method: paymentMethod,
+      date: new Date(date).toISOString(),
+      description,
+      recurring
+    }
+
     try {
-      const payload = {
-        amount: numAmt,
-        category,
-        merchant,
-        payment_method: paymentMethod,
-        date: new Date(date).toISOString(),
-        description,
-        recurring
-      }
+      useUPIGuardStore.getState().addExpense(payload)
       await apiRequest('/expenses', {
         method: 'POST',
         body: JSON.stringify(payload)
@@ -144,21 +187,7 @@ export default function ExpensesPage() {
       setMerchant('')
       setDescription('')
     } catch {
-      const newExp = {
-        id: Date.now(),
-        amount: numAmt,
-        category,
-        merchant,
-        payment_method: paymentMethod,
-        date: new Date(date).toISOString(),
-        description
-      }
-      setExpenses([newExp, ...expenses])
-      setSummary(prev => ({
-        ...prev,
-        total_expenses: prev.total_expenses + numAmt,
-        remaining_budget: Math.max(0, prev.remaining_budget - numAmt)
-      }))
+      setApiExpenses((prev) => [payload, ...prev])
       setModalOpen(false)
     } finally {
       setLoading(false)
@@ -170,10 +199,10 @@ export default function ExpensesPage() {
     try {
       await apiRequest(`/expenses/${id}`, { method: 'DELETE' })
     } catch {}
-    setExpenses(prev => prev.filter(e => e.id !== id))
+    setApiExpenses((prev) => prev.filter((e) => e.id !== id))
   }
 
-  const filteredExpenses = expenses.filter(e => {
+  const filteredExpenses = mergedExpenses.filter((e) => {
     if (selectedCategoryFilter === 'ALL') return true
     return e.category === selectedCategoryFilter
   })
@@ -267,7 +296,7 @@ export default function ExpensesPage() {
             <span className="text-xs font-semibold text-[#8fa9a6]">Highest Category</span>
             <p className="text-2xl font-bold text-amber-400 font-mono">{summary.highest_category}</p>
             <span className="text-[11px] text-amber-400/80">
-              {privacyMasked ? '••••' : `₹${(summary.category_distribution['Food'] || 8400).toLocaleString('en-IN')}`} total
+              {privacyMasked ? '••••' : `₹${(summary.category_distribution[summary.highest_category] || 0).toLocaleString('en-IN')}`} total
             </span>
           </div>
         </div>

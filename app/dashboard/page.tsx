@@ -30,15 +30,20 @@ import {
   EyeOff,
   Cpu,
   Layers,
-  ExternalLink
+  ExternalLink,
+  Phone,
+  X
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { useAppStore } from '@/lib/store'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 
 export default function UserDashboard() {
   const { user, privacyMasked, togglePrivacyMask } = useAppStore()
+  const storeTransactions = useUPIGuardStore((s) => s.transactions)
+  const storeExpenses = useUPIGuardStore((s) => s.expenses)
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<'financial' | 'payment' | 'location' | 'security'>('financial')
   const [conflictStatus, setConflictStatus] = useState<'unresolved' | 'verified_me' | 'secured'>('unresolved')
@@ -52,10 +57,18 @@ export default function UserDashboard() {
     savings: 27580.0,
   })
 
-  // Payment Breakdown
+  // Dynamic ledger synchronization from store
+  const storeExpenseTotal = (storeExpenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+  const effectiveMonthlyExpenses = Math.max(financialSummary.monthly_expenses, storeExpenseTotal)
+  const effectiveCurrentBalance = Math.max(0, financialSummary.monthly_income - effectiveMonthlyExpenses)
+  const effectiveSavings = effectiveCurrentBalance
+
+  // Dynamic Payment Breakdown
+  const additionalTxns = (storeTransactions || []).length
+  const additionalUpi = (storeTransactions || []).filter((t: any) => (t.transaction_type || 'UPI') === 'UPI').length
   const paymentStats = {
-    total_txns: 128,
-    upi_txns: 84,
+    total_txns: 128 + additionalTxns,
+    upi_txns: 84 + additionalUpi,
     card_txns: 31,
     cash_txns: 13,
   }
@@ -169,6 +182,39 @@ export default function UserDashboard() {
     }
     loadData()
   }, [])
+
+  const mappedStoreRecent = (storeTransactions || []).map((t: any) => {
+    const isSuspicious = (t.riskScore && t.riskScore >= 60) || t.riskLevel === 'HIGH' || t.riskLevel === 'CRITICAL' || t.flag_status === 'Suspicious'
+    return {
+      id: t.transactionId || t.id,
+      transaction_reference: t.transactionId || t.transaction_reference || `TXN-${Math.floor(10000 + Math.random() * 90000)}`,
+      transaction_type: t.transaction_type || 'UPI',
+      merchant: t.receiverName || t.merchant || 'UPI Transfer',
+      payment_method: t.payment_method || 'UPI App Intent',
+      amount: Number(t.amount) || 0,
+      status: t.status === 'SETTLED' ? 'Completed' : t.status === 'BLOCKED' ? 'Blocked' : t.status || 'Completed',
+      flag_status: isSuspicious ? 'Suspicious' : 'Normal',
+      city: t.locationCity || t.city || 'Bengaluru',
+      transaction_date: t.timestamps?.settled ? new Date(t.timestamps.settled).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today, Just now'
+    }
+  })
+
+  const seenRecent = new Set<string>()
+  const effectiveRecentTransactions: any[] = []
+  mappedStoreRecent.forEach((tx: any) => {
+    const key = tx.transaction_reference || String(tx.id)
+    if (!seenRecent.has(key)) {
+      seenRecent.add(key)
+      effectiveRecentTransactions.push(tx)
+    }
+  })
+  ;(recentTransactions || []).forEach((tx: any) => {
+    const key = tx.transaction_reference || String(tx.id)
+    if (!seenRecent.has(key)) {
+      seenRecent.add(key)
+      effectiveRecentTransactions.push(tx)
+    }
+  })
 
   const hour = typeof window !== 'undefined' ? new Date().getHours() : 10
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -461,7 +507,7 @@ export default function UserDashboard() {
                   <Wallet className="size-4 text-[#b8f55e]" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white font-mono">
-                  {privacyMasked ? '••••••' : `₹${Number(financialSummary.current_balance).toLocaleString('en-IN')}`}
+                  {privacyMasked ? '••••••' : `₹${Number(effectiveCurrentBalance).toLocaleString('en-IN')}`}
                 </p>
                 <p className="mt-2 text-xs text-[#b8f55e]">
                   Available in UPI Linked Accounts
@@ -487,7 +533,7 @@ export default function UserDashboard() {
                   <Receipt className="size-4 text-amber-400" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white font-mono">
-                  {privacyMasked ? '••••••' : `₹${Number(financialSummary.monthly_expenses).toLocaleString('en-IN')}`}
+                  {privacyMasked ? '••••••' : `₹${Number(effectiveMonthlyExpenses).toLocaleString('en-IN')}`}
                 </p>
                 <p className="mt-2 text-xs text-amber-400">
                   Within budget allowance
@@ -500,7 +546,7 @@ export default function UserDashboard() {
                   <ShieldCheck className="size-4 text-[#b8f55e]" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white font-mono">
-                  {privacyMasked ? '••••••' : `₹${Number(financialSummary.savings).toLocaleString('en-IN')}`}
+                  {privacyMasked ? '••••••' : `₹${Number(effectiveSavings).toLocaleString('en-IN')}`}
                 </p>
                 <p className="mt-2 text-xs text-[#b8f55e]">
                   50.1% savings rate
@@ -747,7 +793,7 @@ export default function UserDashboard() {
               </div>
 
               <div className="mt-4 space-y-3.5">
-                {(recentTransactions || []).map((tx) => {
+                {(effectiveRecentTransactions || []).map((tx) => {
                   const isSuspicious = tx.flag_status === 'Suspicious'
                   return (
                     <div

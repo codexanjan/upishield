@@ -1,18 +1,11 @@
 // Dynamically resolve API URL:
 // 1. Explicit NEXT_PUBLIC_API_URL if configured
-// 2. Relative /api/v1 in browser when hosted on Vercel or any non-localhost domain
-// 3. Fallback to http://127.0.0.1:8000/api/v1 during local development
+// 2. Relative /api/v1 in browser (self-contained full-stack Next.js API)
 export function getApiBase(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
   }
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    if (host !== 'localhost' && host !== '127.0.0.1') {
-      return '/api/v1'
-    }
-  }
-  return 'http://127.0.0.1:8000/api/v1'
+  return '/api/v1'
 }
 
 const API_BASE = getApiBase()

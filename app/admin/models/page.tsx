@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MODEL_PERFORMANCE_METRICS } from '@/lib/ai-fraud-engine'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 export default function AdminModelCenterPage() {
   const [modelState, setModelState] = useState(MODEL_PERFORMANCE_METRICS)
@@ -37,7 +38,15 @@ export default function AdminModelCenterPage() {
   const [retrainMessage, setRetrainMessage] = useState<string | null>(null)
   const [selectedVersion, setSelectedVersion] = useState<string>('v2.4.1')
   const [showCompareModal, setShowCompareModal] = useState(false)
-  const [activeTab, setActiveTab] = useState<'metrics' | 'drift' | 'registry' | 'queue'>('metrics')
+  const [activeTab, setActiveTab] = useState<'feedback' | 'metrics' | 'drift' | 'registry' | 'queue'>('feedback')
+
+  // Access reactive store for feedback learning and retraining
+  const {
+    modelTrainingState,
+    feedbackRecords,
+    retrainModel,
+    submitFeedback
+  } = useUPIGuardStore()
 
   // Load live model metrics if available from API
   useEffect(() => {
@@ -51,78 +60,103 @@ export default function AdminModelCenterPage() {
       .catch(err => console.log('Using baseline model metrics', err))
   }, [])
 
-  // Trigger retraining pipeline
+  // Trigger retraining pipeline (Store + API)
   const handleRetrain = async () => {
     setIsRetraining(true)
     setRetrainProgress(15)
-    setRetrainMessage('Ingesting 1,420,500 cross-UPI transaction events & user feedback labels...')
+    setRetrainMessage(`Ingesting ${modelTrainingState.dataset_samples.toLocaleString()} transaction events & ${modelTrainingState.newly_learned_samples} pending feedback labels...`)
 
     try {
       setTimeout(() => {
         setRetrainProgress(45)
-        setRetrainMessage('Training XGBoost classifier & calibrating Isolation Forest anomaly trees...')
-      }, 900)
+        setRetrainMessage('Training XGBoost classifier & recalibrating Isolation Forest anomaly trees...')
+      }, 700)
 
       setTimeout(() => {
         setRetrainProgress(80)
-        setRetrainMessage('Computing cross-validation ROC-AUC and recalibrating SHAP feature contributions...')
-      }, 1800)
+        setRetrainMessage('Computing cross-validation ROC-AUC and updating production model weights...')
+      }, 1500)
 
-      const res = await fetch('/api/v1/model/retrain', {
+      // Retrain via store action
+      const result = retrainModel()
+
+      // Also trigger API route
+      await fetch('/api/v1/model/retrain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ triggered_by: 'admin-console', auto_deploy: true })
-      })
-      const data = await res.json()
+      }).catch(err => console.log('API retrain notify', err))
 
       setTimeout(() => {
         setRetrainProgress(100)
         setIsRetraining(false)
-        if (data.status === 'success' && data.updated_metrics) {
-          setModelState(data.updated_metrics)
-          setRetrainMessage(`Retraining succeeded: New version ${data.updated_metrics.active_version} deployed.`)
-        } else {
-          // Local fallback simulation if endpoint runs on static
-          const newVersion = `v2.4.${parseInt(modelState.active_version.split('.')[2] || '1') + 1}`
-          setModelState(prev => ({
-            ...prev,
-            active_version: `${newVersion}-production`,
-            last_retrained: new Date().toISOString(),
-            dataset_samples: prev.dataset_samples + 14200,
-            metrics: {
-              ...prev.metrics,
-              accuracy: 99.5,
-              f1_score: 98.6,
-              roc_auc: 0.994,
-              false_positive_rate: 0.010
+        setRetrainMessage(`Retraining succeeded: New version ${result.newVersion} deployed. Accuracy: ${result.metrics.accuracy}%, F1: ${result.metrics.f1_score}%.`)
+        
+        // Sync with local state
+        setModelState(prev => ({
+          ...prev,
+          active_version: result.newVersion,
+          last_retrained: new Date().toISOString(),
+          dataset_samples: prev.dataset_samples + result.newlyLearnedCount,
+          metrics: {
+            ...prev.metrics,
+            ...result.metrics
+          },
+          versions: [
+            {
+              version: result.newVersion,
+              deployed_at: new Date().toISOString(),
+              accuracy: result.metrics.accuracy,
+              f1_score: result.metrics.f1_score,
+              roc_auc: result.metrics.roc_auc,
+              status: 'ACTIVE' as const,
+              changelog: `Self-learning feedback loop: Ingested ${result.newlyLearnedCount} confirmed fraud/legit labels`
             },
-            drift_monitor: {
-              ...prev.drift_monitor,
-              data_drift_psi: 0.018,
-              retraining_recommended: false
-            },
-            versions: [
-              {
-                version: newVersion,
-                deployed_at: new Date().toISOString(),
-                accuracy: 99.5,
-                f1_score: 98.6,
-                roc_auc: 0.994,
-                status: 'ACTIVE',
-                changelog: 'Automated retraining with latest user feedback & false-positive penalty recalibration'
-              },
-              ...prev.versions.map(v => ({ ...v, status: 'RETIRED' }))
-            ]
-          }))
-          setRetrainMessage(`Retraining succeeded: Model updated to 99.5% accuracy.`)
-        }
+            ...prev.versions.map(v => ({ ...v, status: 'RETIRED' as const }))
+          ]
+        }))
 
-        setTimeout(() => setRetrainMessage(null), 5000)
-      }, 2600)
+        setTimeout(() => setRetrainMessage(null), 6000)
+      }, 2200)
     } catch (e) {
       setIsRetraining(false)
       setRetrainMessage('Retraining completed with simulated gradient calibration.')
     }
+  }
+
+  // Quick simulation helpers for viva / demo
+  const handleSimulateUserFraud = () => {
+    const txnId = `TXN-88${Math.floor(10 + Math.random() * 90)}`
+    const amt = Math.floor(15000 + Math.random() * 40000)
+    submitFeedback({
+      transactionId: txnId,
+      receiverVpa: 'scam.vpa@okhdfc',
+      amount: amt,
+      feedbackSource: 'DISPUTE_RAISED',
+      actualOutcome: 'FRAUD',
+      predictedRisk: 88,
+      predictedDecision: 'HOLD',
+      userNotes: 'User reported unauthorized UPI collect request disguised as electricity cashback'
+    })
+    setRetrainMessage(`Ground Truth Recorded: ${txnId} marked as CONFIRMED FRAUD. Added to feedback queue.`)
+    setTimeout(() => setRetrainMessage(null), 5000)
+  }
+
+  const handleSimulateFalsePositive = () => {
+    const txnId = `TXN-74${Math.floor(10 + Math.random() * 90)}`
+    const amt = Math.floor(8000 + Math.random() * 20000)
+    submitFeedback({
+      transactionId: txnId,
+      receiverVpa: 'croma.electronics@okicici',
+      amount: amt,
+      feedbackSource: 'USER_CONFIRMATION',
+      actualOutcome: 'LEGITIMATE',
+      predictedRisk: 74,
+      predictedDecision: 'VERIFY',
+      userNotes: 'User confirmed: Genuine high-value appliance purchase from retail outlet'
+    })
+    setRetrainMessage(`Ground Truth Recorded: ${txnId} confirmed LEGITIMATE (False positive resolved).`)
+    setTimeout(() => setRetrainMessage(null), 5000)
   }
 
   // Rollback model version
@@ -196,8 +230,9 @@ export default function AdminModelCenterPage() {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto">
           {[
+            { id: 'feedback', label: 'AI Model Self-Learning & Feedback Loop', icon: Sparkles },
             { id: 'metrics', label: 'Model Performance & Confusion Matrix', icon: Activity },
             { id: 'drift', label: 'Data & Concept Drift Monitor', icon: TrendingUp },
             { id: 'registry', label: 'Model Registry & Rollback', icon: Database },
@@ -209,7 +244,7 @@ export default function AdminModelCenterPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                   isActive
                     ? 'bg-[#b8f55e]/15 text-[#b8f55e] border border-[#b8f55e]/30'
                     : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -221,6 +256,265 @@ export default function AdminModelCenterPage() {
             )
           })}
         </div>
+
+        {/* TAB 0: SELF-LEARNING & MODEL FEEDBACK WORKFLOW */}
+        {activeTab === 'feedback' && (
+          <div className="space-y-6">
+            {/* Architecture Disclosure Callout */}
+            <div className="p-4 rounded-2xl border border-[#b8f55e]/30 bg-[#0a1718]/90 backdrop-blur-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-full bg-gradient-to-l from-[#b8f55e]/10 to-transparent pointer-events-none" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30">
+                      Objective 3 Implementation
+                    </span>
+                    <span className="text-xs text-white/50">• Batch / Periodic Retraining Pipeline</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Sparkles className="size-4 text-[#b8f55e]" />
+                    Closed-Loop Adaptive Feedback & Self-Learning Architecture
+                  </h3>
+                  <p className="text-xs text-white/60 max-w-3xl leading-relaxed">
+                    Financial fraud prevention requires safe, supervised batch learning. Real-time online weight updates on single transactions are strictly avoided to prevent catastrophic forgetting and adversarial poisoning. Confirmed fraud disputes and false-positive resolutions are ingested into a verified ground-truth buffer, triggering automated batch calibration into versioned model checkpoints.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    onClick={handleSimulateUserFraud}
+                    className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ShieldAlert className="size-3.5 text-rose-400" />
+                    + Report Fraud Dispute
+                  </button>
+                  <button
+                    onClick={handleSimulateFalsePositive}
+                    className="px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <CheckCircle2 className="size-3.5 text-emerald-400" />
+                    + Confirm Legit (FP)
+                  </button>
+                  <button
+                    onClick={handleRetrain}
+                    disabled={isRetraining}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#b8f55e] text-[#071014] hover:bg-[#c9f97f] flex items-center gap-1.5 shadow-md shadow-[#b8f55e]/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`size-3.5 ${isRetraining ? 'animate-spin' : ''}`} />
+                    {isRetraining ? 'Retraining...' : 'Run Retraining Pipeline'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 10 Core Metric KPI Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Current Model Version</span>
+                <span className="text-xl font-bold font-mono text-[#b8f55e] mt-1 truncate" title={modelTrainingState.active_version}>
+                  {modelTrainingState.active_version}
+                </span>
+                <span className="text-[10px] text-white/40 mt-1">Status: {modelTrainingState.training_status}</span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Training Samples</span>
+                <span className="text-xl font-bold font-mono text-white mt-1">
+                  {modelTrainingState.dataset_samples.toLocaleString()}
+                </span>
+                <span className="text-[10px] text-[#b8f55e] mt-1">Ensemble Baseline</span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5 flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-rose-300/70">Confirmed Fraud</span>
+                <span className="text-xl font-bold font-mono text-rose-400 mt-1">
+                  {modelTrainingState.confirmed_fraud_samples.toLocaleString()}
+                </span>
+                <span className="text-[10px] text-rose-400/60 mt-1">Ground Truth Positive</span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-emerald-300/70">Confirmed Legitimate</span>
+                <span className="text-xl font-bold font-mono text-emerald-400 mt-1">
+                  {modelTrainingState.confirmed_legit_samples.toLocaleString()}
+                </span>
+                <span className="text-[10px] text-emerald-400/60 mt-1">Ground Truth Negative</span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Pending / New Samples</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xl font-bold font-mono text-amber-400">
+                    +{modelTrainingState.newly_learned_samples}
+                  </span>
+                  {modelTrainingState.newly_learned_samples > 0 && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-400/20 text-amber-400 animate-pulse">
+                      READY
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-white/40 mt-1">Feedback Queue</span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Last Retrained</span>
+                <span className="text-xs font-mono text-white/80 mt-1 truncate">
+                  {new Date(modelTrainingState.last_retrained).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+                <span className="text-[10px] text-[#b8f55e] mt-1">Calibrated Checkpoint</span>
+              </div>
+            </div>
+
+            {/* Performance Gauges Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Model Accuracy</span>
+                <span className="text-2xl font-bold font-mono text-[#b8f55e] mt-1">{modelTrainingState.metrics.accuracy}%</span>
+                <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-2">
+                  <div className="h-full bg-[#b8f55e]" style={{ width: `${modelTrainingState.metrics.accuracy}%` }} />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Precision</span>
+                <span className="text-2xl font-bold font-mono text-white mt-1">{modelTrainingState.metrics.precision}%</span>
+                <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-2">
+                  <div className="h-full bg-blue-400" style={{ width: `${modelTrainingState.metrics.precision}%` }} />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">Recall (Fraud Coverage)</span>
+                <span className="text-2xl font-bold font-mono text-white mt-1">{modelTrainingState.metrics.recall}%</span>
+                <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-2">
+                  <div className="h-full bg-purple-400" style={{ width: `${modelTrainingState.metrics.recall}%` }} />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-[#0a1718] flex flex-col justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-white/50">F1-Score</span>
+                <span className="text-2xl font-bold font-mono text-[#b8f55e] mt-1">{modelTrainingState.metrics.f1_score}%</span>
+                <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-2">
+                  <div className="h-full bg-[#b8f55e]" style={{ width: `${modelTrainingState.metrics.f1_score}%` }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow Diagram Card */}
+            <div className="p-5 rounded-2xl border border-white/10 bg-[#0a1718] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Closed-Loop Self-Learning Dataflow</h3>
+                  <p className="text-xs text-white/50">Step-by-step propagation of confirmed payment outcomes back into future AI inference</p>
+                </div>
+                <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/70 font-mono">
+                  Feedback Buffer Queue: {feedbackRecords.length} Items
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 pt-2">
+                {[
+                  { step: '1', title: 'Transaction', sub: 'Inbound UPI payload', color: 'border-white/20' },
+                  { step: '2', title: 'AI Prediction', sub: 'XGBoost & IF trees', color: 'border-blue-500/30' },
+                  { step: '3', title: 'Risk Score', sub: '0-100 dynamic scale', color: 'border-purple-500/30' },
+                  { step: '4', title: 'Decision', sub: 'Approve / Hold / Block', color: 'border-amber-500/30' },
+                  { step: '5', title: 'User Feedback', sub: 'Dispute / Confirmation', color: 'border-rose-500/30' },
+                  { step: '6', title: 'Ground Truth', sub: 'Store confirmed label', color: 'border-white/20' },
+                  { step: '7', title: 'Batch Retrain', sub: 'Gradient recalibration', color: 'border-[#b8f55e]/30' },
+                  { step: '8', title: 'New Version', sub: 'Updated weights active', color: 'border-[#b8f55e]/50' }
+                ].map((item, idx) => (
+                  <div key={idx} className={`p-3 rounded-xl border ${item.color} bg-white/5 flex flex-col justify-between space-y-1`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-[#b8f55e]">Step {item.step}</span>
+                      <span className="text-[10px] text-white/40">→</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">{item.title}</h4>
+                      <p className="text-[10px] text-white/50">{item.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Confirmed Ground Truth Feedback Buffer Table */}
+            <div className="p-5 rounded-2xl border border-white/10 bg-[#0a1718] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Confirmed Ground Truth Feedback Queue</h3>
+                  <p className="text-xs text-white/50">Transaction outcomes verified by account holders or fraud investigators</p>
+                </div>
+                <div className="text-xs text-white/60">
+                  Total Records: <span className="font-mono text-white font-bold">{feedbackRecords.length}</span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-white/70">
+                  <thead className="bg-white/5 text-white/90 border-b border-white/10 uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="p-3">Feedback ID</th>
+                      <th className="p-3">Transaction</th>
+                      <th className="p-3">UPI Receiver</th>
+                      <th className="p-3">Amount</th>
+                      <th className="p-3">Feedback Origin</th>
+                      <th className="p-3">Ground Truth</th>
+                      <th className="p-3">Learning Status</th>
+                      <th className="p-3">Timestamp</th>
+                      <th className="p-3">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {feedbackRecords.map((item) => (
+                      <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                        <td className="p-3 font-mono font-bold text-[#b8f55e]">{item.id}</td>
+                        <td className="p-3 font-mono text-white">{item.transactionId}</td>
+                        <td className="p-3 font-mono text-white/60">{item.receiverVpa}</td>
+                        <td className="p-3 font-mono font-bold text-white">₹{item.amount.toLocaleString()}</td>
+                        <td className="p-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/10 text-white/80">
+                            {item.feedbackSource}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            item.actualOutcome === 'FRAUD'
+                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          }`}>
+                            {item.actualOutcome}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          {item.isIncorporatedIntoDataset ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30">
+                              LEARNED ({item.incorporatedIntoVersion || 'v2.4.1'})
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-400 border border-amber-400/30 animate-pulse">
+                              PENDING RETRAIN
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 font-mono text-white/50">
+                          {new Date(item.submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="p-3 max-w-xs text-white/60 truncate" title={item.userNotes}>
+                          {item.userNotes || 'Verified ground truth'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TAB 1: METRICS & CONFUSION MATRIX */}
         {activeTab === 'metrics' && (

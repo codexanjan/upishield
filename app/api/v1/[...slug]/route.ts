@@ -5,8 +5,22 @@ import {
   MODEL_PERFORMANCE_METRICS,
   FRAUD_NETWORK_GRAPH_DATA,
   DEFAULT_USER_BASELINE,
-  calculateAdaptiveThreshold
+  calculateAdaptiveThreshold,
+  calculateUpiGuardMasterRisk,
+  INITIAL_FEEDBACK_RECORDS,
+  INITIAL_FRAUD_PATTERNS,
+  INITIAL_UPI_PROVIDERS,
+  INITIAL_SYSTEM_METRICS,
+  executeModelRetraining,
+  recalculateDynamicAdaptiveThreshold,
+  scanForEvolvingPatterns,
+  FeedbackRecord,
+  ModelTrainingState,
+  FraudPattern,
+  UpiProviderSource,
+  SystemMetrics
 } from '@/lib/ai-fraud-engine'
+import { INITIAL_DEMO_ACCOUNTS, INITIAL_TRANSACTIONS, INITIAL_ALERTS } from '@/lib/upiguard-store'
 
 // Seed / in-memory store for serverless demo mode on Vercel
 const demoState = {
@@ -223,23 +237,128 @@ const demoState = {
   auditLogs: [
     {
       id: 1,
-      admin_email: 'admin@upishield.com',
-      action: 'Case Status Change',
-      target_type: 'Case',
-      target_id: 'CASE-2026-000001',
-      ip_address: '103.212.144.18',
-      details: { old_status: 'Submitted', new_status: 'Under Review', note: 'Priority queue review initiated' },
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+      admin_email: 'ai-engine@upishield.ai',
+      action: 'AI Model Retrained',
+      target_type: 'Model_Ensemble',
+      target_id: 'v2.4.1-feedback-retrained',
+      ip_address: '10.0.4.12',
+      details: {
+        trigger: 'Batch Retraining Pipeline',
+        samples_learned: 48,
+        prior_accuracy: 99.1,
+        new_accuracy: 99.4,
+        f1_score: 98.3,
+        pipeline: 'Supervised XGBoost + Isolation Forest recalibration'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString()
     },
     {
       id: 2,
-      admin_email: 'admin@upishield.com',
-      action: 'Rule Updated',
-      target_type: 'Rule',
-      target_id: 'HIGH_UPI_AMOUNT',
+      admin_email: 'ai-engine@upishield.ai',
+      action: 'Model Version Changed',
+      target_type: 'Model_Registry',
+      target_id: 'v2.4.1',
+      ip_address: '10.0.4.12',
+      details: {
+        previous_version: 'v2.4.0',
+        active_version: 'v2.4.1',
+        deployment_mode: 'Zero-Downtime Hot Swap',
+        traffic_allocation_pct: 100
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 24).toISOString()
+    },
+    {
+      id: 3,
+      admin_email: 'admin@upishield.ai',
+      action: 'Threshold Changed',
+      target_type: 'Adaptive_Threshold',
+      target_id: 'USER_1_ANJAN',
       ip_address: '103.212.144.18',
-      details: { threshold_value: 50000, severity: 'Review' },
-      created_at: new Date(Date.now() - 3600000 * 8).toISOString()
+      details: {
+        previous_threshold: 70.0,
+        new_threshold: 72.5,
+        delta: 2.5,
+        reason: 'False positive confirmed: Verified legitimate appliance purchase TXN-7419 (+2.5 relaxation)'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString()
+    },
+    {
+      id: 4,
+      admin_email: 'gateway@upishield.ai',
+      action: 'Fraud Confirmed',
+      target_type: 'Feedback_Ground_Truth',
+      target_id: 'TXN-98214-UPI',
+      ip_address: '103.212.144.18',
+      details: {
+        amount: 4500,
+        receiver_vpa: 'scammer.refund@okaxis',
+        reported_by: 'USER_APP',
+        classification: 'CONFIRMED_FRAUD',
+        dispute_reason: 'Unauthorized collect request impersonating electricity refund'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString()
+    },
+    {
+      id: 5,
+      admin_email: 'gateway@upishield.ai',
+      action: 'Legitimate Transaction Confirmed',
+      target_type: 'Feedback_Ground_Truth',
+      target_id: 'TXN-74190-UPI',
+      ip_address: '103.212.144.18',
+      details: {
+        amount: 850,
+        receiver_vpa: 'nature.basket@icici',
+        reported_by: 'USER_APP',
+        classification: 'CONFIRMED_LEGITIMATE',
+        notes: 'User verified via face recognition & biometric check'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 150).toISOString()
+    },
+    {
+      id: 6,
+      admin_email: 'admin@upishield.ai',
+      action: 'Fraud Rule Changed',
+      target_type: 'Fraud_Rule',
+      target_id: 'RULE_BURST_COLLECT',
+      ip_address: '103.212.144.18',
+      details: {
+        pattern_id: 'PAT-01',
+        pattern_name: 'High-Velocity Phishing Burst',
+        status: 'ACTIVATED',
+        action_enforced: 'BLOCK_IF_VELOCITY_EXCEEDED'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString()
+    },
+    {
+      id: 7,
+      admin_email: 'admin@upishield.ai',
+      action: 'UPI Source Added/Updated',
+      target_type: 'UPI_Integration',
+      target_id: 'APP_C_NEOBANK',
+      ip_address: '103.212.144.18',
+      details: {
+        provider_name: 'UPI App C (Neobank QR Network)',
+        status: 'ACTIVE',
+        integration_type: 'DEMO_SIMULATED',
+        endpoint: '/api/v1/upi/ingest'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString()
+    },
+    {
+      id: 8,
+      admin_email: 'ai-engine@upishield.ai',
+      action: 'Prediction Generated',
+      target_type: 'Inference_Gateway',
+      target_id: 'TXN-UPI-884210',
+      ip_address: '10.0.4.18',
+      details: {
+        source_app: 'UPI App B',
+        amount: 49500,
+        risk_score: 94,
+        decision: 'BLOCK',
+        primary_driver: 'Impossible travel velocity (1,150 km/h) & Blacklisted VPA'
+      },
+      created_at: new Date(Date.now() - 1000 * 60 * 420).toISOString()
     }
   ],
   incomes: [
@@ -302,7 +421,57 @@ const demoState = {
     }
   ],
   blockedVpas: ['scammer.refund@okaxis', 'claim.bonus@okhdfcbank', 'fast.lottery@ybl'],
-  blockedDevices: ['DEV-EMU-X99']
+  blockedDevices: ['DEV-EMU-X99'],
+  feedbackRecords: [...INITIAL_FEEDBACK_RECORDS],
+  modelTrainingState: {
+    active_version: 'v2.4.1',
+    last_retrained: '2026-09-24T18:30:00Z',
+    dataset_samples: 1420500,
+    confirmed_fraud_samples: 24820,
+    confirmed_legit_samples: 1395680,
+    newly_learned_samples: 1,
+    training_status: 'IDLE' as ModelTrainingState['training_status'],
+    metrics: {
+      accuracy: 99.4,
+      precision: 98.8,
+      recall: 97.9,
+      f1_score: 98.3,
+      roc_auc: 0.992,
+      false_positive_rate: 0.012
+    },
+    versions: [...MODEL_PERFORMANCE_METRICS.versions] as ModelTrainingState['versions']
+  } as ModelTrainingState,
+  fraudPatterns: [...INITIAL_FRAUD_PATTERNS],
+  upiProviders: [...INITIAL_UPI_PROVIDERS],
+  systemMetrics: { ...INITIAL_SYSTEM_METRICS },
+  adaptiveThresholdHistory: [
+    {
+      currentThreshold: 75.0,
+      previousThreshold: 72.5,
+      thresholdDelta: 2.5,
+      reason: 'Relaxed by 2.5 pts due to verified false positive reports',
+      timestamp: '2026-09-28T14:15:00Z'
+    },
+    {
+      currentThreshold: 72.5,
+      previousThreshold: 76.5,
+      thresholdDelta: -4.0,
+      reason: 'Tightened by 4.0 pts due to 1 confirmed fraud incident',
+      timestamp: '2026-09-27T09:30:00Z'
+    }
+  ]
+}
+
+function detectExpenseCategory(merchant: string = '', note: string = ''): string {
+  const text = `${merchant} ${note}`.toLowerCase()
+  if (text.includes('cafe') || text.includes('coffee') || text.includes('food') || text.includes('restaurant') || text.includes('swiggy') || text.includes('zomato') || text.includes('tokai') || text.includes('lunch') || text.includes('dinner')) return 'Food'
+  if (text.includes('grocer') || text.includes('basket') || text.includes('supermarket') || text.includes('mart') || text.includes('kirana')) return 'Groceries'
+  if (text.includes('uber') || text.includes('ola') || text.includes('metro') || text.includes('fuel') || text.includes('petrol') || text.includes('travel') || text.includes('flight') || text.includes('auto')) return 'Transport'
+  if (text.includes('bescom') || text.includes('act') || text.includes('bill') || text.includes('electric') || text.includes('water') || text.includes('recharge') || text.includes('airtel') || text.includes('jio') || text.includes('power')) return 'Bills'
+  if (text.includes('uniqlo') || text.includes('zara') || text.includes('shopping') || text.includes('amazon') || text.includes('flipkart') || text.includes('myntra') || text.includes('store') || text.includes('cloth')) return 'Shopping'
+  if (text.includes('hospital') || text.includes('clinic') || text.includes('pharmacy') || text.includes('apollo') || text.includes('med') || text.includes('health')) return 'Healthcare'
+  if (text.includes('netflix') || text.includes('spotify') || text.includes('prime') || text.includes('hotstar') || text.includes('sub') || text.includes('movie')) return 'Subscriptions'
+  return 'Other'
 }
 
 // 5-Feature Explainable AI (XAI) Formatter
@@ -419,14 +588,50 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const proxyRes = await tryProxyBackend(request, path)
   if (proxyRes) return proxyRes
 
-  // Serverless handlers:
-  if (path === 'health') {
+  // UPIGuard AI Health Check (Section 111)
+  if (path === 'health' || path === 'system/health') {
     return NextResponse.json({
-      status: 'healthy',
-      platform: 'UPI Shield (Vercel Serverless)',
-      engine: 'Deterministic Rule Engine (NO AI)',
+      api: 'ok',
+      database: 'ok',
+      ml: 'ok',
+      realtime: 'ok',
+      demoMode: true,
+      platform: 'UPIGuard AI Demo Network — Closed-Loop UPI Simulation',
+      status: 'ONLINE',
+      system: {
+        api: 'ONLINE',
+        database: 'ONLINE',
+        mlService: 'ONLINE',
+        realtime: 'ONLINE',
+        demoMode: 'ACTIVE'
+      },
       timestamp: new Date().toISOString()
     })
+  }
+
+  // Demo Accounts & Balances (Section 6 & 7)
+  if (path === 'accounts' || path === 'demo/accounts') {
+    return NextResponse.json({
+      success: true,
+      accounts: INITIAL_DEMO_ACCOUNTS
+    })
+  }
+
+  // Simulated Payments List & Details (Section 74)
+  if (path === 'payments' || path === 'payments/list') {
+    return NextResponse.json({
+      success: true,
+      transactions: INITIAL_TRANSACTIONS
+    })
+  }
+
+  if (path.startsWith('payments/') && !path.includes('/')) {
+    const paymentId = path.replace('payments/', '')
+    const txn = INITIAL_TRANSACTIONS.find(t => t.transactionId === paymentId || t.id === paymentId)
+    if (txn) {
+      return NextResponse.json({ success: true, payment: txn })
+    }
+    return NextResponse.json({ success: false, message: 'Payment not found' }, { status: 404 })
   }
 
   if (path === 'openapi.json') {
@@ -546,12 +751,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   if (path === 'income/summary') {
+    const total_income = (demoState.incomes || []).reduce((sum: number, inc: any) => sum + (Number(inc.amount) || 0), 0) || 90000.0
+    const total_expenses = (demoState.expenses || []).reduce((sum: number, exp: any) => sum + (Number(exp.amount) || 0), 0)
+    const net_balance = Math.max(0, total_income - total_expenses)
+    const savings = net_balance
+    const savings_percentage = total_income > 0 ? Number(((savings / total_income) * 100).toFixed(1)) : 0
     return NextResponse.json({
-      total_income: 90000.0,
-      total_expenses: 17420.0,
-      net_balance: 72580.0,
-      savings: 72580.0,
-      savings_percentage: 80.6
+      total_income,
+      total_expenses,
+      net_balance,
+      savings,
+      savings_percentage
     })
   }
 
@@ -560,33 +770,54 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   if (path === 'expenses/summary') {
+    const expensesList = demoState.expenses || []
+    const total_expenses = expensesList.reduce((sum: number, exp: any) => sum + (Number(exp.amount) || 0), 0)
+    const monthly_budget = 35000.0
+    const remaining_budget = Math.max(0, monthly_budget - total_expenses)
+
+    const todayStr = new Date().toISOString().split('T')[0]
+    const today_spend = expensesList
+      .filter((e: any) => (e.date || '').startsWith(todayStr))
+      .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0)
+
+    const category_distribution: Record<string, number> = {}
+    const payment_method_distribution: Record<string, number> = {}
+
+    expensesList.forEach((e: any) => {
+      const cat = e.category || 'Other'
+      const amt = Number(e.amount) || 0
+      category_distribution[cat] = (category_distribution[cat] || 0) + amt
+
+      const method = e.payment_method || 'UPI'
+      payment_method_distribution[method] = (payment_method_distribution[method] || 0) + amt
+    })
+
+    let highest_category = 'Other'
+    let maxCatAmt = -1
+    Object.entries(category_distribution).forEach(([cat, val]) => {
+      if (val > maxCatAmt) {
+        maxCatAmt = val
+        highest_category = cat
+      }
+    })
+
     return NextResponse.json({
-      total_expenses: 17420.0,
-      monthly_budget: 36000.0,
-      remaining_budget: 18580.0,
-      today_spend: 450.0,
-      avg_daily_expense: 725.8,
-      highest_category: 'Shopping',
-      category_distribution: {
-        Shopping: 5800,
-        Food: 4200,
-        Groceries: 3420,
-        Bills: 2500,
-        Other: 1500
-      },
+      total_expenses,
+      monthly_budget,
+      remaining_budget,
+      today_spend: today_spend || 850.0,
+      avg_daily_expense: Number((total_expenses / 30).toFixed(1)),
+      highest_category,
+      category_distribution,
       monthly_trend: [
         { month: 'Apr', amount: 14200, height: 55 },
         { month: 'May', amount: 16800, height: 68 },
         { month: 'Jun', amount: 15300, height: 60 },
         { month: 'Jul', amount: 18900, height: 85 },
         { month: 'Aug', amount: 16100, height: 64 },
-        { month: 'Sep', amount: 17420, height: 72 }
+        { month: 'Sep', amount: Math.max(17420, total_expenses), height: 75 }
       ],
-      payment_method_distribution: {
-        UPI: 11200,
-        Card: 4720,
-        Cash: 1500
-      }
+      payment_method_distribution
     })
   }
 
@@ -729,6 +960,87 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(demoState.blockedDevices)
   }
 
+  // Objective 3: Model Learning & Feedback Statistics
+  if (path === 'model/feedback' || path === 'model/feedback/stats') {
+    const unlearned = demoState.feedbackRecords.filter((f: any) => !f.isIncorporatedIntoDataset)
+    const confirmedFraud = demoState.feedbackRecords.filter((f: any) => f.actualOutcome === 'FRAUD').length
+    const confirmedLegit = demoState.feedbackRecords.filter((f: any) => f.actualOutcome === 'LEGITIMATE').length
+    return NextResponse.json({
+      total_feedback: demoState.feedbackRecords.length,
+      confirmed_fraud: confirmedFraud,
+      confirmed_legit: confirmedLegit,
+      newly_learned_samples: unlearned.length,
+      records: demoState.feedbackRecords
+    })
+  }
+
+  // Objective 3: Training Dataset Statistics
+  if (path === 'model/training-data') {
+    return NextResponse.json({
+      dataset_samples: demoState.modelTrainingState.dataset_samples,
+      confirmed_fraud_samples: demoState.modelTrainingState.confirmed_fraud_samples,
+      confirmed_legit_samples: demoState.modelTrainingState.confirmed_legit_samples,
+      newly_learned_samples: demoState.modelTrainingState.newly_learned_samples,
+      features_monitored: [
+        'transaction_amount',
+        'transaction_velocity',
+        'time_of_day_anomaly',
+        'device_fingerprint_change',
+        'location_anomaly_distance',
+        'receiver_vpa_reputation',
+        'qr_tampering_signature',
+        'historical_dispute_ratio'
+      ],
+      last_training_time: demoState.modelTrainingState.last_retrained,
+      training_status: demoState.modelTrainingState.training_status
+    })
+  }
+
+  // Objective 3: Model Status & Version
+  if (path === 'model/status' || path === 'model/version') {
+    return NextResponse.json({
+      active_version: demoState.modelTrainingState.active_version,
+      last_retrained: demoState.modelTrainingState.last_retrained,
+      training_status: demoState.modelTrainingState.training_status,
+      metrics: demoState.modelTrainingState.metrics,
+      newly_learned_samples: demoState.modelTrainingState.newly_learned_samples
+    })
+  }
+
+  // Objective 3: Fraud Patterns
+  if (path === 'fraud-patterns' || path === 'admin/fraud-patterns') {
+    return NextResponse.json(demoState.fraudPatterns)
+  }
+
+  // Objective 3: Multiple UPI Integrations
+  if (path === 'upi/integrations' || path === 'admin/upi-integrations') {
+    return NextResponse.json(demoState.upiProviders)
+  }
+
+  // Objective 3: Scalability & System Monitoring
+  if (path === 'system/metrics' || path === 'system/monitoring' || path === 'admin/system-metrics') {
+    return NextResponse.json(demoState.systemMetrics)
+  }
+
+  // Objective 3: Adaptive Threshold Details & History
+  if (path === 'adaptive-threshold' || path === 'admin/adaptive-threshold') {
+    const latest = demoState.adaptiveThresholdHistory[0] || {
+      currentThreshold: 75.0,
+      previousThreshold: 72.5,
+      thresholdDelta: 2.5,
+      reason: 'Baseline diurnal calibration',
+      timestamp: new Date().toISOString()
+    }
+    return NextResponse.json({
+      current_threshold: latest.currentThreshold,
+      previous_threshold: latest.previousThreshold,
+      threshold_delta: latest.thresholdDelta,
+      reason: latest.reason,
+      timestamp: latest.timestamp,
+      history: demoState.adaptiveThresholdHistory
+    })
+  }
+
   // Safe fallback: never return a bare string or empty object without array or schema safety
   return NextResponse.json([])
 }
@@ -749,22 +1061,309 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   if (path === 'auth/login' || path === 'admin/login' || path === 'auth/admin-login') {
-    const isAdmin = path.includes('admin') || body.email?.includes('admin')
-    const userObj = {
-      id: isAdmin ? 99 : 1,
-      name: isAdmin ? 'Platform Administrator' : 'Anjan Sharma',
-      email: body.email || (isAdmin ? 'admin@upishield.ai' : 'demo@upishield.ai'),
-      role: isAdmin ? 'admin' : 'user',
-      status: 'active'
+    const isAdmin = path.includes('admin') || (body.email && body.email.includes('admin'))
+    const email = (body.email || '').trim().toLowerCase()
+    const password = body.password || ''
+
+    if (isAdmin) {
+      const validAdmin = (email === 'admin@upishield.ai' || email === 'admin@upiguard') && password === 'admin123'
+      if (!validAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid administrator credentials. Access restricted.' },
+          { status: 401 }
+        )
+      }
+      const adminObj = {
+        id: 99,
+        name: 'Platform Administrator',
+        email: email || 'admin@upishield.ai',
+        role: 'admin',
+        status: 'active'
+      }
+      return NextResponse.json({
+        success: true,
+        access_token: `token-${Date.now()}-admin`,
+        token_type: 'bearer',
+        user: adminObj,
+        user_id: adminObj.id,
+        user_name: adminObj.name,
+        user_email: adminObj.email,
+        role: 'admin'
+      })
+    } else {
+      // User login validation
+      const isDefaultUser = (email === 'demo@upishield.ai' || email === 'user@upishield.com' || email === 'anjan@upiguard') && password === 'shield123'
+      const matchedUser = demoState.users.find((u: any) => u.email.toLowerCase() === email)
+      const isRegisteredUser = matchedUser && (matchedUser as any).password === password
+
+      if (!isDefaultUser && !isRegisteredUser) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid email or password. Please verify your credentials.' },
+          { status: 401 }
+        )
+      }
+
+      const userObj = matchedUser || {
+        id: 1,
+        name: 'Anjan Sharma',
+        email: email || 'demo@upishield.ai',
+        role: 'user',
+        status: 'active'
+      }
+
+      return NextResponse.json({
+        success: true,
+        access_token: `token-${Date.now()}-user`,
+        token_type: 'bearer',
+        user: userObj,
+        user_id: userObj.id,
+        user_name: userObj.name,
+        user_email: userObj.email,
+        role: 'user'
+      })
+    }
+  }
+
+  // User Signup / Registration
+  if (path === 'auth/register') {
+    const name = (body.name || '').trim()
+    const email = (body.email || '').trim().toLowerCase()
+    const password = body.password || ''
+    const mobile = (body.mobile || '').trim()
+
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { success: false, error: 'Name, email and password are required.' },
+        { status: 400 }
+      )
+    }
+
+    if (demoState.users.some((u: any) => u.email.toLowerCase() === email)) {
+      return NextResponse.json(
+        { success: false, error: 'An account with this email address already exists.' },
+        { status: 409 }
+      )
+    }
+
+    const newUser = {
+      id: demoState.users.length + 1,
+      name,
+      email,
+      mobile: mobile || '+91 98000 00000',
+      password, // In demo serverless state
+      role: 'user',
+      status: 'active',
+      joined: new Date().toISOString(),
+      transactions_count: 0,
+      reports_count: 0,
+      cases_count: 0
+    }
+    demoState.users.push(newUser)
+
+    return NextResponse.json({
+      success: true,
+      access_token: `token-${Date.now()}-user`,
+      token_type: 'bearer',
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        mobile: newUser.mobile,
+        role: 'user',
+        status: 'active'
+      },
+      user_id: newUser.id,
+      user_name: newUser.name,
+      user_email: newUser.email,
+      role: 'user'
+    }, { status: 201 })
+  }
+
+  // UPIGuard AI Payment Creation & Live Risk Analysis (Section 74, 75, 76)
+  if (path === 'payments' || path === 'payments/create') {
+    const amount = Number(body.amount) || 5000
+    const senderUpiId = body.senderUpiId || 'anjan@upiguard'
+    const receiverUpiId = body.receiverUpiId || 'abc@upiguard'
+    const receiverName = body.receiverName || (receiverUpiId.includes('coffee') ? 'UPIGuard Coffee' : 'ABC Electronics')
+    const isNewDevice = Boolean(body.isNewDevice || (body.deviceId && body.deviceId.includes('Unknown')))
+    const locationCity = body.location?.city || body.city || 'Hubballi'
+
+    const risk = calculateUpiGuardMasterRisk({
+      amount,
+      senderUpiId,
+      receiverUpiId,
+      receiverName,
+      isNewDevice,
+      locationCity,
+      deviceTrust: isNewDevice ? 18 : 94,
+      velocityCount: body.velocityCount || 1,
+      normalCity: 'Hubballi'
+    })
+
+    const transactionId = body.transactionId || `TXN-${Math.floor(100000 + Math.random() * 900000)}`
+
+    return NextResponse.json({
+      success: true,
+      transactionId,
+      riskScore: risk.finalRisk,
+      riskLevel: risk.riskLevel,
+      decision: risk.decision === 'BLOCK' ? 'BLOCK' : risk.decision === 'HOLD' ? 'STEP_UP_AUTH' : risk.decision === 'VERIFY' ? 'ENHANCED_AUTH' : 'ALLOW_WITH_AUTH',
+      components: risk.components,
+      fraudProbability: risk.fraudProbability,
+      explanations: risk.explanations,
+      shapContributions: risk.shapContributions,
+      requiresOtp: true, // OTP_REQUIRED_FOR_ALL_DEMO_PAYMENTS=true
+      payment: {
+        transactionId,
+        senderUpiId,
+        receiverUpiId,
+        receiverName,
+        amount,
+        currency: 'INR',
+        note: body.note || 'Demo Payment',
+        status: risk.decision === 'BLOCK' ? 'BLOCKED' : 'PENDING'
+      }
+    })
+  }
+
+  // Payment Risk Analysis Endpoint (Section 74)
+  if (path.endsWith('/analyze') || path === 'payments/analyze' || path === 'risk/analyze') {
+    const amount = Number(body.amount) || 5000
+    const senderUpiId = body.senderUpiId || 'anjan@upiguard'
+    const receiverUpiId = body.receiverUpiId || 'abc@upiguard'
+    const isNewDevice = Boolean(body.isNewDevice)
+    const locationCity = body.location?.city || body.city || 'Hubballi'
+
+    const risk = calculateUpiGuardMasterRisk({
+      amount,
+      senderUpiId,
+      receiverUpiId,
+      isNewDevice,
+      locationCity
+    })
+
+    return NextResponse.json({
+      success: true,
+      riskScore: risk.finalRisk,
+      riskLevel: risk.riskLevel,
+      decision: risk.decision,
+      components: risk.components,
+      fraudProbability: risk.fraudProbability,
+      explanations: risk.explanations,
+      shapContributions: risk.shapContributions
+    })
+  }
+
+  // Demo UPI PIN Verification (Section 28)
+  if (path === 'auth/pin/verify' || path.endsWith('/pin')) {
+    const pin = body.pin?.trim()
+    const senderUpiId = body.senderUpiId || body.userId || 'anjan@upiguard'
+    const expectedPins: Record<string, string> = {
+      'anjan@upiguard': '2580',
+      'rahul@upiguard': '4821',
+      'priya@upiguard': '7314',
+      'abc@upiguard': '1234',
+      'coffee@upiguard': '1122'
+    }
+    const expected = expectedPins[senderUpiId] || '2580'
+    const verified = pin === expected
+
+    if (verified) {
+      return NextResponse.json({
+        verified: true,
+        method: 'UPI_PIN',
+        message: 'UPI PIN verified successfully'
+      })
     }
     return NextResponse.json({
-      access_token: `token-${Date.now()}-${isAdmin ? 'admin' : 'user'}`,
-      token_type: 'bearer',
-      user: userObj,
-      user_id: userObj.id,
-      user_name: userObj.name,
-      user_email: userObj.email,
-      role: userObj.role
+      verified: false,
+      method: 'UPI_PIN',
+      message: `Invalid UPI PIN. Demo PIN for ${senderUpiId} is ${expected}`
+    }, { status: 400 })
+  }
+
+  // Demo Face Biometric Verification (Section 29, 31)
+  if (path === 'auth/face/verify' || path.endsWith('/face')) {
+    const matchScore = Number(body.matchScore) || 0.84
+    const threshold = 0.60
+    const verified = matchScore >= threshold
+
+    return NextResponse.json({
+      verified,
+      method: 'FACE_SCAN',
+      matchScore,
+      threshold,
+      message: verified ? 'Identity verified via facial biometrics' : 'Face match score below threshold'
+    })
+  }
+
+  // Mandatory Random 6-digit OTP Request (Section 33, 34, 35, 36)
+  if (path === 'auth/otp/request' || path.endsWith('/otp/request')) {
+    const randomOtp = Math.floor(100000 + Math.random() * 900000).toString()
+    const challengeId = `OTP-${Math.floor(10000 + Math.random() * 90000)}`
+    const expiresIn = 120
+
+    return NextResponse.json({
+      success: true,
+      challengeId,
+      expiresIn,
+      demoOtp: randomOtp,
+      message: 'Demo OTP generated successfully'
+    })
+  }
+
+  // OTP Verification (Section 36)
+  if (path === 'auth/otp/verify' || path.endsWith('/otp/verify')) {
+    const enteredOtp = body.otp?.trim()
+    const expectedOtp = body.expectedOtp?.trim()
+
+    // In demo mode, if entered matches expected or length is 6 digits
+    const valid = !expectedOtp || enteredOtp === expectedOtp || enteredOtp.length === 6
+
+    if (valid) {
+      return NextResponse.json({
+        success: true,
+        verified: true,
+        message: 'OTP verified successfully'
+      })
+    }
+    return NextResponse.json({
+      success: false,
+      verified: false,
+      message: 'Invalid OTP entered'
+    }, { status: 400 })
+  }
+
+  // Payment Settlement (Section 40)
+  if (path === 'payments/settle' || path.endsWith('/settle')) {
+    const transactionId = body.transactionId || `TXN-${Math.floor(100000 + Math.random() * 900000)}`
+    return NextResponse.json({
+      success: true,
+      transactionId,
+      status: 'SETTLED',
+      settledAt: new Date().toISOString(),
+      message: 'Simulated payment settled successfully in closed-loop ledger'
+    })
+  }
+
+  // Payment Block (Section 45)
+  if (path === 'payments/block' || path.endsWith('/block')) {
+    const transactionId = body.transactionId || `TXN-${Math.floor(100000 + Math.random() * 900000)}`
+    return NextResponse.json({
+      success: true,
+      transactionId,
+      status: 'BLOCKED',
+      blockedAt: new Date().toISOString(),
+      message: 'Payment blocked by UPIGuard AI Risk Engine. Zero balance changed.'
+    })
+  }
+
+  // Demo Environment Reset (Section 68)
+  if (path === 'demo/reset' || path === 'admin/reset-demo') {
+    return NextResponse.json({
+      success: true,
+      message: 'UPIGuard AI demo environment restored to initial seed state',
+      resetAt: new Date().toISOString()
     })
   }
 
@@ -809,7 +1408,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       target_type: 'Entity / VPA',
       target_id: entity_label,
       ip_address: '103.212.144.18',
-      details: { entity_id, entity_label, entity_type, reason, linked_vpas },
+      details: { entity_id, entity_label, entity_type, reason, linked_vpas } as any,
       created_at: new Date().toISOString()
     })
 
@@ -905,7 +1504,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       target_type: 'Case',
       target_id: caseNum,
       ip_address: '103.212.144.18',
-      details: { case_number: caseNum, entity_label, priority: 'Critical' },
+      details: { case_number: caseNum, entity_label, priority: 'Critical' } as any,
       created_at: new Date().toISOString()
     })
 
@@ -935,32 +1534,88 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const isSuspicious = assessment.risk_level === 'HIGH' || assessment.risk_level === 'CRITICAL'
     const newTxn = {
       id: demoState.transactions.length + 1,
-      transaction_reference: `TXN-${Math.floor(10000 + Math.random() * 90000)}-UPI`,
+      transaction_reference: body.transaction_reference || `TXN-${Math.floor(10000 + Math.random() * 90000)}-UPI`,
       user_id: 1,
       merchant: body.merchant || body.receiver_name || 'UPI Transfer',
       amount: Number(body.amount) || 0,
       currency: 'INR',
-      transaction_type: 'UPI',
+      transaction_type: body.transaction_type || 'UPI',
       payment_method: body.payment_method || 'UPI App Intent',
-      transaction_date: new Date().toISOString(),
-      status: assessment.decision === 'BLOCK' ? 'Blocked' : 'Completed',
-      flag_status: isSuspicious ? 'Suspicious' : 'Normal',
-      flag_reason: assessment.explainable_ai?.summary || '',
+      transaction_date: body.transaction_date || new Date().toISOString(),
+      status: body.status || (assessment.decision === 'BLOCK' ? 'Blocked' : 'Completed'),
+      flag_status: body.flag_status || (isSuspicious ? 'Suspicious' : 'Normal'),
+      flag_reason: body.flag_reason || assessment.explainable_ai?.summary || '',
       has_report: false,
       upi_details: {
         receiver_name: body.merchant || body.receiver_name || 'Receiver',
-        receiver_upi: body.receiver_upi || 'receiver@upi'
+        receiver_upi: body.receiver_upi || body.recipient_upi || 'receiver@upi'
       },
       risk_score: assessment.overall_risk_score,
       decision: assessment.decision
     }
     demoState.transactions.unshift(newTxn)
 
+    // Simultaneously record in expenses ledger so Transactions & Expenses stay 100% unified
+    if (newTxn.status !== 'Blocked' && newTxn.status !== 'Failed') {
+      const cat = body.category || detectExpenseCategory(newTxn.merchant, body.note || '')
+      const newExp = {
+        id: Date.now(),
+        amount: newTxn.amount,
+        category: cat,
+        merchant: newTxn.merchant,
+        payment_method: newTxn.payment_method || 'UPI',
+        date: newTxn.transaction_date,
+        description: body.description || body.note || `Payment to ${newTxn.merchant}`,
+        transaction_ref: newTxn.transaction_reference
+      }
+      demoState.expenses.unshift(newExp)
+    }
+
     return NextResponse.json({
       success: true,
       transaction: newTxn,
       assessment: buildXaiResponse(assessment, normalized, DEFAULT_USER_BASELINE)
     })
+  }
+
+  // Create / Record Expense
+  if (path === 'expenses') {
+    const numAmt = Number(body.amount) || 0
+    const cat = body.category || detectExpenseCategory(body.merchant || '', body.description || '')
+    const newExp = {
+      id: Date.now(),
+      amount: numAmt,
+      category: cat,
+      merchant: body.merchant || 'Expense',
+      payment_method: body.payment_method || 'UPI',
+      date: body.date || new Date().toISOString(),
+      description: body.description || 'Manual Expense'
+    }
+    demoState.expenses.unshift(newExp)
+
+    // Mirror to transactions list so both lists remain unified
+    const newTxn = {
+      id: demoState.transactions.length + 1,
+      transaction_reference: `TXN-${Math.floor(10000 + Math.random() * 90000)}-${(body.payment_method || 'UPI').toUpperCase().slice(0, 4)}`,
+      user_id: 1,
+      merchant: newExp.merchant,
+      amount: newExp.amount,
+      currency: 'INR',
+      transaction_type: (body.payment_method || 'UPI').includes('Card') ? 'Card' : 'UPI',
+      payment_method: body.payment_method || 'UPI',
+      transaction_date: newExp.date,
+      status: 'Completed',
+      flag_status: 'Normal',
+      flag_reason: '',
+      has_report: false,
+      upi_details: {
+        receiver_name: newExp.merchant,
+        receiver_upi: `${newExp.merchant.toLowerCase().replace(/[^a-z0-9]/g, '')}@okaxis`
+      }
+    }
+    demoState.transactions.unshift(newTxn)
+
+    return NextResponse.json(newExp, { status: 201 })
   }
 
   // Block VPA Endpoint
@@ -976,7 +1631,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       target_type: 'VPA',
       target_id: vpa || 'N/A',
       ip_address: '103.212.144.18',
-      details: { vpa, reason: body.reason || 'Flagged for suspicious activity' },
+      details: { vpa, reason: body.reason || 'Flagged for suspicious activity' } as any,
       created_at: new Date().toISOString()
     })
     return NextResponse.json({ success: true, message: `VPA ${vpa} added to global blacklist.`, blocked_vpas: demoState.blockedVpas })
@@ -995,7 +1650,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       target_type: 'Device',
       target_id: devId || 'N/A',
       ip_address: '103.212.144.18',
-      details: { devId, reason: body.reason || 'Flagged as emulator or compromised' },
+      details: { devId, reason: body.reason || 'Flagged as emulator or compromised' } as any,
       created_at: new Date().toISOString()
     })
     return NextResponse.json({ success: true, message: `Device ${devId} quarantined.`, blocked_devices: demoState.blockedDevices })
@@ -1088,7 +1743,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       accuracy: 99.52,
       f1_score: 98.48,
       roc_auc: 0.993,
-      status: 'ACTIVE',
+      status: 'ACTIVE' as const,
       changelog: `Self-learning feedback loop iteration. Retrained on ${MODEL_PERFORMANCE_METRICS.dataset_samples.toLocaleString()} verified samples.`
     }
 
@@ -1149,6 +1804,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       description: body.description,
       user_name: 'Anjan Sharma',
       user_email: 'user@upishield.com',
+      user_mobile: '+91 98765 43210',
+      assigned_admin_name: 'Unassigned',
+      transaction_reference: `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       evidence: [],
@@ -1223,7 +1881,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         target_type: 'Rule',
         target_id: demoState.rules[ruleIndex].rule_code,
         ip_address: '103.212.144.18',
-        details: { threshold_value: body.threshold_value, severity: body.severity, is_enabled: body.is_enabled, reason: body.reason },
+        details: { threshold_value: body.threshold_value, severity: body.severity, is_enabled: body.is_enabled, reason: body.reason } as any,
         created_at: new Date().toISOString()
       })
 
@@ -1274,6 +1932,202 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
   }
 
+  // Objective 3: Model Feedback Submission
+  if (path === 'model/feedback' || path === 'admin/model/feedback') {
+    const record: FeedbackRecord = {
+      id: `fb_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`,
+      transactionId: body.transactionId || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+      amount: Number(body.amount) || 1000,
+      receiverVpa: body.receiverVpa || body.receiver_upi || 'scammer.refund@okaxis',
+      sourceApp: body.sourceApp || 'UPI App A',
+      predictedRisk: Number(body.predictedRisk ?? body.predictedRiskScore ?? 50),
+      predictedDecision: body.predictedDecision || 'ALLOW',
+      actualOutcome: body.actualOutcome === 'FRAUD' ? 'FRAUD' : 'LEGITIMATE',
+      feedbackSource: body.feedbackSource === 'DISPUTE_RAISED' ? 'DISPUTE_RAISED' : 'USER_CONFIRMATION',
+      submittedAt: new Date().toISOString(),
+      userNotes: body.notes || body.userNotes || 'Outcome feedback registered into training pipeline',
+      isIncorporatedIntoDataset: false
+    }
+
+    demoState.feedbackRecords.unshift(record)
+    const isFraud = record.actualOutcome === 'FRAUD'
+    if (isFraud) {
+      demoState.modelTrainingState.confirmed_fraud_samples += 1
+    } else {
+      demoState.modelTrainingState.confirmed_legit_samples += 1
+    }
+    demoState.modelTrainingState.newly_learned_samples += 1
+
+    // Dynamic threshold update calculation
+    const falsePositives = demoState.feedbackRecords.filter((f: any) => f.actualOutcome === 'LEGITIMATE' && f.predictedRisk >= 70).length
+    const confirmedFrauds = demoState.feedbackRecords.filter((f: any) => f.actualOutcome === 'FRAUD').length
+    const activePatternCount = demoState.fraudPatterns.filter((p: any) => p.status === 'ACTIVE').length
+    const thresholdRecalc = recalculateDynamicAdaptiveThreshold(75.0, falsePositives, confirmedFrauds, activePatternCount)
+    demoState.adaptiveThresholdHistory.unshift(thresholdRecalc)
+
+    // Audit log
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: body.admin_email || 'admin@upishield.ai',
+      action: isFraud ? 'Fraud Confirmed by Feedback' : 'Legitimate Transaction Confirmed',
+      target_type: 'Feedback',
+      target_id: record.transactionId,
+      ip_address: '103.212.144.18',
+      details: { outcome: record.actualOutcome, predictedRisk: record.predictedRisk, newThreshold: thresholdRecalc.currentThreshold } as any,
+      created_at: new Date().toISOString()
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `Feedback stored for transaction ${record.transactionId}. Dataset updated.`,
+      record,
+      adaptiveThreshold: thresholdRecalc,
+      unlearnedCount: demoState.modelTrainingState.newly_learned_samples
+    })
+  }
+
+  // Objective 3: Model Retraining Trigger
+  if (path === 'model/retrain' || path === 'admin/model/retrain') {
+    const unlearnedCount = demoState.feedbackRecords.filter((f: any) => !f.isIncorporatedIntoDataset).length
+    const { updatedState, newVersion } = executeModelRetraining(
+      demoState.modelTrainingState,
+      demoState.feedbackRecords
+    )
+
+    demoState.modelTrainingState = updatedState
+    demoState.feedbackRecords.forEach((f: any) => {
+      f.isIncorporatedIntoDataset = true
+      f.incorporatedIntoVersion = newVersion
+    })
+    demoState.systemMetrics.modelAccuracy = updatedState.metrics.accuracy
+    demoState.systemMetrics.lastModelRetrain = updatedState.last_retrained
+
+    // Audit log
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: body.admin_email || 'admin@upishield.ai',
+      action: 'AI Model Retrained & Deployed',
+      target_type: 'AI_Model',
+      target_id: newVersion,
+      ip_address: '103.212.144.18',
+      details: {
+        newVersion,
+        samplesLearned: unlearnedCount,
+        accuracy: updatedState.metrics.accuracy,
+        recall: updatedState.metrics.recall,
+        f1Score: updatedState.metrics.f1_score
+      } as any,
+      created_at: new Date().toISOString()
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `Model successfully retrained with ${unlearnedCount} new feedback samples.`,
+      newVersion,
+      newlyLearnedCount: unlearnedCount,
+      metrics: updatedState.metrics,
+      changelog: `Self-learning update ${newVersion}`
+    })
+  }
+
+  // Objective 3: Fraud Pattern Rule Management
+  if (path.startsWith('fraud-patterns/') && (path.endsWith('/rule') || path.endsWith('/activate') || path.endsWith('/toggle'))) {
+    const patternId = path.split('/')[1]
+    const pattern = demoState.fraudPatterns.find((p: any) => p.id === patternId || p.pattern_key === patternId)
+    if (pattern) {
+      const enable = body.is_enabled !== undefined ? Boolean(body.is_enabled) : !pattern.is_rule_created
+      pattern.is_rule_created = enable
+      pattern.status = enable ? 'MITIGATED' : 'ACTIVE'
+
+      demoState.auditLogs.unshift({
+        id: demoState.auditLogs.length + 1,
+        admin_email: body.admin_email || 'admin@upishield.ai',
+        action: enable ? 'Fraud Rule Activated from Pattern' : 'Fraud Rule Deactivated',
+        target_type: 'Fraud_Rule',
+        target_id: pattern.pattern_name,
+        ip_address: '103.212.144.18',
+        details: { patternId, patternName: pattern.pattern_name, ruleActive: enable } as any,
+        created_at: new Date().toISOString()
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Fraud rule for "${pattern.pattern_name}" ${enable ? 'activated' : 'deactivated'}.`,
+        pattern
+      })
+    }
+  }
+
+  // Objective 3: Generic Common UPI API Ingestion
+  if (path === 'upi/ingest' || path === 'payments/generic-ingest') {
+    const sourceApp = body.sourceApp || body.upi_app || 'UPI App A'
+    const senderVpa = body.senderVpa || body.sender_upi || 'payer@upiapp'
+    const receiverVpa = body.receiverVpa || body.receiver_upi || 'merchant@upiapp'
+    const receiverName = body.receiverName || body.receiver_name || 'Merchant Enterprise'
+    const amount = Number(body.amount) || 1250
+    const city = body.city || body.location?.city || 'Bengaluru'
+    const isFraudAttempt = Boolean(body.isFraudAttempt || amount > 100000 || receiverVpa.includes('scam'))
+
+    // Normalize & run modular AI pipeline: Ingestion -> Feature Extraction -> Models -> Risk Fusion -> Dynamic Score -> Decision
+    const risk = calculateUpiGuardMasterRisk({
+      amount,
+      senderUpiId: senderVpa,
+      receiverUpiId: receiverVpa,
+      receiverName,
+      isNewDevice: Boolean(body.isNewDevice),
+      locationCity: city
+    })
+
+    const txnId = body.transactionId || `TXN-UPI-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`
+
+    // Update UPI Provider statistics
+    const provider = demoState.upiProviders.find(
+      (p: any) =>
+        p.app_name.toLowerCase().includes(sourceApp.toLowerCase()) ||
+        p.app_code.toLowerCase() === sourceApp.toLowerCase() ||
+        p.id.toLowerCase() === sourceApp.toLowerCase()
+    )
+    if (provider) {
+      provider.transactions_processed += 1
+      if (risk.decision === 'BLOCK' || risk.finalRisk >= 75) {
+        provider.fraud_detected += 1
+      } else {
+        provider.legitimate_count += 1
+      }
+      provider.last_transaction_at = new Date().toISOString()
+    }
+
+    // Update System Monitoring Metrics
+    demoState.systemMetrics.transactions_processed += 1
+    demoState.systemMetrics.fraud_checks_completed += 1
+    demoState.systemMetrics.activeProcessingCount = Math.max(1, (((demoState.systemMetrics.activeProcessingCount || 1) + 1) % 5))
+
+    // Audit log
+    demoState.auditLogs.unshift({
+      id: demoState.auditLogs.length + 1,
+      admin_email: 'system@upishield.ai',
+      action: 'Cross-Platform UPI Ingestion',
+      target_type: 'UPI_Transaction',
+      target_id: txnId,
+      ip_address: '103.212.144.18',
+      details: { sourceApp, amount, riskScore: risk.finalRisk, decision: risk.decision } as any,
+      created_at: new Date().toISOString()
+    })
+
+    return NextResponse.json({
+      success: true,
+      transactionId: txnId,
+      sourceApp,
+      amount,
+      riskScore: risk.finalRisk,
+      riskLevel: risk.riskLevel,
+      decision: risk.decision,
+      riskFactors: risk.explanations,
+      components: risk.components,
+      timestamp: new Date().toISOString()
+    })
+  }
+
   return NextResponse.json({
     success: true,
     message: 'Updated successfully',
@@ -1288,6 +2142,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const proxyRes = await tryProxyBackend(request, path)
   if (proxyRes) return proxyRes
+
+  if (path.startsWith('expenses/')) {
+    const id = Number(path.split('/')[1])
+    demoState.expenses = demoState.expenses.filter((e: any) => e.id !== id)
+    return NextResponse.json({ success: true, message: 'Expense removed' })
+  }
 
   return NextResponse.json({ success: true, message: 'Removed successfully' })
 }
