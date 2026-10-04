@@ -30,6 +30,7 @@ import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
 import { fadeUp } from '@/components/motion/presets'
 import { MotionWordReveal, MotionBadge } from '@/components/motion/animated-text'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([])

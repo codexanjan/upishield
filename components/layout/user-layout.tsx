@@ -35,52 +35,59 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
+import { LanguageSelector } from './language-selector'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 const navGroups = [
   {
-    title: 'PAYMENTS',
+    titleKey: 'nav.payments',
+    fallbackTitle: 'PAYMENTS',
     items: [
-      { label: 'Send UPI', href: '/dashboard/pay', icon: Send },
-      { label: 'Scan QR', href: '/dashboard/scan', icon: ScanLine },
-      { label: 'Payment Map', href: '/dashboard/payment-map', icon: MapPin },
+      { labelKey: 'nav.send_upi', fallback: 'Send UPI', href: '/dashboard/pay', icon: Send },
+      { labelKey: 'nav.scan_qr', fallback: 'Scan QR', href: '/dashboard/scan', icon: ScanLine },
+      { labelKey: 'nav.payment_map', fallback: 'Payment Map', href: '/dashboard/payment-map', icon: MapPin },
     ],
   },
   {
-    title: 'PERSONAL FINANCE',
+    titleKey: 'nav.personal_finance',
+    fallbackTitle: 'PERSONAL FINANCE',
     items: [
-      { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Transactions', href: '/dashboard/transactions', icon: ArrowLeftRight },
-      { label: 'Expenses', href: '/dashboard/expenses', icon: Receipt },
-      { label: 'Cards', href: '/dashboard/cards', icon: CreditCard },
-      { label: 'Budgets', href: '/dashboard/budgets', icon: PieChart },
-      { label: 'Income', href: '/dashboard/income', icon: Wallet },
-      { label: 'Major Purchases', href: '/dashboard/major-purchases', icon: Gem },
+      { labelKey: 'nav.overview', fallback: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+      { labelKey: 'nav.transactions', fallback: 'Transactions', href: '/dashboard/transactions', icon: ArrowLeftRight },
+      { labelKey: 'nav.expenses', fallback: 'Expenses', href: '/dashboard/expenses', icon: Receipt },
+      { labelKey: 'nav.cards', fallback: 'Cards', href: '/dashboard/cards', icon: CreditCard },
+      { labelKey: 'nav.budgets', fallback: 'Budgets', href: '/dashboard/budgets', icon: PieChart },
+      { labelKey: 'nav.income', fallback: 'Income', href: '/dashboard/income', icon: Wallet },
+      { labelKey: 'nav.major_purchases', fallback: 'Major Purchases', href: '/dashboard/major-purchases', icon: Gem },
     ],
   },
   {
-    title: 'SECURITY',
+    titleKey: 'nav.security',
+    fallbackTitle: 'SECURITY',
     items: [
-      { label: 'AI Risk & Behaviour', href: '/dashboard/risk-profile', icon: Cpu },
-      { label: 'Explainable AI (XAI)', href: '/dashboard/xai', icon: Sparkles },
-      { label: 'Location History', href: '/dashboard/location-history', icon: Compass },
-      { label: 'Devices', href: '/dashboard/devices', icon: Smartphone },
-      { label: 'Fraud Alerts', href: '/dashboard/alerts', icon: AlertOctagon },
+      { labelKey: 'nav.ai_risk', fallback: 'AI Risk & Behaviour', href: '/dashboard/risk-profile', icon: Cpu },
+      { labelKey: 'nav.xai', fallback: 'Explainable AI (XAI)', href: '/dashboard/xai', icon: Sparkles },
+      { labelKey: 'nav.location_history', fallback: 'Location History', href: '/dashboard/location-history', icon: Compass },
+      { labelKey: 'nav.devices', fallback: 'Devices', href: '/dashboard/devices', icon: Smartphone },
+      { labelKey: 'nav.fraud_alerts', fallback: 'Fraud Alerts', href: '/dashboard/alerts', icon: AlertOctagon },
     ],
   },
   {
-    title: 'REPORTS & SUPPORT',
+    titleKey: 'nav.reports_support',
+    fallbackTitle: 'REPORTS & SUPPORT',
     items: [
-      { label: 'Report Fraud', href: '/dashboard/report', icon: ShieldAlert },
-      { label: 'My Reports', href: '/dashboard/reports', icon: FileText },
-      { label: 'My Cases', href: '/dashboard/cases', icon: Briefcase },
-      { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
+      { labelKey: 'nav.report_fraud', fallback: 'Report Fraud', href: '/dashboard/report', icon: ShieldAlert },
+      { labelKey: 'nav.my_reports', fallback: 'My Reports', href: '/dashboard/reports', icon: FileText },
+      { labelKey: 'nav.my_cases', fallback: 'My Cases', href: '/dashboard/cases', icon: Briefcase },
+      { labelKey: 'nav.notifications', fallback: 'Notifications', href: '/dashboard/notifications', icon: Bell },
     ],
   },
   {
-    title: 'ACCOUNT SETTINGS',
+    titleKey: 'nav.account_settings',
+    fallbackTitle: 'ACCOUNT SETTINGS',
     items: [
-      { label: 'Profile & My QR', href: '/dashboard/profile', icon: User },
-      { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+      { labelKey: 'nav.profile', fallback: 'Profile & My QR', href: '/dashboard/profile', icon: User },
+      { labelKey: 'nav.settings', fallback: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
   },
 ]
@@ -89,6 +96,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, setNotificationOpen, unreadCount } = useAppStore()
+  const { t } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
@@ -132,9 +140,9 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
 
               <div className="mt-4 flex-1 overflow-y-auto space-y-4">
                 {navGroups.map((group) => (
-                  <div key={group.title} className="space-y-1">
+                  <div key={group.titleKey} className="space-y-1">
                     <p className="px-3 text-[10px] font-bold uppercase tracking-[.18em] text-[#556d6a]">
-                      {group.title}
+                      {t(group.titleKey, group.fallbackTitle)}
                     </p>
                     {group.items.map((item) => {
                       const Icon = item.icon
@@ -151,7 +159,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
                           }`}
                         >
                           <Icon className="size-4" />
-                          {item.label}
+                          {t(item.labelKey, item.fallback)}
                         </Link>
                       )
                     })}
@@ -159,13 +167,16 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
 
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-white/10 space-y-2">
+                <div className="px-1">
+                  <LanguageSelector className="w-full" />
+                </div>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-[#ff7a82] hover:bg-[#ff7a82]/10 transition"
                 >
                   <LogOut className="size-4" />
-                  Sign Out
+                  {t('nav.sign_out', 'Sign Out')}
                 </button>
               </div>
             </motion.aside>
@@ -183,7 +194,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <span className="text-sm font-bold tracking-wider text-white">UPI SHIELD</span>
-                <p className="text-[10px] text-[#b8f55e]">Personal Vault</p>
+                <p className="text-[10px] text-[#b8f55e]">{t('app.vault', 'Personal Vault')}</p>
               </div>
             </Link>
           </div>
@@ -204,9 +215,9 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
           {/* Nav Groups */}
           <nav className="mt-4 flex-1 space-y-4 overflow-y-auto pr-1">
             {navGroups.map((group) => (
-              <div key={group.title} className="space-y-1">
+              <div key={group.titleKey} className="space-y-1">
                 <p className="px-3 text-[9px] font-bold uppercase tracking-[.18em] text-[#556d6a]">
-                  {group.title}
+                  {t(group.titleKey, group.fallbackTitle)}
                 </p>
                 {group.items.map((item) => {
                   const Icon = item.icon
@@ -222,7 +233,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
                       }`}
                     >
                       <Icon className={`size-3.5 transition-transform group-hover:scale-110 ${active ? 'text-[#b8f55e]' : 'text-[#819694]'}`} />
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate">{t(item.labelKey, item.fallback)}</span>
                       {active && (
                         <motion.span
                           layoutId="activePill"
@@ -238,13 +249,12 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
 
           {/* Bottom Actions */}
           <div className="pt-3 border-t border-white/10 space-y-1.5">
-
             <Link
               href="/docs"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#819694] hover:text-[#b8f55e] hover:bg-white/5 transition font-medium"
             >
               <FileCode className="size-3.5 text-[#b8f55e]" />
-              <span>API Documentation</span>
+              <span>{t('nav.api_docs', 'API Documentation')}</span>
             </Link>
 
             <button
@@ -252,7 +262,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#819694] hover:text-[#ff7a82] hover:bg-[#ff7a82]/10 transition"
             >
               <LogOut className="size-3.5" />
-              <span>Sign Out</span>
+              <span>{t('nav.sign_out', 'Sign Out')}</span>
             </button>
           </div>
         </aside>
@@ -272,13 +282,16 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
 
               <div className="hidden sm:block">
                 <span className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#78908d]">
-                  PERSONAL FINANCE
+                  {t('nav.personal_finance', 'PERSONAL FINANCE')}
                 </span>
                 <p className="text-xs text-white font-medium">Deterministic Rule Safety Active</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Language Selector Dropdown */}
+              <LanguageSelector />
+
               <button
                 onClick={() => setNotificationOpen(true)}
                 className="relative rounded-xl border border-white/10 bg-white/[.04] p-2.5 text-[#819694] hover:text-white hover:bg-white/[.08] transition"
@@ -297,7 +310,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
                 className="hidden sm:flex items-center gap-1.5 rounded-xl bg-[#b8f55e] px-3.5 py-2 text-xs font-semibold text-[#09110f] hover:brightness-110 transition shadow-md shadow-[#b8f55e]/20"
               >
                 <Send className="size-3.5" />
-                <span>Pay via UPI</span>
+                <span>{t('action.pay_now', 'Pay via UPI')}</span>
               </Link>
             </div>
           </header>

@@ -17,9 +17,11 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
 
 export default function MyReportsPage() {
+  const storeCases = useUPIGuardStore((s) => s.cases)
   const [reports, setReports] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -37,60 +39,40 @@ export default function MyReportsPage() {
         setReports(data)
       } else {
         // Fallback default sample reports
-        setReports([
-          {
-            id: 1,
-            report_number: 'REP-2026-001',
-            fraud_category: 'Impersonation Scam',
-            merchant: 'quickcash.refund@fakeicici',
-            upi_id: 'quickcash.refund@fakeicici',
-            amount: 12500,
-            report_status: 'Under Review',
-            case_id: 1,
-            case_number: 'CASE-2026-881',
-            incident_date: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            id: 2,
-            report_number: 'REP-2026-002',
-            fraud_category: 'Investment Scheme',
-            merchant: 'CryptoWealth Express',
-            upi_id: null,
-            amount: 62000,
-            report_status: 'Verified',
-            case_id: 2,
-            case_number: 'CASE-2026-904',
-            incident_date: new Date(Date.now() - 259200000).toISOString()
-          }
-        ])
+        setReports([])
       }
     } catch {
-      setReports([
-        {
-          id: 1,
-          report_number: 'REP-2026-001',
-          fraud_category: 'Impersonation Scam',
-          merchant: 'quickcash.refund@fakeicici',
-          upi_id: 'quickcash.refund@fakeicici',
-          amount: 12500,
-          report_status: 'Under Review',
-          case_id: 1,
-          case_number: 'CASE-2026-881',
-          incident_date: new Date(Date.now() - 86400000).toISOString()
-        }
-      ])
+      setReports([])
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredReports = (reports || []).filter((r) => {
+  // Combined reports prioritizing live store cases
+  const allReports = [
+    ...(storeCases || []).map((c) => ({
+      id: c.id,
+      report_number: c.caseId,
+      fraud_category: c.reason?.replace(/_/g, ' ') || 'Fraud Dispute',
+      merchant: c.merchantName || 'Reported Entity',
+      upi_id: c.merchantUpiId || null,
+      amount: c.amount,
+      report_status: c.status === 'RESOLVED' ? 'Verified & Resolved' : c.status === 'UNDER_REVIEW' ? 'Under Review' : 'Submitted (Active)',
+      case_id: c.caseId,
+      case_number: c.caseId,
+      incident_date: c.createdAt,
+      notes: c.investigationNotes
+    })),
+    ...reports
+  ]
+
+  const filteredReports = allReports.filter((r) => {
     const matchesSearch =
       r.report_number?.toLowerCase().includes(search.toLowerCase()) ||
       r.fraud_category?.toLowerCase().includes(search.toLowerCase()) ||
       r.merchant?.toLowerCase().includes(search.toLowerCase()) ||
       (r.upi_id && r.upi_id.toLowerCase().includes(search.toLowerCase()))
-    const matchesStatus = statusFilter === 'ALL' || r.report_status === statusFilter
+    const matchesStatus = statusFilter === 'ALL' || r.report_status?.toLowerCase().includes(statusFilter.toLowerCase())
     return matchesSearch && matchesStatus
   })
 

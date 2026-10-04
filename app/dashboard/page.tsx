@@ -39,28 +39,36 @@ import { useAppStore } from '@/lib/store'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import { RealGoogleMap, MapMarkerItem, getCityCoordinates } from '@/components/maps/real-google-map'
 
 export default function UserDashboard() {
   const { user, privacyMasked, togglePrivacyMask } = useAppStore()
   const storeTransactions = useUPIGuardStore((s) => s.transactions)
   const storeExpenses = useUPIGuardStore((s) => s.expenses)
+  const accounts = useUPIGuardStore((s) => s.accounts)
+  const activeUserUpi = useUPIGuardStore((s) => s.activeUserUpi)
+  const topUpBalance = useUPIGuardStore((s) => s.topUpBalance)
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<'financial' | 'payment' | 'location' | 'security'>('financial')
   const [conflictStatus, setConflictStatus] = useState<'unresolved' | 'verified_me' | 'secured'>('unresolved')
   const [bankModalOpen, setBankModalOpen] = useState(false)
 
+  // User's live wallet balance from store (defaults to 1 Crore = ₹1,00,00,000)
+  const userAccount = accounts[activeUserUpi] || accounts['anjan@upiguard']
+  const walletBalance = userAccount?.balance !== undefined ? userAccount.balance : 10000000
+
   // Financial State
   const [financialSummary, setFinancialSummary] = useState({
-    current_balance: 42580.0,
-    monthly_income: 55000.0,
+    current_balance: 10000000.0,
+    monthly_income: 150000.0,
     monthly_expenses: 27420.0,
-    savings: 27580.0,
+    savings: 9972580.0,
   })
 
   // Dynamic ledger synchronization from store
   const storeExpenseTotal = (storeExpenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
   const effectiveMonthlyExpenses = Math.max(financialSummary.monthly_expenses, storeExpenseTotal)
-  const effectiveCurrentBalance = Math.max(0, financialSummary.monthly_income - effectiveMonthlyExpenses)
+  const effectiveCurrentBalance = walletBalance
   const effectiveSavings = effectiveCurrentBalance
 
   // Dynamic Payment Breakdown
@@ -501,17 +509,32 @@ export default function UserDashboard() {
               animate={{ opacity: 1, y: 0 }}
               className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
             >
-              <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5 shadow-xl">
+              <div className="rounded-2xl border border-[#b8f55e]/30 bg-[#0a1718] p-5 shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[#b8f55e]/10 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Tracked Balance (Ledger-synced)</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-[#8fa9a6]">UPI Shield Wallet</p>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30">
+                      ₹1 CRORE
+                    </span>
+                  </div>
                   <Wallet className="size-4 text-[#b8f55e]" />
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white font-mono">
+                <p className="mt-3 text-2xl font-bold text-white font-mono tracking-tight">
                   {privacyMasked ? '••••••' : `₹${Number(effectiveCurrentBalance).toLocaleString('en-IN')}`}
                 </p>
-                <p className="mt-2 text-xs text-[#b8f55e]">
-                  Available in UPI Linked Accounts
-                </p>
+                <div className="mt-2.5 flex items-center justify-between">
+                  <p className="text-[11px] text-[#b8f55e] font-mono">
+                    Available Balance
+                  </p>
+                  <button
+                    onClick={() => topUpBalance(10000000)}
+                    className="text-[10px] px-2 py-0.5 rounded-lg bg-[#b8f55e]/15 border border-[#b8f55e]/30 text-[#b8f55e] hover:bg-[#b8f55e] hover:text-[#071014] transition font-bold cursor-pointer"
+                    title="Add another ₹1 Crore to wallet"
+                  >
+                    + Top Up ₹1 Cr
+                  </button>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5 shadow-xl">
@@ -605,42 +628,72 @@ export default function UserDashboard() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+              className="space-y-5"
             >
-              <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Payment Locations</p>
-                  <MapPin className="size-4 text-[#b8f55e]" />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-[#8fa9a6]">Payment Locations</p>
+                    <MapPin className="size-4 text-[#b8f55e]" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.payment_locations}</p>
+                  <p className="mt-2 text-xs text-[#b8f55e]">Distinct geographic clusters</p>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.payment_locations}</p>
-                <p className="mt-2 text-xs text-[#b8f55e]">Distinct geographic clusters</p>
+
+                <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-[#8fa9a6]">Primary Payment City</p>
+                    <Compass className="size-4 text-[#b8f55e]" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.primary_city}</p>
+                  <p className="mt-2 text-xs text-[#8fa9a6]">82% of transactions initiated</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-[#8fa9a6]">New Locations This Month</p>
+                    <Sparkles className="size-4 text-amber-400" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.new_locations}</p>
+                  <p className="mt-2 text-xs text-amber-400">Mysuru, Delhi, Udupi</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-[#8fa9a6]">Location Alerts</p>
+                    <AlertOctagon className="size-4 text-rose-400" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.location_alerts}</p>
+                  <p className="mt-2 text-xs text-rose-400">Impossible travel flag</p>
+                </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Primary Payment City</p>
-                  <Compass className="size-4 text-[#b8f55e]" />
-                </div>
-                <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.primary_city}</p>
-                <p className="mt-2 text-xs text-[#8fa9a6]">82% of transactions initiated</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">New Locations This Month</p>
-                  <Sparkles className="size-4 text-amber-400" />
-                </div>
-                <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.new_locations}</p>
-                <p className="mt-2 text-xs text-amber-400">Mysuru, Delhi, Udupi</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Location Alerts</p>
-                  <AlertOctagon className="size-4 text-rose-400" />
-                </div>
-                <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.location_alerts}</p>
-                <p className="mt-2 text-xs text-rose-400">Impossible travel flag</p>
+              {/* Embedded Real Google Map for User Location Intelligence */}
+              <div className="rounded-3xl border border-white/10 bg-[#0a1718] overflow-hidden">
+                <RealGoogleMap
+                  title="Your Personal Payment Geofence & Location Intelligence"
+                  height="440px"
+                  zoom={5}
+                  center={[15.3647, 75.1240]}
+                  markers={(storeTransactions || []).slice(0, 15).map((t: any, idx: number) => {
+                    const city = t.location?.city || t.locationCity || t.city || 'Hubballi'
+                    const baseCoords = getCityCoordinates(city)
+                    return {
+                      id: t.transactionId || `ut_${idx}`,
+                      title: t.receiverName || t.merchant || 'UPI Recipient',
+                      subtitle: `${t.senderUpiId || 'anjan@upiguard'} ➔ ${t.receiverUpiId || 'merchant@upi'}`,
+                      lat: baseCoords[0] + (idx % 2 === 0 ? idx * 0.015 : -idx * 0.015),
+                      lng: baseCoords[1] + (idx % 2 === 0 ? idx * 0.015 : -idx * 0.015),
+                      city,
+                      amount: Number(t.amount) || 0,
+                      riskScore: t.riskScore || 15,
+                      riskLevel: t.riskLevel || 'LOW',
+                      source: 'UPI',
+                      status: t.status || 'SETTLED',
+                      timestamp: t.timestamps?.settled || t.timestamps?.created
+                    }
+                  })}
+                />
               </div>
             </motion.div>
           )}

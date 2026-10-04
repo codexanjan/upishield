@@ -1,0 +1,40 @@
+<svg width="240" height="60" viewBox="0 0 240 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="50%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#B8F55E" />
+    </linearGradient>
+    <linearGradient id="neonGlow" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#B8F55E" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <filter id="glow" x="-10" y="-10" width="68" height="68" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Icon Mark -->
+  <g transform="translate(6, 6)">
+    <!-- Base Squircle -->
+    <rect width="48" height="48" rx="14" fill="#071014" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" />
+    
+    <!-- Outer Shield Contour -->
+    <path d="M24 10L36 15V24C36 31.5 24 38 24 38C24 38 12 31.5 12 24V15L24 10Z"
+          fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <!-- Dynamic UPI Flow Arrows -->
+    <path d="M20 22L24 18L28 22" stroke="#B8F55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M28 26L24 30L20 26" stroke="#06B6D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <!-- Neural AI Core -->
+    <circle cx="24" cy="24" r="2.5" fill="#FFFFFF" filter="url(#glow)" />
+  </g>
+
+  <!-- Typography: UPI SHIELD AI -->
+  <text x="66" y="29" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="19" letter-spacing="0.5" fill="#FFFFFF">UPI SHIELD</text>
+  <rect x="180" y="15" width="28" height="15" rx="4" fill="#B8F55E" />
+  <text x="186" y="26" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="9" fill="#071014" letter-spacing="0.5">AI</text>
+  <text x="67" y="44" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="9" letter-spacing="1.5" fill="#8FA9A6">FRAUD INTERCEPTION ENGINE</text>
+</svg>

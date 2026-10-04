@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import RealGoogleMap from '@/components/maps/real-google-map'
 
 interface AdminMarker {
   id: string
@@ -42,6 +43,8 @@ interface AdminMarker {
   risk: 'Normal' | 'Review' | 'High' | 'Critical'
   x: number
   y: number
+  lat: number
+  lng: number
 }
 
 const mockAdminMarkers: AdminMarker[] = [
@@ -61,7 +64,9 @@ const mockAdminMarkers: AdminMarker[] = [
     layer: 'Critical Cases',
     risk: 'Critical',
     x: 52,
-    y: 26
+    y: 26,
+    lat: 28.6139,
+    lng: 77.2090
   },
   {
     id: '2',
@@ -79,7 +84,9 @@ const mockAdminMarkers: AdminMarker[] = [
     layer: 'Transactions',
     risk: 'Normal',
     x: 48,
-    y: 64
+    y: 64,
+    lat: 12.9716,
+    lng: 77.5946
   },
   {
     id: '3',
@@ -97,7 +104,9 @@ const mockAdminMarkers: AdminMarker[] = [
     layer: 'Fraud Reports',
     risk: 'High',
     x: 36,
-    y: 48
+    y: 48,
+    lat: 19.0760,
+    lng: 72.8777
   },
   {
     id: '4',
@@ -115,7 +124,9 @@ const mockAdminMarkers: AdminMarker[] = [
     layer: 'Transactions',
     risk: 'Normal',
     x: 44,
-    y: 72
+    y: 72,
+    lat: 12.2958,
+    lng: 76.6394
   },
   {
     id: '5',
@@ -133,7 +144,9 @@ const mockAdminMarkers: AdminMarker[] = [
     layer: 'Reported Merchants',
     risk: 'Critical',
     x: 56,
-    y: 22
+    y: 22,
+    lat: 28.7041,
+    lng: 77.1025
   }
 ]
 
@@ -306,31 +319,28 @@ export default function AdminPaymentMapPage() {
               </span>
             </div>
 
-            {/* Markers Plot */}
-            <div className="relative z-10 w-full h-[360px] my-auto">
-              {filteredMarkers.map((marker) => {
-                const isSelected = selectedMarker?.id === marker.id
-                let markerColor = 'bg-[#b8f55e] ring-[#b8f55e]/30'
-                if (marker.risk === 'Normal') markerColor = 'bg-emerald-400 ring-emerald-400/30'
-                if (marker.risk === 'High') markerColor = 'bg-amber-400 ring-amber-400/30'
-                if (marker.risk === 'Critical') markerColor = 'bg-rose-500 ring-rose-500/40 animate-bounce'
-
-                return (
-                  <div
-                    key={marker.id}
-                    onClick={() => setSelectedMarker(marker)}
-                    style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                  >
-                    <div className="relative flex flex-col items-center">
-                      <span className={`size-4 rounded-full ${markerColor} ring-8 transition-transform duration-200 group-hover:scale-125 ${isSelected ? 'scale-125 ring-white/50' : ''}`} />
-                      <span className="mt-1 bg-[#0a1718]/95 border border-white/20 px-2 py-0.5 rounded text-[10px] font-mono text-white whitespace-nowrap shadow-xl">
-                        {marker.city} · {marker.txnRef}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
+            {/* Real Google Maps Operations Feed */}
+            <div className="relative z-10 w-full rounded-2xl overflow-hidden border border-white/10 my-2">
+              <RealGoogleMap
+                height="380px"
+                center={[20.5937, 78.9629]}
+                zoom={4}
+                markers={filteredMarkers.map((m) => ({
+                  id: m.id,
+                  title: `${m.txnRef} • ${m.userName}`,
+                  subtitle: `Payee: ${m.receiver} • ₹${m.amount.toLocaleString()} • Device: ${m.device} (${m.deviceStatus})`,
+                  lat: m.lat,
+                  lng: m.lng,
+                  risk: m.risk === 'Critical' ? 'critical' : m.risk === 'High' ? 'high' : 'low',
+                  status: m.layer,
+                  amount: m.amount,
+                  category: m.device
+                }))}
+                onMarkerClick={(marker) => {
+                  const found = filteredMarkers.find(m => m.id === marker.id)
+                  if (found) setSelectedMarker(found)
+                }}
+              />
             </div>
 
             {/* Bottom Status */}

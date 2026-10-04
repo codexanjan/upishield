@@ -1,0 +1,87 @@
+<svg width="1000" height="260" viewBox="0 0 1000 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="260" rx="16" fill="#071216" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.5"/>
+
+  <text x="30" y="38" fill="#B8F55E" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" letter-spacing="1.5">
+    MULTILINGUAL INDIAN LOCALIZATION MATRIX
+  </text>
+  <text x="30" y="60" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="800">
+    Native Payment Alerts, Warnings &amp; Receipts in 8 Indian Languages
+  </text>
+
+  <!-- 8 Language Badges Grid (4 x 2) -->
+  <g transform="translate(30, 85)">
+    <!-- Row 1 -->
+    <!-- English -->
+    <g transform="translate(0, 0)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="700">English</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Default (Global)</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">EN</text>
+    </g>
+
+    <!-- Hindi -->
+    <g transform="translate(240, 0)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">हिन्दी</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Hindi · Official National</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">HI</text>
+    </g>
+
+    <!-- Kannada -->
+    <g transform="translate(480, 0)">
+      <rect width="220" height="68" rx="12" fill="rgba(184, 245, 94, 0.05)" stroke="rgba(184, 245, 94, 0.3)"/>
+      <text x="16" y="28" fill="#B8F55E" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">ಕನ್ನಡ</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Kannada · Bengaluru/Hubballi</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="#B8F55E"/>
+      <text x="182" y="25" fill="#071216" font-family="monospace" font-size="10" font-weight="700">KN</text>
+    </g>
+
+    <!-- Tamil -->
+    <g transform="translate(720, 0)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">தமிழ்</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Tamil · Chennai &amp; South</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">TA</text>
+    </g>
+
+    <!-- Row 2 -->
+    <!-- Telugu -->
+    <g transform="translate(0, 80)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">తెలుగు</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Telugu · Hyderabad Tech Hub</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">TE</text>
+    </g>
+
+    <!-- Marathi -->
+    <g transform="translate(240, 80)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">मराठी</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Marathi · Mumbai Financial</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">MR</text>
+    </g>
+
+    <!-- Bengali -->
+    <g transform="translate(480, 80)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">বাংলা</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Bengali · Kolkata Region</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">BN</text>
+    </g>
+
+    <!-- Gujarati -->
+    <g transform="translate(720, 80)">
+      <rect width="220" height="68" rx="12" fill="rgba(255, 255, 255, 0.03)" stroke="rgba(255, 255, 255, 0.1)"/>
+      <text x="16" y="28" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700">ગુજરાતી</text>
+      <text x="16" y="46" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Gujarati · GIFT City / Trade</text>
+      <rect x="175" y="12" width="32" height="18" rx="4" fill="rgba(184, 245, 94, 0.15)"/>
+      <text x="182" y="25" fill="#B8F55E" font-family="monospace" font-size="10" font-weight="700">GU</text>
+    </g>
+  </g>
+</svg>

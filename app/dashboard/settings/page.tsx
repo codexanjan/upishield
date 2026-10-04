@@ -14,13 +14,20 @@ import {
   AlertTriangle,
   ToggleLeft,
   ToggleRight,
-  ShieldCheck
+  ShieldCheck,
+  Globe,
+  Check
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
+import { useLanguage } from '@/lib/i18n/language-context'
+import { SupportedLanguage } from '@/lib/i18n/translations'
+
 
 export default function SecuritySettingsPage() {
+  const { language, setLanguage, languages, t } = useLanguage()
+  const [langSuccess, setLangSuccess] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -109,6 +116,76 @@ export default function SecuritySettingsPage() {
               Manage your credentials, active sessions, and access safeguards.
             </p>
           </MotionFadeUp>
+        </div>
+
+        {/* Regional Language & Localization */}
+        <div className="p-6 rounded-2xl bg-[#0a1718] border border-white/10 space-y-5">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-[#b8f55e]" />
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  {t('settings.language_title', 'Interface Language & Regional Localization')}
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {t(
+                    'settings.language_desc',
+                    'Select your preferred Indian regional language for instant payment alerts, warnings, and receipts.'
+                  )}
+                </p>
+              </div>
+            </div>
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#b8f55e]/10 px-3 py-1 text-xs font-semibold text-[#b8f55e] border border-[#b8f55e]/20">
+              Active: {languages.find((l) => l.code === language)?.nativeName}
+            </span>
+          </div>
+
+          {langSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{langSuccess}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {languages.map((lang) => {
+              const isSelected = lang.code === language
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    setLanguage(lang.code as SupportedLanguage)
+                    setLangSuccess(
+                      `Switched language to ${lang.nativeName} (${lang.label}). Changes applied across all views.`
+                    )
+                    setTimeout(() => setLangSuccess(null), 4000)
+                  }}
+                  className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                    isSelected
+                      ? 'border-[#b8f55e] bg-[#b8f55e]/10 shadow-lg shadow-[#b8f55e]/10 ring-1 ring-[#b8f55e]/40'
+                      : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white tracking-wide">
+                      {lang.nativeName}
+                    </span>
+                    {isSelected && (
+                      <div className="grid size-4 place-items-center rounded-full bg-[#b8f55e] text-[#071014]">
+                        <Check className="size-2.5 stroke-[3]" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-300 font-medium mt-0.5">{lang.label}</span>
+                  <span className="text-[10px] text-slate-500 mt-1">{lang.subtext}</span>
+                  <span className="text-[9px] text-[#b8f55e]/80 mt-1 font-mono uppercase tracking-wider">
+                    {lang.region}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Change Password */}

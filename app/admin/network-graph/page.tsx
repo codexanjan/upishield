@@ -24,11 +24,27 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { FRAUD_NETWORK_GRAPH_DATA } from '@/lib/ai-fraud-engine'
+import RealGoogleMap from '@/components/maps/real-google-map'
+
+const NODE_COORDINATES: Record<string, [number, number]> = {
+  'usr-1': [15.3647, 75.1240], // Hubballi Baseline
+  'usr-2': [12.9716, 77.5946], // Bengaluru
+  'usr-3': [28.6139, 77.2090], // Delhi
+  'dev-1': [15.3647, 75.1240], // Hubballi
+  'dev-2': [12.9716, 77.5946], // Bengaluru
+  'dev-3': [28.7041, 77.1025], // North Delhi Emulator
+  'vpa-1': [12.9783, 77.6408], // Indiranagar
+  'vpa-2': [28.5355, 77.3910], // Noida
+  'vpa-3': [28.4595, 77.0266], // Gurugram
+  'loc-1': [12.9716, 77.5946], // Bengaluru Cluster
+  'loc-2': [28.6139, 77.2090]  // Delhi Anomaly Cluster
+}
 
 export default function AdminFraudNetworkGraphPage() {
   const [nodes, setNodes] = useState(FRAUD_NETWORK_GRAPH_DATA.nodes)
   const [links, setLinks] = useState(FRAUD_NETWORK_GRAPH_DATA.links)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('dev-3')
+  const [viewMode, setViewMode] = useState<'TOPOLOGY' | 'GEOSPATIAL'>('TOPOLOGY')
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
   const [minRisk, setMinRisk] = useState<number>(0)
   const [actionNotice, setActionNotice] = useState<string | null>(null)
@@ -205,6 +221,27 @@ export default function AdminFraudNetworkGraphPage() {
           </div>
 
           <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+              <button
+                onClick={() => setViewMode('TOPOLOGY')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  viewMode === 'TOPOLOGY' ? 'bg-[#b8f55e] text-[#071014]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Topology Graph
+              </button>
+              <button
+                onClick={() => setViewMode('GEOSPATIAL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                  viewMode === 'GEOSPATIAL' ? 'bg-[#b8f55e] text-[#071014]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <MapPin className="size-3.5" /> Real Map View
+              </button>
+            </div>
+
+            <div className="h-4 w-px bg-white/10 mx-1" />
+
             <span className="text-white/50">Minimum Risk:</span>
             <input
               type="range"
@@ -213,20 +250,56 @@ export default function AdminFraudNetworkGraphPage() {
               step="10"
               value={minRisk}
               onChange={e => setMinRisk(Number(e.target.value))}
-              className="w-28 accent-[#b8f55e] cursor-pointer"
+              className="w-24 accent-[#b8f55e] cursor-pointer"
             />
-            <span className="font-mono text-[#b8f55e] font-bold w-8">{minRisk}+</span>
+            <span className="font-mono text-[#b8f55e] font-bold w-6">{minRisk}+</span>
           </div>
         </div>
 
         {/* Main Graph Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Interactive SVG Canvas */}
+          {/* Interactive Canvas or Real Map */}
           <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-[#071014] relative overflow-hidden h-[540px] flex flex-col justify-between p-4">
-            <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-[11px] text-white/70 flex items-center gap-2">
-              <span className="size-2 rounded-full bg-[#b8f55e] animate-ping" />
-              Click any node to inspect relationship vector & cross-account links
-            </div>
+            {viewMode === 'GEOSPATIAL' ? (
+              <div className="w-full h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10 text-xs">
+                  <span className="text-white font-semibold flex items-center gap-2">
+                    <MapPin className="size-4 text-[#b8f55e]" /> Real Google Maps Geospatial Entity Intelligence
+                  </span>
+                  <span className="text-[10px] font-mono text-[#b8f55e]">Click node pin to view coordinates</span>
+                </div>
+                <div className="relative w-full flex-1 rounded-xl overflow-hidden my-2 border border-white/10">
+                  <RealGoogleMap
+                    height="420px"
+                    center={[21.0, 78.0]}
+                    zoom={4}
+                    markers={filteredNodes.map(n => {
+                      const coords = NODE_COORDINATES[n.id] || [21.0, 78.0]
+                      return {
+                        id: n.id,
+                        title: n.label,
+                        subtitle: `Type: ${n.type} • Risk: ${n.risk}/100 • Edges: ${connectedLinks.length}`,
+                        lat: coords[0],
+                        lng: coords[1],
+                        risk: n.risk >= 70 ? 'critical' : n.risk >= 30 ? 'high' : 'low',
+                        status: quarantinedNodeIds.has(n.id) ? 'QUARANTINED' : n.type,
+                        category: n.type
+                      }
+                    })}
+                    onMarkerClick={(m) => setSelectedNodeId(m.id)}
+                  />
+                </div>
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+                  <span>Geospatial Coordinates: Hubballi, BLR, Delhi NCR, Mumbai</span>
+                  <span className="text-[#b8f55e] font-mono">Live Coordinate Probe Active</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-[11px] text-white/70 flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-[#b8f55e] animate-ping" />
+                  Click any node to inspect relationship vector & cross-account links
+                </div>
 
             {/* Legend */}
             <div className="absolute top-4 right-4 z-10 bg-black/60 backdrop-blur-md px-3 py-2 rounded-lg border border-white/10 text-[10px] space-y-1 text-white/70">
@@ -359,6 +432,8 @@ export default function AdminFraudNetworkGraphPage() {
               <span>Dynamic Force Topology: 100 iterations settled</span>
               <span className="text-[#b8f55e] font-mono">XGBoost & GNN Fusion</span>
             </div>
+            </>
+            )}
           </div>
 
           {/* Node Inspector Sidebar */}

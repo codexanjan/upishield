@@ -1,53 +1,76 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Bell, CheckCheck, ShieldAlert, FileText, ArrowRight } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
+import { useUPIGuardStore, AppNotification } from '@/lib/upiguard-store'
 import { apiRequest } from '@/lib/api'
 import Link from 'next/link'
 
 interface NotificationItem {
-  id: number
+  id: string | number
   title: string
   message: string
   notification_type: string
   reference_id?: string
   is_read: boolean
   created_at: string
+  link?: string
 }
 
 export function NotificationDrawer({ admin = false }: { admin?: boolean }) {
   const { notificationOpen, setNotificationOpen, setUnreadCount } = useAppStore()
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      title: 'Investigation Under Review',
-      message: 'Case CASE-2026-000001 has been assigned to an administrator for review.',
-      notification_type: 'status_changed',
-      reference_id: 'CASE-2026-000001',
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000).toISOString()
-    },
-    {
-      id: 2,
-      title: 'Transaction Flagged: Suspicious',
-      message: 'Transaction of ₹12,500.00 to quickcash.refund@fakeicici matched 2 rule alerts.',
-      notification_type: 'transaction_flagged',
-      reference_id: 'TXN-2026-B202',
-      is_read: false,
-      created_at: new Date(Date.now() - 7200000).toISOString()
-    }
-  ])
+  const storeNotifications = useUPIGuardStore((s) => s.notifications)
+  const markAllInStore = useUPIGuardStore((s) => s.markAllNotificationsRead)
+
+  // Filter store notifications for user vs admin
+  const relevantStoreNotifs: NotificationItem[] = (storeNotifications || [])
+    .filter((n) => admin ? (n.recipientRole === 'ADMIN' || n.recipientRole === 'ALL') : (n.recipientRole === 'USER' || n.recipientRole === 'ALL'))
+    .map((n) => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      notification_type: n.type,
+      reference_id: n.referenceId,
+      is_read: n.isRead,
+      created_at: n.createdAt,
+      link: n.link
+    }))
+
+  const [apiNotifications, setApiNotifications] = useState<NotificationItem[]>([])
+
+  // Combined notifications prioritizing latest store events
+  const notifications = useMemo(() => {
+    const combined = [...relevantStoreNotifs]
+    apiNotifications.forEach((an) => {
+      if (!combined.some((cn) => cn.id.toString() === an.id.toString() || cn.reference_id === an.reference_id)) {
+        combined.push(an)
+      }
+    })
+    return combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }, [relevantStoreNotifs, apiNotifications])
+
+  useEffect(() => {
+    const unread = notifications.filter((n) => !n.is_read).length
+    setUnreadCount(unread)
+  }, [notifications, setUnreadCount])
 
   useEffect(() => {
     async function loadNotifs() {
       try {
-        const data = await apiRequest<NotificationItem[]>('/notifications')
+        const data = await apiRequest<any[]>('/notifications')
         if (data && Array.isArray(data) && data.length > 0) {
-          setNotifications(data)
-          const unread = data.filter(n => !n.is_read).length
-          setUnreadCount(unread)
+          setApiNotifications(data.map((d: any) => ({
+            id: d.id,
+            title: d.title,
+            message: d.message,
+            notification_type: d.notification_type || 'system',
+            reference_id: d.reference_id,
+            is_read: d.is_read,
+            created_at: d.created_at || new Date().toISOString(),
+            link: d.link
+          })))
         }
       } catch (err) {
         // Fallback to local demo
@@ -56,15 +79,16 @@ export function NotificationDrawer({ admin = false }: { admin?: boolean }) {
     if (notificationOpen) {
       loadNotifs()
     }
-  }, [notificationOpen, setUnreadCount])
+  }, [notificationOpen])
 
   const handleMarkAllRead = async () => {
+    markAllInStore(admin ? 'ADMIN' : 'USER')
     try {
       await apiRequest('/notifications/mark-all-read', { method: 'POST' })
     } catch {
       // Offline fallback
     }
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    setApiNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
     setUnreadCount(0)
   }
 

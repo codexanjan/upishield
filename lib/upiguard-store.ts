@@ -281,13 +281,62 @@ export interface CardSubscription {
   category: string
 }
 
+export interface AppNotification {
+  id: string
+  title: string
+  message: string
+  type: 'TRANSACTION' | 'FRAUD_REPORT' | 'CASE_UPDATE' | 'SECURITY_ALERT' | 'WALLET' | 'LOCATION'
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | 'SUCCESS'
+  referenceId?: string
+  recipientRole: 'USER' | 'ADMIN' | 'ALL'
+  isRead: boolean
+  createdAt: string
+  link?: string
+}
+
+export const INITIAL_APP_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif_init_1',
+    title: 'Wallet Funded: ₹1,00,00,000 (1 Crore)',
+    message: '₹1,00,00,000 credited to your primary UPI Shield AI wallet. Full interception and biometric protection active.',
+    type: 'WALLET',
+    severity: 'SUCCESS',
+    recipientRole: 'USER',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    link: '/dashboard'
+  },
+  {
+    id: 'notif_init_2',
+    title: 'AI Multi-Model Fraud Engine Operational',
+    message: 'Isolation Forest anomaly detection & XGBoost models synchronized with live Google Maps telemetry.',
+    type: 'SECURITY_ALERT',
+    severity: 'LOW',
+    recipientRole: 'ALL',
+    isRead: false,
+    createdAt: new Date(Date.now() - 1800000).toISOString(),
+    link: '/dashboard/risk-profile'
+  },
+  {
+    id: 'notif_init_3',
+    title: 'Admin Sentinel: Geofence Active',
+    message: 'Global impossible travel detector initialized across 18 banking clusters with real coordinates.',
+    type: 'LOCATION',
+    severity: 'LOW',
+    recipientRole: 'ADMIN',
+    isRead: true,
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    link: '/admin/locations'
+  }
+]
+
 export const INITIAL_DEMO_ACCOUNTS: Record<string, DemoAccount> = {
   'anjan@upiguard': {
     id: 'usr_anjan',
     name: 'Anjan Shetty',
     upiId: 'anjan@upiguard',
     type: 'USER',
-    balance: 5000000,
+    balance: 10000000, // ₹1,00,00,000 (1 Crore INR)
     pin: '2580',
     location: 'Hubballi',
     device: 'Anjan-Laptop (Known Trust: 94)',
@@ -1160,6 +1209,24 @@ interface UPIGuardState {
     flag_status?: 'Normal' | 'Suspicious'
   }) => SimulationTransaction
 
+  // Universal Interconnected Notifications
+  notifications: AppNotification[]
+  addNotification: (notif: Omit<AppNotification, 'id' | 'createdAt' | 'isRead'>) => AppNotification
+  markNotificationRead: (id: string) => void
+  markAllNotificationsRead: (role?: 'USER' | 'ADMIN' | 'ALL') => void
+
+  // Interconnected Fraud Reporting
+  submitFraudReport: (report: {
+    transactionId?: string
+    upiId?: string
+    merchant?: string
+    amount: number
+    category: string
+    description: string
+    reporterName?: string
+    location?: string
+  }) => { success: boolean; caseCreated: SecurityCase; alertCreated: FraudAlert }
+
   // Simulator & Scenarios
   triggerScenario: (scenarioKey: string) => void
   clearScenario: () => void
@@ -1178,6 +1245,7 @@ export const useUPIGuardStore = create<UPIGuardState>()(
       alerts: INITIAL_ALERTS,
       majorPurchases: INITIAL_MAJOR_PURCHASES,
       cases: INITIAL_CASES,
+      notifications: [...INITIAL_APP_NOTIFICATIONS],
       incomingRequests: INITIAL_INCOMING_REQUESTS,
       virtualCards: [...INITIAL_DEMO_CARDS],
       cardTransactions: [...INITIAL_CARD_TRANSACTIONS],
@@ -1208,6 +1276,114 @@ export const useUPIGuardStore = create<UPIGuardState>()(
       activeScenario: null,
       scenarioParams: {},
       currentOtpChallenge: null,
+
+      addNotification: (notifData) => {
+        const notif: AppNotification = {
+          ...notifData,
+          id: `notif_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }
+        set((s) => ({
+          notifications: [notif, ...(s.notifications || [])]
+        }))
+        broadcastEvent('notification:created', notif)
+        return notif
+      },
+
+      markNotificationRead: (id) => {
+        set((s) => ({
+          notifications: (s.notifications || []).map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        }))
+      },
+
+      markAllNotificationsRead: (role = 'ALL') => {
+        set((s) => ({
+          notifications: (s.notifications || []).map((n) =>
+            role === 'ALL' || n.recipientRole === role || n.recipientRole === 'ALL' ? { ...n, isRead: true } : n
+          )
+        }))
+      },
+
+      submitFraudReport: (report) => {
+        const state = get()
+        const caseId = `CASE-2026-${Math.floor(100000 + Math.random() * 900000)}`
+        const reporterName = report.reporterName || state.accounts[state.activeUserUpi]?.name || 'Anjan Sharma'
+        const merchantName = report.merchant || report.upiId || 'Reported Beneficiary'
+        const merchantUpiId = report.upiId || 'fraud.entity@upi'
+        const amount = Number(report.amount) || 0
+
+        const newCase: SecurityCase = {
+          id: `case_${Date.now()}`,
+          caseId,
+          transactionId: report.transactionId || `TXN-REP-${Date.now()}`,
+          userId: state.activeUserUpi,
+          userName: reporterName,
+          merchantName,
+          merchantUpiId,
+          amount,
+          reason: 'USER_REPORTED_NOT_ME',
+          severity: amount > 25000 ? 'CRITICAL' : amount > 5000 ? 'HIGH' : 'MEDIUM',
+          status: 'OPEN',
+          createdAt: new Date().toISOString(),
+          deviceId: 'Anjan-Laptop (DEV-A782)',
+          location: report.location || 'Bengaluru',
+          riskScore: 89,
+          confirmationStatus: 'REPORTED_NOT_ME',
+          investigationNotes: `Dispute filed by user: [${report.category}] ${report.description}`
+        }
+
+        const newAlert: FraudAlert = {
+          id: `alt_${Date.now()}`,
+          alertId: `ALT-${Math.floor(1000 + Math.random() * 9000)}`,
+          severity: newCase.severity,
+          title: `Fraud Incident Reported: ₹${amount.toLocaleString('en-IN')}`,
+          description: `${reporterName} reported ${report.category} against ${merchantName}. Case ${caseId} logged.`,
+          transactionId: newCase.transactionId,
+          amount,
+          userId: state.activeUserUpi,
+          createdAt: new Date().toISOString(),
+          status: 'OPEN'
+        }
+
+        const userNotif: AppNotification = {
+          id: `notif_${Date.now()}_u_rep`,
+          title: `Dispute Registered: #${caseId}`,
+          message: `Your fraud report for ₹${amount.toLocaleString('en-IN')} against ${merchantName} has been submitted to Admin triage. Funds and accounts are under active defense.`,
+          type: 'FRAUD_REPORT',
+          severity: 'HIGH',
+          referenceId: caseId,
+          recipientRole: 'USER',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/dashboard/reports'
+        }
+
+        const adminNotif: AppNotification = {
+          id: `notif_${Date.now()}_a_rep`,
+          title: `🚨 Urgent: New Fraud Dispute (#${caseId})`,
+          message: `${reporterName} filed a ${report.category} report for ₹${amount.toLocaleString('en-IN')} against ${merchantUpiId}.`,
+          type: 'FRAUD_REPORT',
+          severity: 'CRITICAL',
+          referenceId: caseId,
+          recipientRole: 'ADMIN',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: `/admin/cases?id=${caseId}`
+        }
+
+        set((s) => ({
+          cases: [newCase, ...(s.cases || [])],
+          alerts: [newAlert, ...(s.alerts || [])],
+          notifications: [userNotif, adminNotif, ...(s.notifications || [])]
+        }))
+
+        broadcastEvent('admin:case-created', newCase)
+        broadcastEvent('admin:security-alert', newAlert)
+        broadcastEvent('notification:created', { userNotif, adminNotif })
+
+        return { success: true, caseCreated: newCase, alertCreated: newAlert }
+      },
 
       setActiveUser: (upiId) => {
         set({ activeUserUpi: upiId })
@@ -1582,6 +1758,32 @@ export const useUPIGuardStore = create<UPIGuardState>()(
           description: settledTxn.note || `UPI payment to ${receiver.name || settledTxn.receiverName}`
         }
 
+        const userNotif: AppNotification = {
+          id: `notif_${Date.now()}_u_pay`,
+          title: `UPI Payment Sent: ₹${settledTxn.amount.toLocaleString('en-IN')}`,
+          message: `Transferred ₹${settledTxn.amount.toLocaleString('en-IN')} to ${receiver.name || settledTxn.receiverName}. Wallet Balance: ₹${newSenderBalance.toLocaleString('en-IN')}`,
+          type: 'TRANSACTION',
+          severity: 'SUCCESS',
+          referenceId: settledTxn.transactionId,
+          recipientRole: 'USER',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/dashboard/transactions'
+        }
+
+        const adminNotif: AppNotification = {
+          id: `notif_${Date.now()}_a_pay`,
+          title: `UPI Transaction Logged: ₹${settledTxn.amount.toLocaleString('en-IN')}`,
+          message: `${sender.name} (${sender.upiId}) ➔ ${receiver.name || settledTxn.receiverName} · AI Risk: ${settledTxn.riskScore}/100`,
+          type: 'TRANSACTION',
+          severity: settledTxn.riskScore >= 70 ? 'CRITICAL' : 'LOW',
+          referenceId: settledTxn.transactionId,
+          recipientRole: 'ADMIN',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/admin/transactions'
+        }
+
         set((s) => ({
           accounts: {
             ...s.accounts,
@@ -1591,6 +1793,7 @@ export const useUPIGuardStore = create<UPIGuardState>()(
           transactions: s.transactions.map((t) => (t.transactionId === transactionId ? settledTxn : t)),
           expenses: [newExpense, ...(s.expenses || [])],
           majorPurchases: createdMajorPurchase ? [createdMajorPurchase, ...s.majorPurchases] : s.majorPurchases,
+          notifications: [userNotif, adminNotif, ...(s.notifications || [])],
           // Update active payment request if matching
           activePaymentRequest:
             s.activePaymentRequest &&
@@ -1606,6 +1809,7 @@ export const useUPIGuardStore = create<UPIGuardState>()(
         }))
 
         // Broadcast to all windows/tabs!
+        broadcastEvent('notification:created', { userNotif, adminNotif })
         broadcastEvent('payment:settled', {
           transaction: settledTxn,
           senderUpi: sender.upiId,
@@ -1712,15 +1916,43 @@ export const useUPIGuardStore = create<UPIGuardState>()(
 
         const newBalance = Math.max(0, sender.balance - amount)
 
+        const userNotif: AppNotification = {
+          id: `notif_${Date.now()}_u_sim`,
+          title: `UPI Payment Sent: ₹${amount.toLocaleString('en-IN')}`,
+          message: `Transferred ₹${amount.toLocaleString('en-IN')} to ${receiverName}. Remaining Wallet Balance: ₹${newBalance.toLocaleString('en-IN')}`,
+          type: 'TRANSACTION',
+          severity: 'SUCCESS',
+          referenceId: txnId,
+          recipientRole: 'USER',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/dashboard/transactions'
+        }
+
+        const adminNotif: AppNotification = {
+          id: `notif_${Date.now()}_a_sim`,
+          title: `UPI Transaction Logged: ₹${amount.toLocaleString('en-IN')}`,
+          message: `${sender.name} (${sender.upiId}) ➔ ${receiverName} (${receiverUpiId}) · AI Risk: ${settledTxn.riskScore}/100`,
+          type: 'TRANSACTION',
+          severity: isSuspicious ? 'CRITICAL' : 'LOW',
+          referenceId: txnId,
+          recipientRole: 'ADMIN',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/admin/transactions'
+        }
+
         set((s) => ({
           accounts: {
             ...s.accounts,
             [sender.upiId]: { ...sender, balance: newBalance }
           },
           transactions: [settledTxn, ...s.transactions],
-          expenses: [newExpense, ...(s.expenses || [])]
+          expenses: [newExpense, ...(s.expenses || [])],
+          notifications: [userNotif, adminNotif, ...(s.notifications || [])]
         }))
 
+        broadcastEvent('notification:created', { userNotif, adminNotif })
         broadcastEvent('payment:settled', {
           transaction: settledTxn,
           senderUpi: sender.upiId,
@@ -1930,6 +2162,38 @@ export const useUPIGuardStore = create<UPIGuardState>()(
       },
 
       updateCaseStatus: (caseId, status, notes) => {
+        const state = get()
+        const targetCase = state.cases.find((c) => c.caseId === caseId || c.id === caseId)
+        const isAccepted = status === 'RESOLVED' || status === 'UNDER_REVIEW' || (status as string) === 'ACCEPTED'
+
+        const userNotif: AppNotification = {
+          id: `notif_${Date.now()}_case_u`,
+          title: isAccepted ? `Case #${caseId} Accepted & Actioned` : `Case #${caseId} Status: ${status}`,
+          message: isAccepted
+            ? `Admin has reviewed and ACCEPTED your dispute for ₹${targetCase?.amount?.toLocaleString('en-IN') || ''}. Counter-measures activated, beneficiary flagged, and protection confirmed.`
+            : `Dispute #${caseId} updated to ${status}. Details: ${notes || 'Updated by Administrator.'}`,
+          type: 'CASE_UPDATE',
+          severity: isAccepted ? 'SUCCESS' : 'MEDIUM',
+          referenceId: caseId,
+          recipientRole: 'USER',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: '/dashboard/reports'
+        }
+
+        const adminNotif: AppNotification = {
+          id: `notif_${Date.now()}_case_a`,
+          title: `Case #${caseId} Updated: ${status}`,
+          message: `Investigation on case #${caseId} was marked as ${status}. Notification dispatched to user panel.`,
+          type: 'CASE_UPDATE',
+          severity: 'LOW',
+          referenceId: caseId,
+          recipientRole: 'ADMIN',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: `/admin/cases?id=${caseId}`
+        }
+
         set((s) => ({
           cases: s.cases.map((c) =>
             c.caseId === caseId || c.id === caseId
@@ -1939,8 +2203,11 @@ export const useUPIGuardStore = create<UPIGuardState>()(
                   investigationNotes: notes ? `${c.investigationNotes || ''} [Update]: ${notes}` : c.investigationNotes
                 }
               : c
-          )
+          ),
+          notifications: [userNotif, adminNotif, ...(s.notifications || [])]
         }))
+
+        broadcastEvent('notification:created', { userNotif, adminNotif })
         broadcastEvent('case:updated', { caseId, status, notes })
       },
 
@@ -2911,7 +3178,8 @@ if (typeof window !== 'undefined') {
     try {
       const state = useUPIGuardStore.getState()
       const anjan = state.accounts['anjan@upiguard']
-      const needsBalanceUpgrade = anjan && anjan.balance < 5000000
+      const needsBalanceUpgrade = anjan && anjan.balance < 10000000
+      const needsNotificationsInit = !state.notifications || state.notifications.length === 0
       const needsExpensesInit = !state.expenses || state.expenses.length === 0
       const needsCardInit = !state.virtualCards || state.virtualCards.length === 0
       const needsFeedbackInit = !state.feedbackRecords || state.feedbackRecords.length === 0
@@ -2922,6 +3190,7 @@ if (typeof window !== 'undefined') {
 
       if (
         needsBalanceUpgrade ||
+        needsNotificationsInit ||
         needsExpensesInit ||
         needsCardInit ||
         needsFeedbackInit ||
@@ -2935,9 +3204,10 @@ if (typeof window !== 'undefined') {
             ...state.accounts,
             'anjan@upiguard': {
               ...(anjan || INITIAL_DEMO_ACCOUNTS['anjan@upiguard']),
-              balance: 5000000
+              balance: 10000000 // 1 Crore INR
             }
           },
+          notifications: needsNotificationsInit ? [...INITIAL_APP_NOTIFICATIONS] : state.notifications,
           expenses: needsExpensesInit ? [...INITIAL_APP_EXPENSES] : state.expenses,
           virtualCards: needsCardInit ? [...INITIAL_DEMO_CARDS] : state.virtualCards,
           cardTransactions: state.cardTransactions && state.cardTransactions.length > 0 ? state.cardTransactions : [...INITIAL_CARD_TRANSACTIONS],
@@ -2989,6 +3259,7 @@ if (typeof window !== 'undefined') {
         type === 'incoming:accepted' ||
         type === 'incoming:reported' ||
         type === 'admin:case-created' ||
+        type === 'notification:created' ||
         type?.startsWith('card:') ||
         type === 'balance:updated' ||
         type === 'feedback:submitted' ||
@@ -3006,6 +3277,7 @@ if (typeof window !== 'undefined') {
                 accounts: parsed.state.accounts || INITIAL_DEMO_ACCOUNTS,
                 transactions: parsed.state.transactions || INITIAL_TRANSACTIONS,
                 alerts: parsed.state.alerts || INITIAL_ALERTS,
+                notifications: parsed.state.notifications || INITIAL_APP_NOTIFICATIONS,
                 majorPurchases: parsed.state.majorPurchases || INITIAL_MAJOR_PURCHASES,
                 cases: parsed.state.cases || INITIAL_CASES,
                 incomingRequests: parsed.state.incomingRequests || INITIAL_INCOMING_REQUESTS,

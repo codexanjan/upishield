@@ -20,6 +20,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppStore, verifyUserCredentials, verifyAdminCredentials } from '@/lib/store'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
+import { LanguageSelector } from '@/components/layout/language-selector'
+
 
 type AuthScreenProps = { admin?: boolean }
 
@@ -219,9 +221,12 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
         {/* Right Form Section */}
         <section className="flex min-h-screen items-center justify-center px-6 py-10">
           <div className="w-full max-w-md">
-            <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm text-[#829997] transition hover:text-white">
-              <ArrowLeft className="size-4" /> Back to home
-            </Link>
+            <div className="mb-8 flex items-center justify-between">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm text-[#829997] transition hover:text-white">
+                <ArrowLeft className="size-4" /> Back to home
+              </Link>
+              <LanguageSelector compact />
+            </div>
 
             <div className="mb-6 lg:hidden">
               <div className="flex items-center gap-3 text-sm font-semibold tracking-[.18em]">

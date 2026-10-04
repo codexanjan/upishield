@@ -1,0 +1,195 @@
+<svg width="1000" height="520" viewBox="0 0 1000 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D1B20"/>
+      <stop offset="100%" stop-color="#081418"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#B8F55E" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#06B6D4" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="boxShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="520" rx="20" fill="#050C0F"/>
+  <rect width="1000" height="520" rx="20" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.5"/>
+
+  <!-- Title Header -->
+  <text x="40" y="50" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="800">
+    UPI SHIELD AI · SYSTEM ARCHITECTURE
+  </text>
+  <text x="40" y="74" fill="#759390" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13">
+    End-to-End Segregated Dual-Portal Pipeline with Explainable AI &amp; Deterministic Guardrails
+  </text>
+
+  <!-- 3 Layer Columns: Portals -> Engine -> Data -->
+
+  <!-- Column 1: Client Portals -->
+  <g transform="translate(40, 105)">
+    <!-- Column Title -->
+    <rect x="0" y="0" width="280" height="375" rx="16" fill="url(#cardGrad)" stroke="url(#borderGrad)" stroke-width="1.5" filter="url(#boxShadow)"/>
+    <text x="20" y="32" fill="#B8F55E" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
+      1. PRESENTATION LAYER (NEXT.JS 16)
+    </text>
+
+    <!-- Sub-card A: User Vault -->
+    <rect x="16" y="50" width="248" height="92" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="74" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      🛡️ User Personal Vault
+    </text>
+    <text x="30" y="96" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Send UPI &amp; Scan QR Intent
+    </text>
+    <text x="30" y="114" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Expenses, Cards, Budgets, Income
+    </text>
+    <text x="30" y="132" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Explainable AI (XAI) Risk Radar
+    </text>
+
+    <!-- Sub-card B: Admin Command Center -->
+    <rect x="16" y="152" width="248" height="102" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="176" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      ⚡ Admin Operations Desk
+    </text>
+    <text x="30" y="198" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Interactive Case Replay &amp; Map
+    </text>
+    <text x="30" y="216" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Syndicate Fraud Network Graph
+    </text>
+    <text x="30" y="234" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Adaptive Thresholds &amp; Retraining
+    </text>
+
+    <!-- Sub-card C: Multi-Lingual Engine -->
+    <rect x="16" y="264" width="248" height="92" rx="10" fill="rgba(184,245,94,0.06)" stroke="rgba(184,245,94,0.2)"/>
+    <text x="30" y="288" fill="#B8F55E" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">
+      🌐 8 Regional Languages
+    </text>
+    <text x="30" y="310" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      EN · हिन्दी · ಕನ್ನಡ · தமிழ்
+    </text>
+    <text x="30" y="328" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      తెలుగు · मराठी · বাংলা · ગુજરાતી
+    </text>
+    <text x="30" y="346" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">
+      Instant reactive switching across all views
+    </text>
+  </g>
+
+  <!-- Connectors from Col 1 to Col 2 -->
+  <path d="M320 220 L360 220" stroke="#06B6D4" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="360,220 352,216 352,224" fill="#06B6D4"/>
+
+  <path d="M320 320 L360 320" stroke="#B8F55E" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="360,320 352,316 352,324" fill="#B8F55E"/>
+
+  <!-- Column 2: Intelligence & Fraud Engine -->
+  <g transform="translate(360, 105)">
+    <rect x="0" y="0" width="280" height="375" rx="16" fill="url(#cardGrad)" stroke="url(#borderGrad)" stroke-width="1.5" filter="url(#boxShadow)"/>
+    <text x="20" y="32" fill="#06B6D4" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
+      2. SECURITY &amp; INFERENCE ENGINE
+    </text>
+
+    <!-- Sub-card: Deterministic Guardrails -->
+    <rect x="16" y="50" width="248" height="96" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="74" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      🔒 Deterministic Guardrails
+    </text>
+    <text x="30" y="96" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Geolocation Haversine Bounds
+    </text>
+    <text x="30" y="114" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Velocity Check (5 txns / 10 min)
+    </text>
+    <text x="30" y="132" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Blacklist VPA / Merchant Radar
+    </text>
+
+    <!-- Sub-card: Explainable AI (XAI) -->
+    <rect x="16" y="156" width="248" height="106" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="180" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      💡 Explainable AI (XAI)
+    </text>
+    <text x="30" y="202" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • SHAP/LIME-Style Feature Attribution
+    </text>
+    <text x="30" y="220" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Natural Language Rationales
+    </text>
+    <text x="30" y="238" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Counterfactual "What-If" Sliders
+    </text>
+
+    <!-- Sub-card: Real-Time Quarantine -->
+    <rect x="16" y="272" width="248" height="84" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="296" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      🚨 Zero-Day Quarantine
+    </text>
+    <text x="30" y="318" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Instant Fraud Escalation
+    </text>
+    <text x="30" y="336" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Biometric Multi-Factor Lockout
+    </text>
+  </g>
+
+  <!-- Connectors from Col 2 to Col 3 -->
+  <path d="M640 220 L680 220" stroke="#10B981" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="680,220 672,216 672,224" fill="#10B981"/>
+
+  <!-- Column 3: Storage & Integration Layer -->
+  <g transform="translate(680, 105)">
+    <rect x="0" y="0" width="280" height="375" rx="16" fill="url(#cardGrad)" stroke="url(#borderGrad)" stroke-width="1.5" filter="url(#boxShadow)"/>
+    <text x="20" y="32" fill="#10B981" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
+      3. BACKEND &amp; DATA ENGINE
+    </text>
+
+    <!-- Sub-card: FastAPI Backend -->
+    <rect x="16" y="50" width="248" height="96" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="74" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      ⚡ FastAPI Microservices
+    </text>
+    <text x="30" y="96" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • REST Endpoints (/api/v1/...)
+    </text>
+    <text x="30" y="114" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • JWT Bearer Token Security
+    </text>
+    <text x="30" y="132" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Pydantic V2 Strict Validation
+    </text>
+
+    <!-- Sub-card: SQLite & Audit Ledger -->
+    <rect x="16" y="156" width="248" height="106" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="180" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      💾 Immutable Audit Ledger
+    </text>
+    <text x="30" y="202" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Append-Only Incident History
+    </text>
+    <text x="30" y="220" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Cryptographic Evidence Vault
+    </text>
+    <text x="30" y="238" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Tamper-Proof Timestamps
+    </text>
+
+    <!-- Sub-card: Ecosystem Gateways -->
+    <rect x="16" y="272" width="248" height="84" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+    <text x="30" y="296" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
+      🏦 Gateway Simulator
+    </text>
+    <text x="30" y="318" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • NPCI / UPI 2.0 Payload Specs
+    </text>
+    <text x="30" y="336" fill="#88A5A2" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      • Card Authorization &amp; 3DS Sim
+    </text>
+  </g>
+</svg>

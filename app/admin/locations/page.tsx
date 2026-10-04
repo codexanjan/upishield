@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
+import RealGoogleMap, { MapMarker } from '@/components/maps/real-google-map'
 
 interface UnifiedLocationEvent {
   id: string
@@ -226,75 +227,36 @@ export default function AdminUnifiedLocationsPage() {
           <div className="lg:col-span-7 rounded-3xl border border-white/10 bg-[#091726]/90 p-5 backdrop-blur-xl space-y-3 relative overflow-hidden">
             <div className="flex items-center justify-between border-b border-white/5 pb-2 text-xs">
               <span className="font-bold text-white flex items-center gap-2">
-                <Compass className="size-4 text-cyan-400" /> Geographic Grid & Travel Velocity Map
+                <Compass className="size-4 text-cyan-400" /> Real Google Maps Intelligence & Travel Velocity
               </span>
-              <span className="font-mono text-[10px] text-slate-400">Hubballi Baseline: 15.36°N, 75.12°E</span>
+              <span className="font-mono text-[10px] text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800">
+                Interactive Coordinates Enabled
+              </span>
             </div>
 
-            {/* Simulated Interactive Radar Screen */}
-            <div className="relative w-full aspect-[16/10] rounded-2xl bg-[#06101D] border border-cyan-500/20 overflow-hidden flex items-center justify-center">
-              {/* Radar concentric circular rings */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="size-[20%] rounded-full border border-cyan-500/10" />
-                <div className="size-[45%] rounded-full border border-cyan-500/10" />
-                <div className="size-[70%] rounded-full border border-cyan-500/10" />
-                <div className="size-[95%] rounded-full border border-cyan-500/10" />
-                {/* Crosshairs */}
-                <div className="absolute inset-x-0 h-px bg-cyan-500/10" />
-                <div className="absolute inset-y-0 w-px bg-cyan-500/10" />
-              </div>
-
-              {/* Geographic Label Watermarks */}
-              <span className="absolute top-4 left-6 text-[10px] font-mono text-slate-600 uppercase">
-                North India (Delhi Zone)
-              </span>
-              <span className="absolute top-1/2 left-6 text-[10px] font-mono text-slate-600 uppercase">
-                West Coast (Mumbai Zone)
-              </span>
-              <span className="absolute bottom-6 left-1/3 text-[10px] font-mono text-slate-600 uppercase">
-                South Hubballi / BLR Baseline
-              </span>
-              <span className="absolute bottom-10 right-6 text-[10px] font-mono text-slate-600 uppercase">
-                Overseas (Singapore)
-              </span>
-
-              {/* Plotted Telemetry Pin Markers */}
-              {filteredEvents.map((ev) => {
-                const isSelected = currentInspect?.id === ev.id
-                return (
-                  <button
-                    key={ev.id}
-                    onClick={() => setSelectedEvent(ev)}
-                    style={{ left: `${ev.xPercent}%`, top: `${ev.yPercent}%` }}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 group transition-transform ${
-                      isSelected ? 'scale-125 z-30' : 'hover:scale-110 z-10'
-                    }`}
-                  >
-                    <div
-                      className={`size-6 rounded-full flex items-center justify-center shadow-lg ${
-                        ev.riskLevel === 'CRITICAL'
-                          ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/50'
-                          : ev.riskLevel === 'HIGH'
-                          ? 'bg-amber-500 text-[#06101D] shadow-amber-500/50'
-                          : 'bg-emerald-500 text-[#06101D] shadow-emerald-500/50'
-                      }`}
-                    >
-                      {ev.source === 'CARD' ? (
-                        <CreditCard className="size-3" />
-                      ) : ev.source === 'MAJOR_PURCHASE' ? (
-                        <Gem className="size-3" />
-                      ) : (
-                        <Send className="size-3" />
-                      )}
-                    </div>
-
-                    {/* Tooltip on hover */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap px-2 py-1 rounded bg-[#091726] border border-white/10 text-[10px] text-white shadow-xl pointer-events-none">
-                      {ev.merchant} ({ev.city}) • ₹{ev.amount?.toLocaleString('en-IN')}
-                    </div>
-                  </button>
-                )
-              })}
+            {/* Real Google Map Container */}
+            <div className="relative w-full rounded-2xl overflow-hidden border border-cyan-500/20">
+              <RealGoogleMap
+                height="460px"
+                center={[15.3647, 75.124]}
+                zoom={5}
+                markers={filteredEvents.map(ev => ({
+                  id: ev.id,
+                  title: `${ev.merchant} (${ev.city})`,
+                  subtitle: `Source: ${ev.source} • ₹${ev.amount?.toLocaleString('en-IN') || 0} • Risk: ${ev.riskScore}/100`,
+                  lat: ev.coordinates[0],
+                  lng: ev.coordinates[1],
+                  risk: ev.riskLevel === 'CRITICAL' ? 'critical' : ev.riskLevel === 'HIGH' ? 'high' : 'low',
+                  status: ev.status === 'APPROVED' ? 'Active' : 'Blocked',
+                  amount: ev.amount,
+                  category: ev.source,
+                  timestamp: ev.timestamp
+                }))}
+                onMarkerClick={(marker) => {
+                  const ev = filteredEvents.find(e => e.id === marker.id)
+                  if (ev) setSelectedEvent(ev)
+                }}
+              />
             </div>
 
             {/* Radar Legend */}
@@ -310,7 +272,7 @@ export default function AdminUnifiedLocationsPage() {
                   <span className="size-2 rounded-full bg-rose-400" /> Impossible Velocity
                 </span>
               </div>
-              <span className="font-mono text-cyan-400">Click marker to inspect</span>
+              <span className="font-mono text-cyan-400">Click any coordinate or point to probe GPS</span>
             </div>
           </div>
 

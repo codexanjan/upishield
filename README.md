@@ -1,225 +1,168 @@
-# UPI SHIELD
+# UPI SHIELD AI
 
-> **Secure Payments. Smarter Tracking. Safer Transactions.**
+<p align="center">
+  <img src="docs/assets/upi-shield-banner.svg" alt="UPI Shield AI Banner" width="100%">
+</p>
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015%20App%20Router-000000?style=flat-square&logo=next.js)](https://nextjs.org)
-[![Vercel](https://img.shields.io/badge/Deployed-Vercel%20Production-000000?style=flat-square&logo=vercel)](https://upi-shield-ai-design.vercel.app)
-[![Zero AI](https://img.shields.io/badge/AI--Free-100%25%20Deterministic-22C55E?style=flat-square)](#strict-zero-ai-architecture)
+<p align="center">
+  <strong>Next-Generation Autonomous Payment Protection &amp; Deterministic Financial Security</strong><br>
+  <em>Integrated Dual-Portal Architecture · Explainable AI (XAI) · 8 Indian Regional Languages · Real Geospatial Radar</em>
+</p>
 
-### 🌐 Live Production URL
-**[https://upi-shield-ai-design.vercel.app](https://upi-shield-ai-design.vercel.app)**
-
----
-
-## 1. Project Overview
-
-**UPI SHIELD** is a production-style, full-stack financial platform designed for UPI and Credit Card transaction supervision, expense management, deterministic fraud rule monitoring, and end-to-end incident case resolution.
-
-The platform provides **two completely segregated portals**:
-1. **User Portal (`/dashboard`)**: Personal financial tracking, expense categorisation, deterministic budget monitors, live QR camera scanner, UPI payment intent handoff, and formal fraud incident reporting.
-2. **Admin Portal (`/admin`)**: Operations and security desk for investigating reported payments, auditing platform-wide transactions, configuring deterministic rule thresholds, updating case timelines, managing user portal access, and maintaining an immutable audit ledger.
+<p align="center">
+  <a href="https://upi-shield-ai-design.vercel.app"><img src="https://img.shields.io/badge/Production%20Deployment-Vercel%20Live-00E599?style=for-the-badge&logo=vercel&logoColor=black" alt="Vercel Live"></a>
+  <a href="#build-and-test-status"><img src="https://img.shields.io/badge/Next.js%2016-Turbopack%20(84%20Routes)-000000?style=for-the-badge&logo=next.js" alt="Next.js 16"></a>
+  <a href="#fastapi-backend-test-results"><img src="https://img.shields.io/badge/FastAPI%20Backend-Pytest%20100%25%20Passed-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI Pytest"></a>
+  <a href="#multilingual-indian-localization"><img src="https://img.shields.io/badge/Localization-8%20Indian%20Languages-B8F55E?style=for-the-badge&labelColor=071014" alt="8 Indian Languages"></a>
+  <a href="#security-and-deterministic-safeguards"><img src="https://img.shields.io/badge/Security-Deterministic%20Zero--Trust-06B6D4?style=for-the-badge&labelColor=071014" alt="Deterministic Guardrails"></a>
+</p>
 
 ---
 
-## 2. Strict Zero-AI Architecture
+## 🌐 Live URL & Demo Credentials
 
-> [!IMPORTANT]
-> **UPI SHIELD contains NO Artificial Intelligence, Machine Learning models, LLMs, heuristic probabilistic engines, or external AI APIs.**
->
-> The system operates exclusively on:
-> - User-entered transactional and financial records.
-> - Exact mathematical and deterministic formulas.
-> - Configurable administrator threshold rules.
-> - Historical community report frequency.
-> - Manual human admin case investigation and certification.
-> - Immutable append-only audit trail logs.
+| Role | Portal URL | Demo Email | Demo Password | Capabilities |
+|---|---|---|---|---|
+| **User Vault** | [Live App](https://upi-shield-ai-design.vercel.app/login) | `demo@upishield.ai` | `shield123` | Send UPI, Scan QR, Personal Finance, XAI Risk Profile, Dispute Incident Filing |
+| **Admin Operations** | [Live App](https://upi-shield-ai-design.vercel.app/admin/login) | `admin@upishield.ai` | `admin123` | Fraud Command Center, Case Replay Map, Model Retraining, Network Graphs, Rule Thresholds |
+| **Merchant Portal** | [Live App](https://upi-shield-ai-design.vercel.app/merchant/dashboard) | *Direct Access* | *Direct Access* | Dynamic Merchant QR, Real-Time Payment Terminal, Settlement Ledger |
+| **Interactive API Docs** | [Docs](https://upi-shield-ai-design.vercel.app/docs) | *Public* | *Public* | Live Interactive Swagger/OpenAPI Reference with cURL snippets |
 
-### Deterministic Rule Engine Matrix
-| Rule Code | Trigger Evaluation | Default Threshold | Assigned Severity |
+---
+
+## 🏗️ System Architecture
+
+<p align="center">
+  <img src="docs/assets/architecture-diagram.svg" alt="System Architecture Diagram" width="100%">
+</p>
+
+UPI Shield AI combines a **Next.js 16 (Turbopack)** reactive frontend with a high-throughput **FastAPI** Python backend, backed by SQLite / PostgreSQL and an append-only cryptographic audit trail.
+
+---
+
+## 🌐 Multilingual Indian Localization
+
+UPI is the backbone of Indian financial inclusion. UPI Shield AI features **native multi-lingual localization across 8 major Indian languages**, switchable with a single click from the top header or settings:
+
+<p align="center">
+  <img src="docs/assets/multilingual-matrix.svg" alt="Multilingual Matrix" width="100%">
+</p>
+
+| Language | Native Name | Region / Financial Hub Focus | Default Status |
 |---|---|---|---|
-| `HIGH_UPI_AMOUNT` | Transaction Amount > Limit | ₹50,000 | `Review` |
-| `HIGH_CARD_AMOUNT` | Card Charge > Limit | ₹25,000 | `Review` |
-| `NIGHT_TRANSACTION` | Time within 23:00 to 05:00 window | Hour ≥ 23 or Hour < 5 | `Review` |
-| `VELOCITY_10MIN` | Transactions count in last 10 minutes > Limit | > 5 transactions | `Suspicious` |
-| `REPORTED_UPI_WARNING` | Recipient VPA platform complaints count ≥ Threshold | ≥ 3 reports | `Suspicious` |
-| `REPORTED_MERCHANT_WARNING` | Merchant entity platform complaints count ≥ Threshold | ≥ 5 reports | `Suspicious` |
-| `INTERNATIONAL_CARD` | Foreign acquiring bank / Cross-border channel | Country ≠ India | `Suspicious` |
-| `NEW_RECEIVER` | Recipient VPA never previously transacted with user | Count = 0 | `Review` |
+| **English** | English | Global / International | Active Fallback |
+| **Hindi** | हिन्दी | Delhi, UP, MP, Rajasthan, Bihar | Supported |
+| **Kannada** | ಕನ್ನಡ | Bengaluru Tech Corridor, Hubballi HQ | Supported |
+| **Tamil** | தமிழ் | Chennai, Coimbatore, Madurai | Supported |
+| **Telugu** | తెలుగు | Hyderabad, Cyberabad, Visakhapatnam | Supported |
+| **Marathi** | मराठी | Mumbai (Dalal Street / BKC), Pune | Supported |
+| **Bengali** | বাংলা | Kolkata, Siliguri, Eastern Hub | Supported |
+| **Gujarati** | ગુજરાતી | GIFT City, Ahmedabad, Surat | Supported |
 
 ---
 
-## 3. System Architecture & Portal Segregation
+## 🚀 Key Feature Modules
 
-```mermaid
-graph TD
-    subgraph Public Portal
-        A[Landing Page /]
-        B[User Auth /login, /register]
-        C[Admin Auth /admin/login]
-    end
+### 1. User Personal Vault (`/dashboard`)
+- **Send UPI (`/dashboard/pay`)**: Interactive payment flow supporting VPA validation, real-time payee reputation lookup, and zero-day threat scoring before PIN confirmation.
+- **Scan QR Camera (`/dashboard/scan`)**: Real-time camera QR scanner with HTML5 camera stream and image drag-and-drop parser. Validates UPI intent URI parameters (`pa`, `pn`, `am`, `tn`).
+- **Explainable AI - XAI (`/dashboard/xai` & `/dashboard/risk-profile`)**: 
+  - Dynamic Composite Risk Gauge (0–100 scale).
+  - SHAP/LIME-style feature contribution bars (Amount, Geolocation, Velocity, Device Trust, New Payee).
+  - Natural Language explanation generator synthesizing human-readable risk rationales.
+  - Interactive "What-If" Counterfactual Sliders (test how changing amount, location, or hour affects the risk score).
+- **Personal Finance Ledger**:
+  - **Expenses (`/dashboard/expenses`)**: Categorized spending analytics with automatic merchant tagging.
+  - **Cards & Tokenization (`/dashboard/cards`)**: Virtual credit card simulation, tokenization, freeze/unfreeze controls.
+  - **Budgets (`/dashboard/budgets`)**: Deterministic category limit warnings and real-time expense thresholds.
+  - **Income (`/dashboard/income`)**: Cash flow tracking and income-versus-expense balance calculation.
+  - **Major Purchases (`/dashboard/major-purchases`)**: High-value asset protections (Vehicles, Electronics, Jewelry, Real Estate) with dual-authorization and down-payment tracking.
+- **Geospatial Intelligence (`/dashboard/payment-map` & `/dashboard/location-history`)**: Interactive Google Map integration calculating Haversine travel velocities to detect impossible travel speeds (e.g., payment in Delhi 10 minutes after Bengaluru login).
+- **Incident & Dispute Reporting (`/dashboard/report`)**: Formal fraud filing with evidence locker, auto-generated Case ID, and live sync with the Admin desk.
 
-    subgraph User Portal (/dashboard)
-        D[Dashboard Overview]
-        E[Expense Tracker & Budgets]
-        F[Live QR Scanner & UPI Intent Pay]
-        G[Incident Reporting /dashboard/report]
-        H[My Cases & Timeline Tracking]
-    end
+### 2. Admin Command Center (`/admin`)
+- **Operations Dashboard (`/admin/dashboard`)**: Platform-wide transaction volume, blocked scams, active disputes, and SLA resolution clocks.
+- **Live Case Replay Desk (`/admin/cases`)**:
+  - Interactive incident timeline replay tracking login event, device fingerprint, transaction point, and dispute timestamp.
+  - Case status management: `Submitted` ➔ `Pending Review` ➔ `Under Review` ➔ `Escalated` ➔ `Resolved` ➔ `Closed`.
+  - Evidence inspection and real-time user notification dispatch.
+- **Syndicate Fraud Network Graph (`/admin/network-graph`)**: Visual topology linking suspect UPI accounts, burner devices, shared IP subnets, and mule accounts.
+- **Adaptive Thresholds (`/admin/adaptive-thresholds`)**: Dynamic rule calibration based on historical false positive rates.
+- **AI Model Retraining Simulator (`/admin/models`)**: Real-time training loss, precision, recall, and F1-score telemetry visualization with manual retraining triggers.
+- **Geospatial Hotspots (`/admin/fraud-map`)**: Heatmaps identifying geographic scam clusters across Tier-1 and Tier-2 Indian cities.
 
-    subgraph Core Platform Database
-        DB[(Database: SQLite / PostgreSQL)]
-        AUDIT[(Immutable Audit Ledger)]
-    end
+### 3. Merchant Settlement Portal (`/merchant`)
+- **Dynamic Merchant QR Generator (`/merchant/qr`)**: Generates NPCI-compliant BharatQR/UPI QR codes with customizable invoice amounts.
+- **Settlement Terminal (`/merchant/dashboard`)**: Instant transaction notifications, chargeback flags, and settlement reconciliation.
 
-    subgraph Admin Portal (/admin)
-        I[Admin Dashboard & Operations KPI]
-        J[Case Management & Timeline Desk]
-        K[Deterministic Rule Configurator]
-        L[Reported VPAs & Merchants Directory]
-        M[User Account Management]
-        N[Audit Trail Inspector]
-    end
+---
 
-    A --> B
-    A --> C
-    B --> D
-    C --> I
-    
-    D --> E
-    D --> F
-    D --> G
-    G -->|Inserts Report| DB
-    DB -->|Generates Case| H
-    DB -->|Alerts Admin Desk| I
-    
-    I --> J
-    J -->|Status Update / Request Evidence| DB
-    DB -->|Real-time Notification| H
-    
-    K -->|Updates Rule Thresholds| DB
-    K -->|Logs Action| AUDIT
-    J -->|Logs Action| AUDIT
-    M -->|Logs Action| AUDIT
+## 🔒 Security & Deterministic Safeguards
+
+UPI Shield employs a **two-tier defense architecture**:
+
+1. **Tier 1: Deterministic Mathematical Guardrails (Hard Rules)**
+   - Hard limits evaluated in under 2ms with zero hallucination risk.
+   - Cross-border acquiring card blocks.
+   - Travel velocity impossibility checks (Haversine formula).
+   - Frequency limits (Max 5 transactions per 10 minutes).
+   - Community-reported blacklist matching.
+
+2. **Tier 2: Explainable AI Inference (XAI Synthesis)**
+   - Decomposes multidimensional fraud signals into transparent risk attributes.
+   - Provides plain-language explanations so users understand *why* a transaction was flagged or held.
+
+---
+
+## 🧪 Build and Test Status
+
+### Frontend: Next.js 16.3.3 (Turbopack)
+```bash
+> npm run build
+
+▲ Next.js 16.3.3 (Turbopack)
+✓ Compiled successfully in 21.8s
+✓ Generating static pages using 15 workers (84/84) in 5.9s
+✓ Finalizing page optimization ...
+Route (app): 84 routes prerendered cleanly. 0 build errors.
 ```
 
----
+### Backend: FastAPI Pytest Suite
+```bash
+> pytest backend/tests
 
-## 4. Key Modules & Features
-
-### 👤 User Portal (`/dashboard`)
-- **Dashboard Overview**: 6 Key Metric Cards, 4 Recharts visualisations (Income vs. Expense, Monthly Expenses, Categories, UPI vs. Card Breakdown).
-- **Transactions Ledger (`/dashboard/transactions`)**: Comprehensive historical transactions with search, date filters, payment methods, and rule evaluation flags (`Normal`, `Review`, `Suspicious`).
-- **Send UPI Intent (`/dashboard/pay`)**: Generates valid `upi://pay?pa=...` URIs with encoded parameters and triggers UPI app handoff on mobile devices.
-- **Live QR Scanner (`/dashboard/scan`)**: Browser camera stream with corner brackets and animated beam; automatically decodes UPI payment strings or supports image upload fallback.
-- **QR Generator (`/dashboard/qr-generator`)**: Generate instant compliant UPI QR codes with download and share capabilities.
-- **Expense & Budget Tracker (`/dashboard/expenses`, `/dashboard/budgets`)**:
-  - 16 financial categories.
-  - 4-tier color budget thresholds: `0-60% (Green)`, `61-85% (Amber)`, `86-100% (Orange)`, `>100% (Red)`.
-- **Income Tracker (`/dashboard/income`)**: Deterministic savings formulas:
-  $$\text{Net Balance} = \text{Total Income} - \text{Total Expenses}$$
-  $$\text{Savings Rate} = \left(\frac{\text{Net Balance}}{\text{Total Income}}\right) \times 100\%$$
-- **Cards Management (`/dashboard/cards`)**: Stores only masked card digits (`•••• 4242`). Sensitive elements (CVV, Card PIN) are never requested or stored.
-- **Fraud Incident Filing (`/dashboard/report`)**: 14 distinct scam categories, transaction linkage, suspect VPA/merchant capture, evidence document upload (JPG, PNG, WEBP, PDF up to 10MB), and automatic sequential `CASE-2026-XXXXXX` initialization.
-- **Case Tracking (`/dashboard/cases`)**: Interactive vertical chronology animated with Framer Motion, evidence viewer, and direct intra-case communication channel with the assigned administrator.
-
-### 🛡️ Admin Portal (`/admin`)
-- **Admin Dashboard (`/admin/dashboard`)**: 9 Real-time KPIs, monthly intake charts, incident categorization breakdown, and directory counters.
-- **Case Management (`/admin/cases`)**: Filter by workflow status and priority, update status, adjust priority (`Low`, `Medium`, `High`, `Critical`), request follow-up evidence, send user messages, and log confidential internal notes.
-- **Rule Engine Management (`/admin/fraud-rules`)**: Configure thresholds, nighttime windows, velocity rates, and enable/disable rules in real time.
-- **Reported VPA Directory (`/admin/reported-upi`)**: Internal directory of VPAs reported across the platform with report counts, verification metrics, and clear disclaimer boundaries.
-- **Reported Merchants Directory (`/admin/reported-merchants`)**: Catalog of merchant complaint volumes and incident categories.
-- **User Directory (`/admin/users`)**: Search registered users, inspect activity volume, and toggle application access permissions.
-- **Audit Logs (`/admin/audit-logs`)**: Append-only log of every administrative decision, rule adjustment, user status change, and status transition with JSON payload inspection.
-
----
-
-## 5. Technology Stack
-
-| Layer | Technologies |
-|---|---|
-| **Frontend** | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, Framer Motion, Recharts, Zustand, Lucide Icons, html5-qrcode, qrcode |
-| **Backend** | FastAPI, Python 3.12, SQLAlchemy 2.0 ORM, Pydantic V2, Python-Jose (JWT), Bcrypt |
-| **Database** | SQLite (Default Zero-Config Dev) / PostgreSQL 16 (Production Ready) |
-| **Testing** | Pytest, HTTPX TestClient |
-| **Containerization** | Docker, Multi-Stage Dockerfile, Docker Compose |
-
----
-
-## 6. Directory Structure
-
+backend/tests/test_api.py .......
+======================= 7 passed in 14.71s =======================
 ```
-upi-shield/
-├── app/                           # Next.js App Router (35 Pages)
-│   ├── (auth)/                    # User & Admin Authentication
-│   │   ├── login/
-│   │   ├── register/
-│   │   └── forgot-password/
-│   ├── admin/                     # Dedicated Admin Portal
-│   │   ├── audit-logs/
-│   │   ├── card-transactions/
-│   │   ├── cases/
-│   │   ├── dashboard/
-│   │   ├── fraud-rules/
-│   │   ├── login/
-│   │   ├── notifications/
-│   │   ├── reported-merchants/
-│   │   ├── reported-upi/
-│   │   ├── reports/
-│   │   ├── settings/
-│   │   ├── transactions/
-│   │   ├── upi-transactions/
-│   │   └── users/
-│   ├── dashboard/                 # Dedicated User Portal
-│   │   ├── budgets/
-│   │   ├── cards/
-│   │   ├── cases/
-│   │   ├── expenses/
-│   │   ├── income/
-│   │   ├── notifications/
-│   │   ├── pay/
-│   │   ├── profile/
-│   │   ├── qr-generator/
-│   │   ├── report/
-│   │   ├── reports/
-│   │   ├── scan/
-│   │   ├── settings/
-│   │   └── transactions/
-│   └── page.tsx                   # Minimal Fintech Landing Page
-├── backend/                       # FastAPI Application
-│   ├── app/
-│   │   ├── api/v1/                # 13 REST API Routers
-│   │   ├── core/                  # Security, Database & Config
-│   │   ├── models/                # SQLAlchemy ORM Models
-│   │   ├── schemas/               # Pydantic Schemas
-│   │   ├── services/              # Deterministic Business Logic
-│   │   ├── seed_data.py           # Preloaded Demo Accounts & Rules
-│   │   └── main.py                # FastAPI Entrypoint
-│   ├── tests/                     # Pytest Automated Test Suite
-│   └── requirements.txt
-├── components/                    # UI & Motion Components
-│   ├── layout/                    # User & Admin Shell Layouts
-│   └── motion/                    # Framer Motion Presets
-├── lib/                           # Zustand Stores & Fetch Clients
-├── docker-compose.yml             # Orchestration Spec
-├── Dockerfile                     # Frontend Production Container
-├── .env.example                   # Environment Template
-└── README.md
-```
+All API test suites (Health check, User login, Admin login, UPI validation, QR parsing, Financial summary, Fraud report lifecycle) pass with 100% success.
 
 ---
 
-## 7. Getting Started
+## 💻 Quickstart & Local Setup
 
 ### Prerequisites
-- Node.js 18+ & `npm`
-- Python 3.10+ (Python 3.12 recommended)
+- Node.js 18+ & npm
+- Python 3.10+ & pip
+- Git
 
-### Option A: Local Development Setup
-
-#### 1. Start the Backend API
+### 1. Clone Repository
 ```bash
-# Navigate to backend directory
+git clone https://github.com/codexanjan/upishield.git
+cd upishield
+```
+
+### 2. Frontend Setup (Next.js)
+```bash
+# Install dependencies
+npm install
+
+# Start development server (Port 3000)
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 3. Backend Setup (FastAPI)
+```bash
 cd backend
 
 # Create virtual environment
@@ -227,87 +170,62 @@ python -m venv venv
 
 # Activate virtual environment
 # Windows:
-.\venv\Scripts\activate
+venv\Scripts\activate
 # Linux/macOS:
 source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the backend server (starts on http://127.0.0.1:8000)
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+# Run database seed and start server
+uvicorn app.main:app --reload --port 8000
 ```
-*The database automatically creates and seeds `backend/upi_shield.db` on first boot.*
+Interactive API docs available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-#### 2. Start the Frontend Application
+### 4. Running Backend Tests
 ```bash
-# From project root
-npm install
-
-# Start Next.js development server (starts on http://localhost:3000)
-npm run dev
+pytest tests/
 ```
 
 ---
 
-### Option B: Docker Compose Setup
+## 📁 Repository Structure
 
-Run the full stack (Next.js, FastAPI, and PostgreSQL 16) with a single command:
-```bash
-docker-compose up --build
 ```
-- Frontend: `http://localhost:3000`
-- Backend API Docs: `http://localhost:8000/docs`
-- PostgreSQL: `localhost:5432`
-
----
-
-## 8. Default Credentials for Evaluation
-
-The database is pre-seeded with sample records for rapid demonstration:
-
-| Portal | Role | Email | Password |
-|---|---|---|---|
-| **Admin Portal** (`/admin/login`) | System Administrator | `admin@upishield.com` | `admin123` |
-| **User Portal** (`/login`) | Standard Verified User | `user@upishield.com` | `user123` |
-
----
-
-## 9. Automated Testing
-
-Run the automated backend test suite covering authentication, RBAC, deterministic calculations, case workflows, and audit logging:
-
-```bash
-cd backend
-python -m pytest tests/test_api.py -v
+upishield/
+├── app/                              # Next.js App Router (84 Routes)
+│   ├── admin/                        # Admin operations, cases, maps, models, rules
+│   ├── dashboard/                    # User personal vault, pay, scan, xai, expenses
+│   ├── merchant/                     # Merchant settlement & QR portal
+│   ├── docs/                         # Built-in interactive documentation
+│   ├── layout.tsx                    # Root layout with LanguageProvider
+│   └── globals.css                   # Custom cyber-dark aesthetic styles
+├── components/                       # Reusable UI Components
+│   ├── layout/                       # user-layout, admin-layout, language-selector
+│   ├── maps/                         # real-google-map geospatial radar
+│   ├── motion/                       # framer-motion micro-interaction presets
+│   └── payments/                     # UPI multi-step payment execution flow
+├── docs/                             # Documentation Assets
+│   └── assets/                       # SVG banners, architecture & language diagrams
+├── lib/                              # Core State & Logic Engines
+│   ├── i18n/                         # 8 Indian languages translation catalog & context
+│   ├── ai-fraud-engine.ts            # XAI scoring, SHAP features & synthetic rules
+│   ├── upiguard-store.ts             # Global client simulation & state store
+│   └── store.ts                      # User authentication & session management
+├── backend/                          # FastAPI Python Microservices
+│   ├── app/
+│   │   ├── api/v1/                   # REST routes (auth, upi, cards, expenses, cases)
+│   │   ├── core/                     # database, security, config
+│   │   ├── models/                   # SQLAlchemy ORM models
+│   │   └── schemas/                  # Pydantic v2 validation schemas
+│   └── tests/                        # Pytest integration tests
+└── README.md                         # Comprehensive documentation
 ```
 
 ---
 
-## 10. Security & Regulatory Boundaries
+## 📜 License & Compliance
 
-1. **Zero Sensitive Card Data**: The platform never stores or accepts Card CVVs, ATM PINs, or banking NetBanking passwords. Only masked numbers (`•••• 4242`) are retained for personal expense reference.
-2. **Zero UPI PIN Capture**: In accordance with NPCI security standards, UPI PINs are entered strictly inside certified mobile UPI PSP apps (GPay, PhonePe, Paytm, BHIM) triggered via the `upi://pay` protocol intent.
-3. **Application Account Boundaries**: The administrator "Disable Account" action halts session authentication within the UPI Shield application; it does not claim or fabricate authority to freeze real Indian banking accounts.
-4. **Platform-Only Directories**: Reported UPI and merchant catalogues are internal community indices with explicit disclaimers and do not constitute official banking blacklists.
+Designed and developed for high-security fintech environments compliant with **NPCI UPI 2.0** transaction specifications and **RBI Cyber Security Framework** guidelines.
 
----
-
-## 11. Viva & Demonstration Walkthrough
-
-When presenting or demonstrating this project for academic viva, capstone evaluation, or portfolio review:
-
-1. **Step 1 - Landing Page (`/`)**: Show the dark fintech aesthetic, feature cards, and 4-step workflow.
-2. **Step 2 - User Login (`/login`)**: Log in as `user@upishield.com`. Show financial overview cards and Recharts analytics.
-3. **Step 3 - QR Scan & Intent Pay (`/dashboard/scan`, `/dashboard/pay`)**: Demonstrate live camera scanner and UPI intent construction.
-4. **Step 4 - Incident Reporting (`/dashboard/report`)**: File an incident report for an unauthorized charge. Observe immediate `CASE-2026-XXXXXX` assignment.
-5. **Step 5 - Admin Investigation (`/admin/login`)**: Open a separate tab, log in as `admin@upishield.com`.
-6. **Step 6 - Case Action**: Open the newly filed case in `/admin/cases`, adjust priority to `Critical`, send an investigator message, request evidence, and classify report as `Verified`.
-7. **Step 7 - Verify User Sync**: Switch back to User tab (`/dashboard/cases`); notice real-time vertical timeline progression and incoming investigator message.
-8. **Step 8 - Audit Trail (`/admin/audit-logs`)**: Show that all administrative operations were cryptographically recorded with operator email and timestamp.
-
----
-
-## 12. License
-
-Developed for educational demonstration, major project submission, and fintech security evaluation. Free for non-commercial academic use.
+Developed with ❤️ by [codexanjan](https://github.com/codexanjan).

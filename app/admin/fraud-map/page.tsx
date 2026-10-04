@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import RealGoogleMap from '@/components/maps/real-google-map'
 
 interface Cluster {
   id: string
@@ -28,14 +29,16 @@ interface Cluster {
   risk: 'critical' | 'high' | 'medium'
   x: number
   y: number
+  lat: number
+  lng: number
 }
 
 const mockClusters: Cluster[] = [
-  { id: '1', city: 'Bengaluru', count: 128, amount: 284000, risk: 'high', x: 48, y: 64 },
-  { id: '2', city: 'Delhi NCR', count: 94, amount: 391500, risk: 'critical', x: 52, y: 26 },
-  { id: '3', city: 'Mumbai', count: 78, amount: 198000, risk: 'high', x: 36, y: 48 },
-  { id: '4', city: 'Hyderabad', count: 42, amount: 94000, risk: 'medium', x: 50, y: 56 },
-  { id: '5', city: 'Kolkata', count: 31, amount: 72000, risk: 'medium', x: 68, y: 38 },
+  { id: '1', city: 'Bengaluru', count: 128, amount: 284000, risk: 'high', x: 48, y: 64, lat: 12.9716, lng: 77.5946 },
+  { id: '2', city: 'Delhi NCR', count: 94, amount: 391500, risk: 'critical', x: 52, y: 26, lat: 28.6139, lng: 77.2090 },
+  { id: '3', city: 'Mumbai', count: 78, amount: 198000, risk: 'high', x: 36, y: 48, lat: 19.0760, lng: 72.8777 },
+  { id: '4', city: 'Hyderabad', count: 42, amount: 94000, risk: 'medium', x: 50, y: 56, lat: 17.3850, lng: 78.4867 },
+  { id: '5', city: 'Kolkata', count: 31, amount: 72000, risk: 'medium', x: 68, y: 38, lat: 22.5726, lng: 88.3639 },
 ]
 
 export default function AdminFraudMapPage() {
@@ -138,35 +141,28 @@ export default function AdminFraudMapPage() {
               </div>
             </div>
 
-            {/* Cluster Markers (Prompt Spec 32: [ 24 ] means 24 incidents) */}
-            <div className="relative z-10 w-full h-[320px] my-auto">
-              {mockClusters.map((cluster) => {
-                const isSelected = selectedCluster?.id === cluster.id
-                return (
-                  <div
-                    key={cluster.id}
-                    onClick={() => setSelectedCluster(cluster)}
-                    style={{ left: `${cluster.x}%`, top: `${cluster.y}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                  >
-                    <div className="relative flex flex-col items-center">
-                      {/* Cluster Bubble */}
-                      <div className={`px-3 py-1 rounded-full font-mono font-bold text-xs shadow-xl transition-transform duration-200 group-hover:scale-125 ${
-                        cluster.risk === 'critical'
-                          ? 'bg-rose-600 text-white ring-8 ring-rose-500/20'
-                          : cluster.risk === 'high'
-                          ? 'bg-amber-500 text-black ring-8 ring-amber-500/20'
-                          : 'bg-sky-500 text-white ring-8 ring-sky-500/20'
-                      } ${isSelected ? 'scale-125 ring-white/40' : ''}`}>
-                        [ {cluster.count} ]
-                      </div>
-                      <span className="mt-1 bg-[#0a1718]/95 border border-white/15 px-2 py-0.5 rounded text-[10px] font-semibold text-white whitespace-nowrap shadow-lg">
-                        {cluster.city}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
+            {/* Real Google Maps Threat Clusters */}
+            <div className="relative z-10 w-full rounded-2xl overflow-hidden border border-white/10 my-2">
+              <RealGoogleMap
+                height="340px"
+                center={[21.0, 78.0]}
+                zoom={4}
+                markers={mockClusters.map((c) => ({
+                  id: c.id,
+                  title: `${c.city} Threat Cluster`,
+                  subtitle: `${c.count} platform fraud reports • ₹${c.amount.toLocaleString('en-IN')} volume`,
+                  lat: c.lat,
+                  lng: c.lng,
+                  risk: c.risk,
+                  status: `${c.count} Reports`,
+                  amount: c.amount,
+                  category: 'Fraud Cluster'
+                }))}
+                onMarkerClick={(marker) => {
+                  const found = mockClusters.find(c => c.id === marker.id)
+                  if (found) setSelectedCluster(found)
+                }}
+              />
             </div>
 
             {/* Bottom Status */}

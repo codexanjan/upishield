@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
+import { LanguageSelector } from './language-selector'
 
 const adminNavItems = [
   { label: 'Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -261,6 +262,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-3">
+              <LanguageSelector />
+
               <button
                 onClick={() => setNotificationOpen(true)}
                 className="relative rounded-xl border border-white/10 bg-white/[.04] p-2.5 text-[#819694] hover:text-white hover:bg-white/[.08] transition"
