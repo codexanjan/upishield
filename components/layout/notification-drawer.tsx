@@ -24,19 +24,21 @@ export function NotificationDrawer({ admin = false }: { admin?: boolean }) {
   const storeNotifications = useUPIGuardStore((s) => s.notifications)
   const markAllInStore = useUPIGuardStore((s) => s.markAllNotificationsRead)
 
-  // Filter store notifications for user vs admin
-  const relevantStoreNotifs: NotificationItem[] = (storeNotifications || [])
-    .filter((n) => admin ? (n.recipientRole === 'ADMIN' || n.recipientRole === 'ALL') : (n.recipientRole === 'USER' || n.recipientRole === 'ALL'))
-    .map((n) => ({
-      id: n.id,
-      title: n.title,
-      message: n.message,
-      notification_type: n.type,
-      reference_id: n.referenceId,
-      is_read: n.isRead,
-      created_at: n.createdAt,
-      link: n.link
-    }))
+  // Filter store notifications for user vs admin - properly memoized to prevent infinite renders
+  const relevantStoreNotifs: NotificationItem[] = useMemo(() => {
+    return (storeNotifications || [])
+      .filter((n) => admin ? (n.recipientRole === 'ADMIN' || n.recipientRole === 'ALL') : (n.recipientRole === 'USER' || n.recipientRole === 'ALL'))
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        notification_type: n.type,
+        reference_id: n.referenceId,
+        is_read: n.isRead,
+        created_at: n.createdAt,
+        link: n.link
+      }))
+  }, [storeNotifications, admin])
 
   const [apiNotifications, setApiNotifications] = useState<NotificationItem[]>([])
 
@@ -51,10 +53,11 @@ export function NotificationDrawer({ admin = false }: { admin?: boolean }) {
     return combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   }, [relevantStoreNotifs, apiNotifications])
 
+  // Count unread notifications with change-guard
   useEffect(() => {
     const unread = notifications.filter((n) => !n.is_read).length
     setUnreadCount(unread)
-  }, [notifications, setUnreadCount])
+  }, [notifications.length, setUnreadCount])
 
   useEffect(() => {
     async function loadNotifs() {

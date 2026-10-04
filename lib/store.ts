@@ -314,7 +314,8 @@ export const useAppStore = create<AppState>()(
       setNotificationOpen: (open) => set({ notificationOpen: open }),
 
       unreadCount: 2,
-      setUnreadCount: (count) => set({ unreadCount: count }),
+      setUnreadCount: (count) =>
+        set((state) => (state.unreadCount === count ? state : { unreadCount: count })),
       decrementNotifications: () =>
         set((state) => ({ unreadCount: Math.max(0, state.unreadCount - 1) })),
     }),

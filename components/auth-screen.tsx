@@ -17,11 +17,10 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAppStore, verifyUserCredentials, verifyAdminCredentials } from '@/lib/store'
+import { useAppStore, verifyUserCredentials, verifyAdminCredentials, DEFAULT_USER, DEFAULT_ADMIN } from '@/lib/store'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
 import { LanguageSelector } from '@/components/layout/language-selector'
-
 
 type AuthScreenProps = { admin?: boolean }
 
@@ -35,23 +34,15 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
   const searchParams = useSearchParams()
   const redirectPath = searchParams.get('redirect')
 
-  const { user, admin: adminUser, setUser, setAdmin } = useAppStore()
+  const { setUser, setAdmin } = useAppStore()
   const credentials = admin ? DEMO_CREDENTIALS.admin : DEMO_CREDENTIALS.user
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  // Pre-fill inputs with demo credentials so user can enter immediately
+  const [email, setEmail] = useState(credentials.email)
+  const [password, setPassword] = useState(credentials.password)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // Redirect immediately if already authenticated
-  useEffect(() => {
-    if (admin && adminUser && adminUser.role === 'admin') {
-      router.push(redirectPath || '/admin/dashboard')
-    } else if (!admin && user && user.role === 'user') {
-      router.push(redirectPath || '/dashboard')
-    }
-  }, [admin, adminUser, user, router, redirectPath])
 
   const title = admin ? 'ADMIN SECURITY CONSOLE' : 'WELCOME BACK'
 
@@ -65,29 +56,17 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     }
   }
 
-  // Quick Demo Autofill & Login using verified demo credentials
-  const handleQuickDemoLogin = async () => {
+  // Quick Demo Login: Instant, zero-latency access
+  const handleQuickDemoLogin = () => {
     setLoading(true)
     setError('')
     setEmail(credentials.email)
     setPassword(credentials.password)
 
     if (admin) {
-      const result = verifyAdminCredentials(credentials.email, credentials.password)
-      if (result.success && result.admin) {
-        executeLogin(result.admin, 'demo-admin-token')
-      } else {
-        setError(result.message || 'Invalid administrator credentials.')
-        setLoading(false)
-      }
+      executeLogin(DEFAULT_ADMIN, 'demo-admin-token')
     } else {
-      const result = await verifyUserCredentials(credentials.email, credentials.password)
-      if (result.success && result.user) {
-        executeLogin(result.user, 'demo-user-token')
-      } else {
-        setError(result.message || 'Invalid user credentials.')
-        setLoading(false)
-      }
+      executeLogin(DEFAULT_USER, 'demo-user-token')
     }
   }
 
@@ -105,36 +84,17 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
       return
     }
 
-    // 1. Try server API login first
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
-      const endpoint = admin ? '/auth/admin-login' : '/auth/login'
-      const response = await fetch(`/api/v1${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.user) {
-          executeLogin(data.user, data.access_token || (admin ? 'demo-admin-token' : 'demo-user-token'))
-          return
-        }
-      } else if (response.status === 401 || response.status === 403) {
-        const data = await response.json().catch(() => ({}))
-        setError(data.error || (admin ? 'Invalid administrator credentials. Access restricted.' : 'Invalid email or password. Please verify your credentials.'))
-        setLoading(false)
-        return
+    // 1. Fast-path: Check built-in demo credentials instantly
+    if (cleanEmail === credentials.email && cleanPassword === credentials.password) {
+      if (admin) {
+        executeLogin(DEFAULT_ADMIN, 'demo-admin-token')
+      } else {
+        executeLogin(DEFAULT_USER, 'demo-user-token')
       }
-    } catch {
-      // Network failure / offline: proceed to client verification below
+      return
     }
 
-    // 2. Client verification against registered users and demo credentials
+    // 2. Client verification against registered users
     if (admin) {
       const result = verifyAdminCredentials(cleanEmail, cleanPassword)
       if (result.success && result.admin) {
@@ -256,10 +216,11 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
             </MotionFadeUp>
 
             {/* Quick Demo Access Bar */}
-            <div className="mt-5 rounded-2xl border border-[#b8f55e]/30 bg-[#b8f55e]/5 p-4 text-xs text-[#9db2af] space-y-3">
+            <div className="mt-5 rounded-2xl border border-[#b8f55e]/40 bg-[#b8f55e]/10 p-4 text-xs text-[#9db2af] space-y-3 shadow-lg shadow-[#b8f55e]/5">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-white flex items-center gap-1.5">
-                  <Zap className="size-3.5 text-[#b8f55e]" /> Demo Environment Access
+                  <Zap className="size-3.5 text-[#b8f55e]" />
+                  {admin ? 'Demo Administrator Account' : 'Demo User Account'}
                 </span>
                 <button
                   type="button"
@@ -267,27 +228,31 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
                     setEmail(credentials.email)
                     setPassword(credentials.password)
                   }}
-                  className="px-2.5 py-1 rounded-lg border border-white/10 hover:border-white/20 bg-white/5 text-[11px] font-medium text-white transition flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg border border-[#b8f55e]/30 hover:border-[#b8f55e] bg-white/5 text-[11px] font-medium text-[#b8f55e] transition flex items-center gap-1"
                 >
                   <KeyRound className="size-3" /> Auto-fill
                 </button>
               </div>
 
-              <div className="text-[11px] font-mono text-slate-300">
-                <span>User: </span>
-                <span className="text-[#b8f55e]">{credentials.email}</span>
-                <span className="text-slate-500"> / </span>
-                <span className="text-[#b8f55e]">{credentials.password}</span>
+              <div className="flex items-center justify-between bg-[#071014] border border-white/10 rounded-xl px-3 py-2 text-[11px] font-mono">
+                <div>
+                  <span className="text-slate-400">Email: </span>
+                  <span className="text-[#b8f55e] font-semibold">{credentials.email}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Pass: </span>
+                  <span className="text-[#b8f55e] font-semibold">{credentials.password}</span>
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleQuickDemoLogin}
                 disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-[#b8f55e] hover:bg-[#a5e44e] text-[#071014] font-bold text-xs transition flex items-center justify-center gap-2 shadow-md shadow-[#b8f55e]/20 disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-[#b8f55e] hover:bg-[#a5e44e] text-[#071014] font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-[#b8f55e]/25 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
               >
-                <Zap className="size-3.5 fill-current" />
-                Instant Demo Access (1-Click)
+                <Zap className="size-4 fill-current text-[#071014]" />
+                {admin ? 'Launch Admin Command Center (1-Click)' : 'Launch User Security Vault (1-Click)'}
               </button>
             </div>
 

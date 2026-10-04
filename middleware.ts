@@ -18,31 +18,13 @@ export function middleware(request: NextRequest) {
 
   const isManualLogout = request.cookies.get('upishield_manual_logout')?.value === 'true'
 
-  // If user is already authenticated and visits login screens, auto-redirect to app
-  if ((pathname === '/login' || pathname === '/admin/login') && session?.authenticated && !isManualLogout) {
-    const redirectUrl = request.nextUrl.searchParams.get('redirect')
-    const target = redirectUrl || (pathname === '/admin/login' ? '/admin/dashboard' : '/dashboard')
-    const url = request.nextUrl.clone()
-    url.pathname = target
-    url.searchParams.delete('redirect')
-    return NextResponse.redirect(url)
-  }
-
   // Protected Admin Routes (/admin/*)
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    // If not authenticated, redirect to Admin Login
-    if (!session || !session.authenticated) {
+    // If not authenticated or not admin, redirect to Admin Login
+    if (!session || !session.authenticated || session.role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
       url.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(url)
-    }
-
-    // Role-based access control: Only 'admin' role can access admin portal
-    if (session.role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      url.searchParams.set('unauthorized', 'admin_required')
       return NextResponse.redirect(url)
     }
 
