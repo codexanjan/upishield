@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="100%" height="100%">
+  <defs>
+    <linearGradient id="upBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#051014"/>
+      <stop offset="50%" stop-color="#081c22"/>
+      <stop offset="100%" stop-color="#0a2730"/>
+    </linearGradient>
+    <linearGradient id="upCard" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f262d" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#08181d" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="limeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b8f55e"/>
+      <stop offset="100%" stop-color="#84f039"/>
+    </linearGradient>
+    <filter id="upShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="680" fill="url(#upBg)"/>
+
+  <!-- Header -->
+  <g transform="translate(40, 30)">
+    <circle cx="16" cy="16" r="16" fill="#b8f55e" fill-opacity="0.2"/>
+    <path d="M 16 6 L 25 11 L 25 20 C 25 25 16 29 16 29 C 16 29 7 25 7 20 L 7 11 Z" fill="#b8f55e"/>
+    <text x="42" y="22" fill="#ffffff" font-family="-apple-system, sans-serif" font-weight="900" font-size="20">UPI SHIELD <tspan fill="#b8f55e">USER PORTAL</tspan></text>
+    
+    <!-- Language Switcher Pill -->
+    <g transform="translate(860, 0)">
+      <rect x="0" y="0" width="260" height="36" rx="18" fill="#0d242a" stroke="#ffffff" stroke-opacity="0.15"/>
+      <text x="18" y="23" fill="#b8f55e" font-family="sans-serif" font-size="12" font-weight="700">🌐 8 Indian Languages: ಕನ್ನಡ (Kannada)</text>
+    </g>
+  </g>
+
+  <!-- Metric KPI Cards Row -->
+  <g transform="translate(40, 90)">
+    <!-- KPI 1 -->
+    <rect x="0" y="0" width="260" height="110" rx="16" fill="url(#upCard)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#upShadow)"/>
+    <text x="20" y="32" fill="#8fa9a6" font-family="sans-serif" font-size="12" font-weight="600">Active Balance Guard</text>
+    <text x="20" y="70" fill="#ffffff" font-family="monospace" font-size="28" font-weight="800">₹84,250</text>
+    <text x="20" y="92" fill="#b8f55e" font-family="sans-serif" font-size="11" font-weight="600">✓ 3 Bank Accounts Protected</text>
+
+    <!-- KPI 2 -->
+    <rect x="286" y="0" width="260" height="110" rx="16" fill="url(#upCard)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#upShadow)"/>
+    <text x="306" y="32" fill="#8fa9a6" font-family="sans-serif" font-size="12" font-weight="600">Personal Safety Score</text>
+    <text x="306" y="70" fill="#b8f55e" font-family="monospace" font-size="28" font-weight="800">96 / 100</text>
+    <text x="306" y="92" fill="#38bdf8" font-family="sans-serif" font-size="11" font-weight="600">Excellent • 0 Critical Exposures</text>
+
+    <!-- KPI 3 -->
+    <rect x="572" y="0" width="260" height="110" rx="16" fill="url(#upCard)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#upShadow)"/>
+    <text x="592" y="32" fill="#8fa9a6" font-family="sans-serif" font-size="12" font-weight="600">Geofence Status</text>
+    <text x="592" y="70" fill="#ffffff" font-family="monospace" font-size="24" font-weight="800">Bengaluru HQ</text>
+    <text x="592" y="92" fill="#b8f55e" font-family="sans-serif" font-size="11" font-weight="600">Radius: 25 km • Zero silent leakage</text>
+
+    <!-- KPI 4 -->
+    <rect x="858" y="0" width="262" height="110" rx="16" fill="url(#upCard)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#upShadow)"/>
+    <text x="878" y="32" fill="#8fa9a6" font-family="sans-serif" font-size="12" font-weight="600">Blocked Scams</text>
+    <text x="878" y="70" fill="#ff4757" font-family="monospace" font-size="28" font-weight="800">7 Intercepted</text>
+    <text x="878" y="92" fill="#ff6b81" font-family="sans-serif" font-size="11" font-weight="600">₹32,900 saved from QR traps</text>
+  </g>
+
+  <!-- Left Main Column: Explainable AI Breakdown Card -->
+  <g transform="translate(40, 225)">
+    <rect x="0" y="0" width="680" height="415" rx="20" fill="url(#upCard)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#upShadow)"/>
+    <text x="30" y="40" fill="#ffffff" font-family="sans-serif" font-size="18" font-weight="800">Explainable AI (XAI) Transaction Auditor</text>
+    <text x="30" y="62" fill="#8fa9a6" font-family="sans-serif" font-size="12">Neural decision transparency with Shapley factor attributions</text>
+
+    <!-- Factor Rows -->
+    <g transform="translate(30, 90)">
+      <!-- Factor 1 -->
+      <text x="0" y="16" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="600">Geographic Travel Velocity</text>
+      <text x="480" y="16" fill="#ff4757" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="end">+42% Risk</text>
+      <rect x="0" y="26" width="480" height="8" rx="4" fill="#142e34"/>
+      <rect x="0" y="26" width="380" height="8" rx="4" fill="#ff4757"/>
+
+      <!-- Factor 2 -->
+      <text x="0" y="76" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="600">New / Unrecognized Hardware Device</text>
+      <text x="480" y="76" fill="#f59e0b" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="end">+28% Risk</text>
+      <rect x="0" y="86" width="480" height="8" rx="4" fill="#142e34"/>
+      <rect x="0" y="86" width="260" height="8" rx="4" fill="#f59e0b"/>
+
+      <!-- Factor 3 -->
+      <text x="0" y="136" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="600">VPA Behavioral History & Age</text>
+      <text x="480" y="136" fill="#b8f55e" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="end">-35% Safety</text>
+      <rect x="0" y="146" width="480" height="8" rx="4" fill="#142e34"/>
+      <rect x="0" y="146" width="310" height="8" rx="4" fill="#b8f55e"/>
+
+      <!-- Factor 4 -->
+      <text x="0" y="196" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="600">Biometric & SIM Binding Integrity</text>
+      <text x="480" y="196" fill="#38bdf8" font-family="sans-serif" font-size="13" font-weight="700" text-anchor="end">Hardware Pass</text>
+      <rect x="0" y="206" width="480" height="8" rx="4" fill="#142e34"/>
+      <rect x="0" y="206" width="450" height="8" rx="4" fill="#38bdf8"/>
+    </g>
+
+    <!-- Bottom Shield Badge -->
+    <g transform="translate(30, 335)">
+      <rect x="0" y="0" width="620" height="50" rx="12" fill="#06161b" stroke="#b8f55e" stroke-opacity="0.3"/>
+      <text x="20" y="30" fill="#b8f55e" font-family="sans-serif" font-size="12" font-weight="700">🔒 NPCI Zero-Trust Framework Compliant · On-Device Geolocation Quarantine</text>
+    </g>
+  </g>
+
+  <!-- Right Column: Recent Verified Transactions -->
+  <g transform="translate(740, 225)">
+    <rect x="0" y="0" width="420" height="415" rx="20" fill="url(#upCard)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#upShadow)"/>
+    <text x="24" y="40" fill="#ffffff" font-family="sans-serif" font-size="18" font-weight="800">Recent Payment Ledger</text>
+    <text x="24" y="62" fill="#8fa9a6" font-family="sans-serif" font-size="12">Immutable UPI transaction audit history</text>
+
+    <!-- Txn 1 -->
+    <g transform="translate(24, 85)">
+      <rect x="0" y="0" width="372" height="65" rx="12" fill="#07191e" stroke="#ffffff" stroke-opacity="0.06"/>
+      <circle cx="32" cy="32" r="16" fill="#b8f55e" fill-opacity="0.15"/>
+      <text x="32" y="37" fill="#b8f55e" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">✓</text>
+      <text x="60" y="26" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="700">Star Cafe (Koramangala)</text>
+      <text x="60" y="46" fill="#8fa9a6" font-family="sans-serif" font-size="11">Bengaluru · Verified POS</text>
+      <text x="354" y="36" fill="#ffffff" font-family="monospace" font-size="15" font-weight="700" text-anchor="end">₹850</text>
+    </g>
+
+    <!-- Txn 2 -->
+    <g transform="translate(24, 160)">
+      <rect x="0" y="0" width="372" height="65" rx="12" fill="#07191e" stroke="#ffffff" stroke-opacity="0.06"/>
+      <circle cx="32" cy="32" r="16" fill="#38bdf8" fill-opacity="0.15"/>
+      <text x="32" y="37" fill="#38bdf8" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">✓</text>
+      <text x="60" y="26" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="700">Nature's Basket (Indiranagar)</text>
+      <text x="60" y="46" fill="#8fa9a6" font-family="sans-serif" font-size="11">Bengaluru · HDFC Gateway</text>
+      <text x="354" y="36" fill="#ffffff" font-family="monospace" font-size="15" font-weight="700" text-anchor="end">₹2,100</text>
+    </g>
+
+    <!-- Txn 3 (Flagged) -->
+    <g transform="translate(24, 235)">
+      <rect x="0" y="0" width="372" height="65" rx="12" fill="#2d0a11" stroke="#ff4757" stroke-opacity="0.3"/>
+      <circle cx="32" cy="32" r="16" fill="#ff4757" fill-opacity="0.25"/>
+      <text x="32" y="37" fill="#ff4757" font-family="sans-serif" font-size="12" font-weight="900" text-anchor="middle">!</text>
+      <text x="60" y="26" fill="#ff6b81" font-family="sans-serif" font-size="13" font-weight="800">Unknown Tech Support</text>
+      <text x="60" y="46" fill="#ffffff" font-family="sans-serif" font-size="11">Delhi Rohini · Quarantined</text>
+      <text x="354" y="36" fill="#ff4757" font-family="monospace" font-size="15" font-weight="800" text-anchor="end">₹18,500</text>
+    </g>
+
+    <!-- View All Link -->
+    <g transform="translate(24, 325)">
+      <rect x="0" y="0" width="372" height="45" rx="12" fill="#b8f55e"/>
+      <text x="186" y="28" fill="#041215" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">Open Full Geofenced Payment Map →</text>
+    </g>
+  </g>
+</svg>

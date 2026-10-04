@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import RealGoogleMap, { MapMarkerItem } from '@/components/maps/real-google-map'
+
 
 export default function UserLocationHistoryPage() {
   const [travelMode, setTravelMode] = useState(true)
@@ -208,6 +210,101 @@ export default function UserLocationHistoryPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Real Google Maps Travel Corridor & Geofencing Radar */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Compass className="size-4 text-[#b8f55e]" />
+              <h3 className="text-base font-semibold text-white">Geographic Travel Corridor &amp; Real Google Map</h3>
+            </div>
+            <span className="text-xs text-slate-400">
+              Corridor Distance: <strong className="text-[#b8f55e]">~2,150 km Trajectory</strong>
+            </span>
+          </div>
+
+          <RealGoogleMap
+            markers={[
+              {
+                id: 'LOC-BLR',
+                title: 'Bengaluru Anchor HQ',
+                subtitle: '84 payments · Primary residence and corporate base',
+                lat: 12.9716,
+                lng: 77.5946,
+                city: 'Bengaluru',
+                amount: 18200,
+                riskScore: 6,
+                riskLevel: 'LOW',
+                source: 'UPI',
+                status: 'Anchor Base',
+                device: 'Samsung Galaxy S24'
+              },
+              {
+                id: 'LOC-MYS',
+                title: 'Mysuru Transit Stop',
+                subtitle: '12 payments · Devaraja Market & heritage zone',
+                lat: 12.3087,
+                lng: 76.6531,
+                city: 'Mysuru',
+                amount: 5400,
+                riskScore: 14,
+                riskLevel: 'LOW',
+                source: 'UPI',
+                status: 'Verified Transit',
+                device: 'Samsung Galaxy S24'
+              },
+              {
+                id: 'LOC-IXE',
+                title: 'Mangaluru Coastal Transit',
+                subtitle: '3 payments · Coastal financial gateway',
+                lat: 12.8688,
+                lng: 74.8427,
+                city: 'Mangaluru',
+                amount: 3200,
+                riskScore: 18,
+                riskLevel: 'LOW',
+                source: 'CARD',
+                status: 'Verified Transit',
+                device: 'Samsung Galaxy S24'
+              },
+              {
+                id: 'LOC-GOA',
+                title: 'Goa Holiday Corridor (Travel Mode Active)',
+                subtitle: 'Whitelisted corridor for 26–29 Sep 2026',
+                lat: 15.2993,
+                lng: 74.1240,
+                city: 'Goa',
+                amount: 7800,
+                riskScore: 22,
+                riskLevel: 'LOW',
+                source: 'UPI',
+                status: 'Travel Mode Protected',
+                device: 'Samsung Galaxy S24'
+              },
+              {
+                id: 'LOC-DEL',
+                title: 'Delhi Incident Point (Anomaly)',
+                subtitle: 'Impossible travel velocity: 1,740 km in 45 minutes',
+                lat: 28.6139,
+                lng: 77.2090,
+                city: 'Delhi',
+                amount: 18500,
+                riskScore: 94,
+                riskLevel: 'CRITICAL',
+                source: 'UPI',
+                status: 'Reported Threat',
+                device: 'Unknown Android DEV-A782'
+              }
+            ]}
+            center={[15.3647, 75.1240]}
+            zoom={6}
+            height="460px"
+            title="Real-Time Google Maps Travel Route &amp; Velocity Radar"
+            showControls={true}
+            showSearch={true}
+            showLayers={true}
+          />
         </div>
 
         {/* TIMELINE & PAYMENT ROUTE (Prompt Specs 8 & 11) */}

@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import RealGoogleMap, { MapMarkerItem } from '@/components/maps/real-google-map'
+
 
 interface PaymentMarker {
   id: string
@@ -173,6 +175,41 @@ export default function UserPaymentMapPage() {
     return true
   })
 
+  const mapMarkerItems: MapMarkerItem[] = filteredMarkers.map((m) => {
+    let lat = 12.9716
+    let lng = 77.5946
+    if (m.city === 'Bengaluru') {
+      lat = m.id === 'TXN-849210' ? 12.9344 : 12.9784
+      lng = m.id === 'TXN-849210' ? 77.6200 : 77.6408
+    } else if (m.city === 'Mysuru') {
+      lat = 12.3087
+      lng = 76.6531
+    } else if (m.city === 'Mangaluru') {
+      lat = 12.8688
+      lng = 74.8427
+    } else if (m.city === 'Delhi') {
+      lat = m.id === 'TXN-849215' ? 28.7159 : 28.6315
+      lng = m.id === 'TXN-849215' ? 77.1186 : 77.2167
+    }
+    return {
+      id: m.id,
+      title: m.title,
+      subtitle: `${m.area}, ${m.city} · ₹${m.amount}`,
+      lat,
+      lng,
+      city: m.city,
+      amount: m.amount,
+      riskScore: m.status === 'Reported' ? 92 : m.marker_type === 'orange' ? 58 : m.marker_type === 'yellow' ? 28 : 10,
+      riskLevel: m.status === 'Reported' ? 'CRITICAL' : m.marker_type === 'orange' ? 'HIGH' : m.marker_type === 'yellow' ? 'MEDIUM' : 'LOW',
+      source: m.payment_type === 'Card' ? 'CARD' : 'UPI',
+      status: m.status,
+      device: m.device,
+      timestamp: `${m.date}, ${m.time}`,
+      details: m
+    }
+  })
+
+
   return (
     <UserLayout>
       <div className="space-y-6">
@@ -265,79 +302,56 @@ export default function UserPaymentMapPage() {
         </div>
 
         {/* Map Canvas + Selected Marker Detail Panel */}
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-          {/* Visual Interactive Map Grid */}
-          <div className="relative rounded-2xl border border-white/10 bg-[#071014] p-6 min-h-[460px] overflow-hidden flex flex-col justify-between">
-            {/* Cartographic Coordinate Grid */}
-            <div
-              className="absolute inset-0 opacity-15 pointer-events-none"
-              style={{
-                backgroundImage: 'radial-gradient(#b8f55e 1px, transparent 1px)',
-                backgroundSize: '24px 24px'
+        <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] items-start">
+          {/* Real Google Maps / Satellite Canvas */}
+          <div className="space-y-3">
+            <RealGoogleMap
+              markers={mapMarkerItems}
+              selectedMarkerId={selectedMarker?.id}
+              onSelectMarker={(marker) => {
+                if (marker) {
+                  const match = mockMarkers.find((m) => m.id === marker.id)
+                  if (match) setSelectedMarker(match)
+                }
               }}
+              center={[15.3647, 75.1240]}
+              zoom={6}
+              height="540px"
+              title="Personal Payment Activity (Real Google Maps Satellite / Street)"
+              showControls={true}
+              showSearch={true}
+              showLayers={true}
+              interactiveClick={true}
             />
 
-            {/* Simulated Region Outline & Range Circles */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="size-[340px] rounded-full border border-dashed border-white/10 opacity-30" />
-              <div className="absolute size-[220px] rounded-full border border-dashed border-[#b8f55e]/20 opacity-40 animate-spin" style={{ animationDuration: '60s' }} />
-            </div>
-
-            {/* Top Overlay Badge */}
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-2 bg-[#0a1718]/90 border border-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md">
-                <span className="size-2 rounded-full bg-[#b8f55e] animate-pulse" />
-                <span className="text-xs font-semibold text-white">
-                  {filteredMarkers.length} Active Payment Locations Plotted
-                </span>
-              </div>
-
-              <span className="text-[11px] font-mono text-[#8fa9a6] bg-[#0a1718]/80 px-2.5 py-1 rounded-lg border border-white/10">
-                Lat/Long: Approximate Protected
-              </span>
-            </div>
-
-            {/* Interactive Pins */}
-            <div className="relative z-10 w-full h-[320px] my-auto">
-              {filteredMarkers.map((marker) => {
-                const isSelected = selectedMarker?.id === marker.id
-                let markerBg = 'bg-[#b8f55e] ring-[#b8f55e]/30'
-                if (marker.marker_type === 'blue') markerBg = 'bg-sky-400 ring-sky-400/30'
-                if (marker.marker_type === 'yellow') markerBg = 'bg-amber-400 ring-amber-400/30'
-                if (marker.marker_type === 'orange') markerBg = 'bg-orange-500 ring-orange-500/30'
-                if (marker.marker_type === 'red') markerBg = 'bg-rose-500 ring-rose-500/40 animate-pulse'
-
-                return (
-                  <div
-                    key={marker.id}
-                    onClick={() => setSelectedMarker(marker)}
-                    style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+            {/* Quick City Anchors */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[#0a1718] border border-white/10 text-xs">
+              <span className="text-slate-400 font-medium">Quick Zoom:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { name: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
+                  { name: 'Mysuru', lat: 12.3087, lng: 76.6531 },
+                  { name: 'Mangaluru', lat: 12.8688, lng: 74.8427 },
+                  { name: 'Delhi', lat: 28.6139, lng: 77.2090 },
+                  { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+                  { name: 'All India', lat: 20.5937, lng: 78.9629 }
+                ].map((c) => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => {
+                      const match = mockMarkers.find((m) => m.city.toLowerCase() === c.name.toLowerCase())
+                      if (match) setSelectedMarker(match)
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#b8f55e]/15 hover:text-[#b8f55e] text-slate-300 font-medium text-[11px] transition border border-white/5 hover:border-[#b8f55e]/30"
                   >
-                    <div className="relative flex flex-col items-center">
-                      {/* Pulse Ring */}
-                      <span className={`size-4 rounded-full ${markerBg} ring-8 transition-transform duration-200 group-hover:scale-125 ${isSelected ? 'scale-125 ring-white/40' : ''}`} />
-                      
-                      {/* Floating City Tag */}
-                      <span className="mt-1 bg-[#0a1718]/95 border border-white/15 px-2 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap shadow-lg">
-                        {marker.city} · ₹{marker.amount}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Bottom Legend (Prompt Spec 4) */}
-            <div className="relative z-10 flex flex-wrap items-center gap-4 bg-[#0a1718]/90 border border-white/10 px-4 py-2.5 rounded-xl text-xs text-[#8fa9a6] backdrop-blur-md">
-              <span className="font-semibold text-white">Markers:</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#b8f55e]" /> Green: Normal</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-400" /> Blue: Trusted Merchant</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-400" /> Yellow: New Location</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-orange-500" /> Orange: Warning</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-rose-500" /> Red: Reported</span>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+
 
           {/* Marker Details Card (Prompt Spec 6 & 7) */}
           <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-6 flex flex-col justify-between">

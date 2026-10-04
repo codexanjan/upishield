@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#040d12"/>
+      <stop offset="50%" stop-color="#07171d"/>
+      <stop offset="100%" stop-color="#0a2228"/>
+    </linearGradient>
+    <linearGradient id="mapOverlay" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a2a2e" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#06191d" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="accentLime" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b8f55e"/>
+      <stop offset="100%" stop-color="#72f238"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e2329" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#071418" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="glowLime" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glowRose" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <!-- Map Grid Pattern -->
+    <pattern id="geoGrid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#b8f55e" stroke-opacity="0.07" stroke-width="1"/>
+      <circle cx="60" cy="0" r="1.5" fill="#b8f55e" fill-opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1200" height="680" fill="url(#bgGrad)"/>
+  <rect width="1200" height="680" fill="url(#geoGrid)"/>
+
+  <!-- Top App Navigation Bar -->
+  <rect x="20" y="20" width="1160" height="64" rx="16" fill="#091b20" stroke="#ffffff" stroke-opacity="0.1" filter="url(#dropShadow)"/>
+  <g transform="translate(44, 38)">
+    <circle cx="14" cy="14" r="14" fill="#b8f55e" fill-opacity="0.2"/>
+    <path d="M 14 5 L 22 9 L 22 17 C 22 22 14 25 14 25 C 14 25 6 22 6 17 L 6 9 Z" fill="#b8f55e"/>
+    <text x="36" y="20" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="18" letter-spacing="0.5">UPI SHIELD <tspan fill="#b8f55e">GEOMAP</tspan></text>
+  </g>
+
+  <!-- Top Nav Controls -->
+  <g transform="translate(680, 36)">
+    <!-- Layer Toggle Pill -->
+    <rect x="0" y="0" width="220" height="32" rx="16" fill="#040d10" stroke="#ffffff" stroke-opacity="0.1"/>
+    <rect x="2" y="2" width="70" height="28" rx="14" fill="#b8f55e"/>
+    <text x="37" y="20" fill="#051417" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="middle">Google Sat</text>
+    <text x="110" y="20" fill="#8fa9a6" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle">Dark Tile</text>
+    <text x="180" y="20" fill="#8fa9a6" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle">Street</text>
+    
+    <!-- Status Badge -->
+    <g transform="translate(240, 0)">
+      <rect x="0" y="0" width="220" height="32" rx="10" fill="#072023" stroke="#b8f55e" stroke-opacity="0.3"/>
+      <circle cx="16" cy="16" r="4" fill="#b8f55e" filter="url(#glowLime)"/>
+      <text x="28" y="20" fill="#b8f55e" font-family="sans-serif" font-size="11" font-weight="700">Real Google Maps Active</text>
+    </g>
+  </g>
+
+  <!-- Main Map Window -->
+  <g transform="translate(20, 100)">
+    <!-- Map Container -->
+    <rect x="0" y="0" width="780" height="550" rx="20" fill="url(#mapOverlay)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#dropShadow)"/>
+
+    <!-- Simulated Topo & Roads on Map -->
+    <g opacity="0.35" stroke="#37727c" stroke-width="1.5" fill="none">
+      <path d="M 120 40 Q 200 180 340 240 T 480 360 T 600 480"/>
+      <path d="M 280 80 Q 300 200 420 280 T 520 420"/>
+      <path d="M 80 300 Q 240 280 380 320 T 680 290"/>
+      <path d="M 220 500 Q 360 440 500 460 T 720 420"/>
+      <!-- Coastal Contour Lines -->
+      <path d="M 40 180 Q 80 260 90 380 T 140 520" stroke="#00e5ff" stroke-width="2" stroke-opacity="0.4"/>
+    </g>
+
+    <!-- Geographic Corridor Route Line (Bengaluru -> Mysuru -> Mangaluru) -->
+    <path d="M 420 380 L 350 440 L 220 410" fill="none" stroke="#b8f55e" stroke-width="3" stroke-dasharray="6,6" filter="url(#glowLime)"/>
+    
+    <!-- Anomaly Flight Line (Bengaluru -> Delhi) -->
+    <path d="M 420 380 Q 480 220 540 110" fill="none" stroke="#ff4757" stroke-width="3" stroke-dasharray="8,4" filter="url(#glowRose)"/>
+
+    <!-- Map Marker 1: Bengaluru Anchor (Safe) -->
+    <g transform="translate(420, 380)">
+      <circle cx="0" cy="0" r="28" fill="#b8f55e" fill-opacity="0.15" filter="url(#glowLime)"/>
+      <circle cx="0" cy="0" r="14" fill="#b8f55e" fill-opacity="0.3"/>
+      <circle cx="0" cy="0" r="7" fill="#b8f55e"/>
+      <rect x="-80" y="-48" width="160" height="32" rx="8" fill="#040e11" stroke="#b8f55e" stroke-opacity="0.5"/>
+      <text x="0" y="-28" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="middle">Bengaluru Anchor HQ</text>
+      <text x="0" y="-16" fill="#b8f55e" font-family="sans-serif" font-size="9" font-weight="600" text-anchor="middle">84 txns • 120m precision</text>
+    </g>
+
+    <!-- Map Marker 2: Mysuru (Trusted) -->
+    <g transform="translate(350, 440)">
+      <circle cx="0" cy="0" r="18" fill="#38bdf8" fill-opacity="0.2"/>
+      <circle cx="0" cy="0" r="6" fill="#38bdf8"/>
+      <rect x="-65" y="-40" width="130" height="26" rx="6" fill="#040e11" stroke="#38bdf8" stroke-opacity="0.4"/>
+      <text x="0" y="-23" fill="#ffffff" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">Mysuru Silks (₹1,200)</text>
+    </g>
+
+    <!-- Map Marker 3: Mangaluru Coastal (New City) -->
+    <g transform="translate(220, 410)">
+      <circle cx="0" cy="0" r="20" fill="#f59e0b" fill-opacity="0.2"/>
+      <circle cx="0" cy="0" r="6" fill="#f59e0b"/>
+      <rect x="-70" y="-40" width="140" height="26" rx="6" fill="#040e11" stroke="#f59e0b" stroke-opacity="0.4"/>
+      <text x="0" y="-23" fill="#ffffff" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">Mangaluru Hub (₹1,950)</text>
+    </g>
+
+    <!-- Map Marker 4: Delhi (CRITICAL IMPOSSIBLE VELOCITY) -->
+    <g transform="translate(540, 110)">
+      <circle cx="0" cy="0" r="36" fill="#ff4757" fill-opacity="0.2" filter="url(#glowRose)"/>
+      <circle cx="0" cy="0" r="16" fill="#ff4757" fill-opacity="0.4"/>
+      <circle cx="0" cy="0" r="8" fill="#ff4757"/>
+      <!-- Warning Badge -->
+      <rect x="-110" y="-56" width="220" height="42" rx="10" fill="#2d0a11" stroke="#ff4757" stroke-width="1.5" filter="url(#glowRose)"/>
+      <text x="0" y="-36" fill="#ff6b81" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">⚠ DELHI ANOMALY (₹18,500)</text>
+      <text x="0" y="-20" fill="#ffffff" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="middle">Speed: 1,840 km/h • Unknown Device</text>
+    </g>
+
+    <!-- HUD Overlay Top Right of Map -->
+    <g transform="translate(520, 20)">
+      <rect x="0" y="0" width="240" height="90" rx="12" fill="#061317" fill-opacity="0.9" stroke="#ffffff" stroke-opacity="0.1"/>
+      <text x="16" y="24" fill="#8fa9a6" font-family="sans-serif" font-size="10" font-weight="700" letter-spacing="1">GEODESIC RADAR TELEMETRY</text>
+      <text x="16" y="46" fill="#ffffff" font-family="monospace" font-size="12">Δd = 1,740 km | Δt = 56m</text>
+      <text x="16" y="66" fill="#ff4757" font-family="sans-serif" font-size="11" font-weight="700">Flag: IMPOSSIBLE_VELOCITY</text>
+    </g>
+
+    <!-- HUD Overlay Bottom Left: Map Legend -->
+    <g transform="translate(20, 480)">
+      <rect x="0" y="0" width="560" height="50" rx="12" fill="#051216" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.1"/>
+      <g transform="translate(20, 30)">
+        <circle cx="0" cy="-4" r="5" fill="#b8f55e"/>
+        <text x="12" y="0" fill="#ffffff" font-family="sans-serif" font-size="11">Normal</text>
+
+        <circle cx="100" cy="-4" r="5" fill="#38bdf8"/>
+        <text x="112" y="0" fill="#ffffff" font-family="sans-serif" font-size="11">Trusted</text>
+
+        <circle cx="200" cy="-4" r="5" fill="#f59e0b"/>
+        <text x="212" y="0" fill="#ffffff" font-family="sans-serif" font-size="11">New Location</text>
+
+        <circle cx="320" cy="-4" r="5" fill="#ff9f43"/>
+        <text x="332" y="0" fill="#ffffff" font-family="sans-serif" font-size="11">Warning</text>
+
+        <circle cx="430" cy="-4" r="5" fill="#ff4757"/>
+        <text x="442" y="0" fill="#ffffff" font-family="sans-serif" font-size="11">Reported Fraud</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Right Inspection Card -->
+  <g transform="translate(820, 100)">
+    <rect x="0" y="0" width="360" height="550" rx="20" fill="url(#cardGrad)" stroke="#ffffff" stroke-opacity="0.1" filter="url(#dropShadow)"/>
+
+    <!-- Card Header -->
+    <g transform="translate(24, 30)">
+      <text x="0" y="0" fill="#b8f55e" font-family="sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">LOCATION RECORD INSPECTION</text>
+      <text x="0" y="28" fill="#ffffff" font-family="sans-serif" font-size="20" font-weight="800">UNKNOWN TECH SUPPORT</text>
+      <text x="0" y="48" fill="#8fa9a6" font-family="sans-serif" font-size="12">Rohini Sector 7, Delhi</text>
+      
+      <rect x="230" y="-10" width="80" height="26" rx="6" fill="#ff4757" fill-opacity="0.2" stroke="#ff4757" stroke-opacity="0.4"/>
+      <text x="270" y="7" fill="#ff6b81" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="middle">Reported</text>
+
+      <text x="230" y="44" fill="#ffffff" font-family="monospace" font-size="22" font-weight="800">₹18,500</text>
+    </g>
+
+    <!-- Field Rows -->
+    <g transform="translate(24, 115)">
+      <!-- Row 1 -->
+      <rect x="0" y="0" width="312" height="42" rx="10" fill="#061216" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="26" fill="#8fa9a6" font-family="sans-serif" font-size="11">Payment Type</text>
+      <text x="298" y="26" fill="#b8f55e" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="end">UPI Dynamic Request</text>
+
+      <!-- Row 2 -->
+      <rect x="0" y="50" width="312" height="42" rx="10" fill="#061216" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="76" fill="#8fa9a6" font-family="sans-serif" font-size="11">Timestamp</text>
+      <text x="298" y="76" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="end">25 Sep 2026 · 10:38 AM</text>
+
+      <!-- Row 3 -->
+      <rect x="0" y="100" width="312" height="42" rx="10" fill="#061216" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="126" fill="#8fa9a6" font-family="sans-serif" font-size="11">Receiver VPA</text>
+      <text x="298" y="126" fill="#ffffff" font-family="monospace" font-size="11" text-anchor="end">techsupport.refund@ybl</text>
+
+      <!-- Row 4 -->
+      <rect x="0" y="150" width="312" height="42" rx="10" fill="#061216" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="176" fill="#8fa9a6" font-family="sans-serif" font-size="11">Device ID</text>
+      <text x="298" y="176" fill="#ff9f43" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="end">Android DEV-A782 (New)</text>
+
+      <!-- Row 5 -->
+      <rect x="0" y="200" width="312" height="42" rx="10" fill="#061216" stroke="#ffffff" stroke-opacity="0.05"/>
+      <text x="14" y="226" fill="#8fa9a6" font-family="sans-serif" font-size="11">GPS Accuracy</text>
+      <text x="298" y="226" fill="#38bdf8" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="end">Verified 350m Radius</text>
+    </g>
+
+    <!-- AI Explainability Insight Callout -->
+    <g transform="translate(24, 380)">
+      <rect x="0" y="0" width="312" height="74" rx="12" fill="#2d0a11" stroke="#ff4757" stroke-opacity="0.3"/>
+      <circle cx="20" cy="22" r="8" fill="#ff4757"/>
+      <text x="20" y="26" fill="#ffffff" font-family="sans-serif" font-size="10" font-weight="900" text-anchor="middle">!</text>
+      <text x="36" y="22" fill="#ff6b81" font-family="sans-serif" font-size="11" font-weight="800">XAI Risk Assessment: 98/100</text>
+      <text x="16" y="44" fill="#ffffff" font-family="sans-serif" font-size="10" fill-opacity="0.85">Bengaluru anchor session was active 56 mins ago.</text>
+      <text x="16" y="58" fill="#ffffff" font-family="sans-serif" font-size="10" fill-opacity="0.85">Transaction halted to protect bank account balance.</text>
+    </g>
+
+    <!-- Action Buttons -->
+    <g transform="translate(24, 475)">
+      <rect x="0" y="0" width="148" height="42" rx="10" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+      <text x="74" y="26" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="700" text-anchor="middle">View Details</text>
+
+      <rect x="164" y="0" width="148" height="42" rx="10" fill="#ff4757"/>
+      <text x="238" y="26" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="700" text-anchor="middle">File Police FIR</text>
+    </g>
+  </g>
+</svg>

@@ -299,12 +299,6 @@ export default function AdminPaymentMapPage() {
               }}
             />
 
-            {/* Radar Lines */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="size-[380px] rounded-full border border-dashed border-white/10 opacity-30" />
-              <div className="absolute size-[240px] rounded-full border border-[#b8f55e]/20 animate-pulse pointer-events-none" />
-            </div>
-
             {/* Top Bar */}
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-2 bg-[#0a1718]/90 border border-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md">

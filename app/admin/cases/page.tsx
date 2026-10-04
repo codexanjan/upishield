@@ -42,6 +42,8 @@ import { apiRequest } from '@/lib/api'
 import { fadeUp, staggerContainer, staggerItem } from '@/components/motion/presets'
 import { MotionWordReveal, MotionBadge } from '@/components/motion/animated-text'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
+import RealGoogleMap, { MapMarkerItem, getCityCoordinates } from '@/components/maps/real-google-map'
+
 
 const STATUS_OPTIONS = [
   'Submitted',
@@ -1195,76 +1197,76 @@ function AdminCasesContent() {
                       </div>
                     </div>
 
-                    {/* Interactive Simulated Vector Map */}
-                    <div className="relative h-96 rounded-2xl bg-[#071014] border border-white/10 overflow-hidden p-6 flex flex-col justify-between">
-                      {/* Grid overlay */}
-                      <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#b8f55e_1px,transparent_1px)] [background-size:20px_20px]" />
+                    {/* Real Google Maps Geospatial Incident Intelligence */}
+                    <div className="space-y-4">
+                      <RealGoogleMap
+                        markers={[
+                          {
+                            id: `CASE-SUSPECT-${selectedCase.id}`,
+                            title: `Suspect Incident Node: ${selectedCase.merchant || 'Flagged Entity'}`,
+                            subtitle: `₹${selectedCase.amount?.toLocaleString('en-IN')} to ${selectedCase.upi_id || 'reported.payee@upi'}`,
+                            lat: 28.6139,
+                            lng: 77.2090,
+                            city: selectedCase.payment_location || 'Delhi',
+                            amount: selectedCase.amount,
+                            riskScore: 92,
+                            riskLevel: 'CRITICAL',
+                            source: 'UPI',
+                            status: 'Suspect Cluster',
+                            device: selectedCase.device_name || 'DEV-A921',
+                            anomalyReason: 'Flagged transaction with impossible travel velocity'
+                          },
+                          {
+                            id: `CASE-VICTIM-${selectedCase.id}`,
+                            title: `Victim Home Base: ${selectedCase.user_name || 'Complainant'}`,
+                            subtitle: `Legitimate active session reported from ${selectedCase.user_expected_location || 'Bengaluru'}`,
+                            lat: 12.9716,
+                            lng: 77.5946,
+                            city: selectedCase.user_expected_location || 'Bengaluru',
+                            amount: selectedCase.amount,
+                            riskScore: 8,
+                            riskLevel: 'LOW',
+                            source: 'UPI',
+                            status: 'Authenticated Anchor',
+                            device: 'Samsung Galaxy S24'
+                          }
+                        ]}
+                        center={[20.5937, 78.9629]}
+                        zoom={5}
+                        height="440px"
+                        title={`Real Google Maps Incident Geofence · Case #${selectedCase.case_number}`}
+                        showControls={true}
+                        showSearch={true}
+                        showLayers={true}
+                      />
 
-                      {/* Top status */}
-                      <div className="relative z-10 flex items-center justify-between text-xs">
-                        <span className="font-mono text-slate-400">VECTOR PLOT · BENGALURU ↔ DELHI CORRIDOR</span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                          DISTANCE: ~1,700 KM · DELTA: 18 MINS (IMPOSSIBLE)
-                        </span>
-                      </div>
-
-                      {/* Map Nodes */}
-                      <div className="relative z-10 grid grid-cols-2 gap-8 my-auto">
-                        {/* Node A: Bengaluru (Login & Report) */}
-                        <div className="p-4 rounded-xl bg-[#0a1718]/90 border border-white/10 space-y-2">
-                          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                            <MapPin className="size-4" />
-                            <span>BENGALURU CLUSTER</span>
+                      {/* Corridor Telemetry Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-xl bg-[#0a1718] border border-white/10 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                              <MapPin className="size-3.5" /> BENGALURU LEGITIMATE CLUSTER
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">Anchor Verified</span>
                           </div>
-                          <div className="space-y-1 text-[11px] text-slate-300">
-                            {mapLayers.login && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">02:05 AM Login</span>
-                                <span className="text-emerald-400 font-mono">Chrome / Bengaluru</span>
-                              </div>
-                            )}
-                            {mapLayers.report && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">02:28 AM Report</span>
-                                <span className="text-emerald-400 font-mono">Complainant App</span>
-                              </div>
-                            )}
-                          </div>
+                          <p className="text-xs text-slate-300">
+                            Session initiated via Samsung Galaxy S24 at 02:05 AM. Expected radius: 15 km around Koramangala.
+                          </p>
                         </div>
 
-                        {/* Node B: Delhi (Device, QR, Payment) */}
-                        <div className="p-4 rounded-xl bg-[#0a1718]/90 border border-rose-500/30 space-y-2">
-                          <div className="flex items-center gap-2 text-rose-400 font-bold text-xs">
-                            <AlertTriangle className="size-4" />
-                            <span>DELHI SUSPECT CLUSTER</span>
+                        <div className="p-4 rounded-xl bg-[#0a1718] border border-rose-500/30 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                              <AlertTriangle className="size-3.5" /> DELHI SUSPECT INCIDENT CLUSTER
+                            </span>
+                            <span className="text-[10px] font-mono text-rose-400 font-bold bg-rose-500/20 px-2 py-0.5 rounded">
+                              IMPOSSIBLE VELOCITY
+                            </span>
                           </div>
-                          <div className="space-y-1 text-[11px] text-slate-300">
-                            {mapLayers.device && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">02:10 AM Device</span>
-                                <span className="text-amber-400 font-mono">DEV-A921</span>
-                              </div>
-                            )}
-                            {mapLayers.qr && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">02:13 AM QR Scan</span>
-                                <span className="text-purple-400 font-mono">QRF-81291</span>
-                              </div>
-                            )}
-                            {mapLayers.payment && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400">02:15 AM Payment</span>
-                                <span className="text-rose-400 font-mono">₹18,500</span>
-                              </div>
-                            )}
-                          </div>
+                          <p className="text-xs text-slate-300">
+                            Transaction triggered 18 minutes after Bengaluru login. Calculated distance: 1,740 km. Ground velocity physically impossible.
+                          </p>
                         </div>
-                      </div>
-
-                      {/* Bottom Legend */}
-                      <div className="relative z-10 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-white/5">
-                        <span>Latitude/Longitude mapped via deterministic geofence records</span>
-                        <span className="font-mono text-[#b8f55e]">CASE ID: {selectedCase.case_number}</span>
                       </div>
                     </div>
 

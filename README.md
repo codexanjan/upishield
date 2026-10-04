@@ -40,6 +40,28 @@ UPI Shield AI combines a **Next.js 16 (Turbopack)** reactive frontend with a hig
 
 ---
 
+## 📸 In-App Visual Previews & Interactive Maps
+
+### 1. Real Google Maps Geospatial Intelligence & Telemetry Inspector
+Full Google Maps satellite, street, and dark terrain tiles with interactive pins, live speed velocity checks, and distance calculations.
+<p align="center">
+  <img src="docs/assets/preview-real-google-maps.svg" alt="Real Google Maps Geospatial Radar" width="100%">
+</p>
+
+### 2. User Security Vault & Explainable AI (XAI) Transparency
+Neural network decision explanations with factor contributions, transaction quarantine, and instant dispute filing.
+<p align="center">
+  <img src="docs/assets/preview-user-portal.svg" alt="User Portal & Explainable AI" width="100%">
+</p>
+
+### 3. Admin Command Center & Fraud Ring Syndicate Graph
+Comprehensive triage queue, dynamic rule knobs, and graph neural network topological mule ring visualization.
+<p align="center">
+  <img src="docs/assets/preview-admin-command-center.svg" alt="Admin Command Center" width="100%">
+</p>
+
+---
+
 ## 🌐 Multilingual Indian Localization
 
 UPI is the backbone of Indian financial inclusion. UPI Shield AI features **native multi-lingual localization across 8 major Indian languages**, switchable with a single click from the top header or settings:

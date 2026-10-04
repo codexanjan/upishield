@@ -35,6 +35,7 @@ import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
+import RealGoogleMap from '@/components/maps/real-google-map'
 
 export default function AdminDashboardPage() {
   const [mounted, setMounted] = useState(false)
@@ -254,48 +255,63 @@ export default function AdminDashboardPage() {
                 </Link>
               </div>
 
-              {/* Graphical Map Representation */}
-              <div className="relative mt-5 h-64 rounded-xl border border-white/10 bg-[#071014] overflow-hidden flex items-center justify-center">
-                <div
-                  className="absolute inset-0 opacity-15 pointer-events-none"
-                  style={{
-                    backgroundImage: 'radial-gradient(#b8f55e 1px, transparent 1px)',
-                    backgroundSize: '22px 22px'
-                  }}
+              {/* Real Google Maps Threat Clusters */}
+              <div className="relative mt-5 rounded-xl border border-white/10 overflow-hidden shadow-2xl">
+                <RealGoogleMap
+                  height="260px"
+                  zoom={4}
+                  center={[20.5937, 78.9629]}
+                  markers={[
+                    {
+                      id: 'c-blr',
+                      title: 'Bengaluru Threat Cluster',
+                      subtitle: '128 fraud reports • ₹8.4L volume',
+                      lat: 12.9716,
+                      lng: 77.5946,
+                      risk: 'critical',
+                      status: '128 Reports',
+                      amount: 840000,
+                      city: 'Bengaluru'
+                    },
+                    {
+                      id: 'c-del',
+                      title: 'Delhi High Anomaly Cluster',
+                      subtitle: '94 fraud reports • ₹14.2L volume • Travel Conflicts',
+                      lat: 28.6139,
+                      lng: 77.2090,
+                      risk: 'critical',
+                      status: '94 Reports',
+                      amount: 1420000,
+                      city: 'Delhi'
+                    },
+                    {
+                      id: 'c-mum',
+                      title: 'Mumbai Financial Cluster',
+                      subtitle: '78 fraud reports • ₹6.1L volume',
+                      lat: 19.0760,
+                      lng: 72.8777,
+                      risk: 'high',
+                      status: '78 Reports',
+                      amount: 610000,
+                      city: 'Mumbai'
+                    },
+                    {
+                      id: 'c-kol',
+                      title: 'Kolkata Node',
+                      subtitle: '42 fraud reports • ₹2.9L volume',
+                      lat: 22.5726,
+                      lng: 88.3639,
+                      risk: 'medium',
+                      status: '42 Reports',
+                      amount: 290000,
+                      city: 'Kolkata'
+                    }
+                  ]}
+                  showLayers={true}
+                  showSearch={false}
+                  showControls={true}
+                  interactiveClick={true}
                 />
-
-                {/* Radar Grid Circles */}
-                <div className="absolute size-52 rounded-full border border-white/10 pointer-events-none" />
-                <div className="absolute size-36 rounded-full border border-[#b8f55e]/20 animate-pulse pointer-events-none" />
-
-                {/* Cluster 1: Bengaluru (128 reports) */}
-                <div className="absolute top-[60%] left-[45%] flex flex-col items-center">
-                  <div className="px-2.5 py-1 rounded-full bg-rose-600/90 text-white font-mono font-bold text-xs shadow-lg shadow-rose-600/40 ring-4 ring-rose-500/20">
-                    [ 128 ]
-                  </div>
-                  <span className="text-[10px] text-slate-300 font-medium mt-1">Bengaluru</span>
-                </div>
-
-                {/* Cluster 2: Delhi (94 reports) */}
-                <div className="absolute top-[25%] left-[48%] flex flex-col items-center">
-                  <div className="px-2.5 py-1 rounded-full bg-rose-600/90 text-white font-mono font-bold text-xs shadow-lg shadow-rose-600/40 ring-4 ring-rose-500/20">
-                    [ 94 ]
-                  </div>
-                  <span className="text-[10px] text-slate-300 font-medium mt-1">Delhi (High Anomaly)</span>
-                </div>
-
-                {/* Cluster 3: Mumbai (78 reports) */}
-                <div className="absolute top-[48%] left-[34%] flex flex-col items-center">
-                  <div className="px-2 py-0.5 rounded-full bg-amber-500/90 text-black font-mono font-bold text-xs shadow-lg ring-4 ring-amber-500/20">
-                    [ 78 ]
-                  </div>
-                  <span className="text-[10px] text-slate-300 font-medium mt-1">Mumbai</span>
-                </div>
-
-                <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-[10px] text-[#8fa9a6] bg-[#0a1718]/90 px-3 py-1.5 rounded-lg border border-white/10">
-                  <span>Demo / Synthetic Data Layer</span>
-                  <span className="text-[#b8f55e]">Clusters: Click to Zoom</span>
-                </div>
               </div>
             </div>
 

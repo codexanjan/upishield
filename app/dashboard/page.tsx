@@ -768,58 +768,63 @@ export default function UserDashboard() {
                 </Link>
               </div>
 
-              {/* Graphic Radar / Geographic Cluster View */}
-              <div className="mt-5 relative h-56 rounded-xl border border-white/10 bg-[#071014] overflow-hidden flex items-center justify-center">
-                {/* Grid Overlay */}
-                <div
-                  className="absolute inset-0 opacity-15 pointer-events-none"
-                  style={{
-                    backgroundImage: 'radial-gradient(#b8f55e 1px, transparent 1px)',
-                    backgroundSize: '20px 20px'
-                  }}
+              {/* Real Google Maps Geographic Intelligence */}
+              <div className="mt-5 rounded-xl border border-white/10 overflow-hidden shadow-2xl">
+                <RealGoogleMap
+                  height="260px"
+                  zoom={5}
+                  center={[15.3647, 75.1240]}
+                  markers={[
+                    {
+                      id: 'm-blr',
+                      title: 'Bengaluru (Koramangala Anchor)',
+                      subtitle: '84 txns • Home Geofence • Normal',
+                      lat: 12.9716,
+                      lng: 77.5946,
+                      risk: 'low',
+                      status: 'Verified',
+                      amount: 850,
+                      city: 'Bengaluru'
+                    },
+                    {
+                      id: 'm-mys',
+                      title: 'Mysuru (Devaraja Market)',
+                      subtitle: '12 txns • Trusted Merchant',
+                      lat: 12.3087,
+                      lng: 76.6531,
+                      risk: 'low',
+                      status: 'Verified',
+                      amount: 1200,
+                      city: 'Mysuru'
+                    },
+                    {
+                      id: 'm-mng',
+                      title: 'Mangaluru Coastal Hub',
+                      subtitle: '1 txn • New Location',
+                      lat: 12.8688,
+                      lng: 74.8427,
+                      risk: 'medium',
+                      status: 'New City',
+                      amount: 1950,
+                      city: 'Mangaluru'
+                    },
+                    {
+                      id: 'm-del',
+                      title: 'Delhi Rohini Conflict (₹18,500)',
+                      subtitle: 'Unknown Device DEV-A782 • Impossible Travel Velocity',
+                      lat: 28.6139,
+                      lng: 77.2090,
+                      risk: 'critical',
+                      status: 'Reported',
+                      amount: 18500,
+                      city: 'Delhi'
+                    }
+                  ]}
+                  showLayers={true}
+                  showSearch={false}
+                  showControls={true}
+                  interactiveClick={true}
                 />
-
-                {/* Radar rings */}
-                <div className="absolute size-44 rounded-full border border-[#b8f55e]/20 animate-pulse pointer-events-none" />
-                <div className="absolute size-28 rounded-full border border-white/10 pointer-events-none" />
-
-                {/* Marker 1: Bengaluru (Green - Normal) */}
-                <div className="absolute top-[52%] left-[46%] flex flex-col items-center group cursor-pointer">
-                  <div className="relative flex items-center justify-center">
-                    <span className="size-3 rounded-full bg-[#b8f55e] ring-4 ring-[#b8f55e]/20" />
-                    <span className="absolute -top-6 bg-[#071014] border border-white/20 px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap opacity-90">
-                      Bengaluru · 84 txns
-                    </span>
-                  </div>
-                </div>
-
-                {/* Marker 2: Mysuru (Blue - Trusted) */}
-                <div className="absolute top-[68%] left-[42%] flex flex-col items-center group cursor-pointer">
-                  <div className="relative flex items-center justify-center">
-                    <span className="size-2.5 rounded-full bg-sky-400 ring-4 ring-sky-400/20" />
-                    <span className="absolute -top-6 bg-[#071014] border border-white/20 px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap opacity-90">
-                      Mysuru · 12 txns
-                    </span>
-                  </div>
-                </div>
-
-                {/* Marker 3: Delhi (Orange / Red - Location Warning) */}
-                <div className="absolute top-[22%] left-[48%] flex flex-col items-center group cursor-pointer">
-                  <div className="relative flex items-center justify-center">
-                    <span className="size-3 rounded-full bg-rose-500 ring-4 ring-rose-500/30 animate-bounce" />
-                    <span className="absolute -top-7 bg-rose-950/90 border border-rose-500/40 text-rose-200 px-2 py-0.5 rounded text-[10px] font-mono whitespace-nowrap shadow-lg">
-                      ⚠ Delhi Conflict (₹18.5k)
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bottom Legend */}
-                <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-[10px] text-[#8fa9a6] bg-[#0a1718]/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[#b8f55e]" /> Normal</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-400" /> Trusted Merchant</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-400" /> New City</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-rose-500" /> Conflict</span>
-                </div>
               </div>
             </div>
 

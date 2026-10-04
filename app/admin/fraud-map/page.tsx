@@ -118,12 +118,6 @@ export default function AdminFraudMapPage() {
               }}
             />
 
-            {/* Radar Lines */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="size-[360px] rounded-full border border-dashed border-rose-500/15" />
-              <div className="absolute size-[220px] rounded-full border border-dashed border-amber-500/20 animate-spin" style={{ animationDuration: '90s' }} />
-            </div>
-
             {/* Top Bar */}
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-2 bg-[#0a1718]/90 border border-white/10 px-3 py-1.5 rounded-xl">
