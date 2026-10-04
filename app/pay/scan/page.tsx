@@ -192,21 +192,27 @@ export default function PayScanPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowManualModal(true)}
-                    className="py-2.5 px-3 rounded-xl bg-[#06101D] hover:bg-white/5 border border-white/5 text-slate-300 text-xs font-medium"
+                    onClick={() =>
+                      handleDecodedPayload(
+                        'upi://pay?pa=starbucks.india@icici&pn=Starbucks+Coffee+India&am=290.00&cu=INR&tn=Order-B7892&mc=5812'
+                      )
+                    }
+                    className="py-2.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition flex items-center justify-center gap-1"
                   >
-                    ENTER UPI ID MANUALLY
+                    <CheckCircle2 className="size-3.5" />
+                    Verified QR (₹290)
                   </button>
                   <button
                     type="button"
                     onClick={() =>
                       handleDecodedPayload(
-                        'upi://pay?pa=coffee@upiguard&pn=UPIGuard%20Coffee&am=250&cu=INR&tn=Coffee%20Spend'
+                        'upi://pay?pa=quickcash.refund@fakeicici&pn=Electricity+Refund+Desk&am=15000.00&cu=INR&tn=Refund+Claim'
                       )
                     }
-                    className="py-2.5 px-3 rounded-xl bg-[#06101D] hover:bg-white/5 border border-white/5 text-slate-300 text-xs font-medium"
+                    className="py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold transition flex items-center justify-center gap-1"
                   >
-                    ENTER DEMO QR PAYLOAD
+                    <AlertTriangle className="size-3.5" />
+                    Dummy Scam QR
                   </button>
                 </div>
               </div>

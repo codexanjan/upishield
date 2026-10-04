@@ -20,13 +20,59 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
+import { SecurityActionModal, SecurityModalType } from '@/components/security/security-action-modal'
 
 export default function UserAlertsPage() {
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
+  const [modalConfig, setModalConfig] = useState<{
+    open: boolean
+    type: SecurityModalType
+    data: any
+  }>({
+    open: false,
+    type: 'account_freeze',
+    data: {}
+  })
+  const [inAppToast, setInAppToast] = useState<string | null>(null)
+
+  const showToast = (msg: string) => {
+    setInAppToast(msg)
+    setTimeout(() => setInAppToast(null), 3500)
+  }
 
   const handleAction = (id: string, actionName: string) => {
-    setResolvedIds([...resolvedIds, id])
-    alert(`Alert ${id} processed: ${actionName}`)
+    setResolvedIds((prev) => [...prev, id])
+
+    if (actionName === 'Account Frozen') {
+      setModalConfig({
+        open: true,
+        type: 'account_freeze',
+        data: {
+          entityTitle: 'ALERT-101 (Delhi Concurrent Transfer)',
+          location: 'Delhi, India',
+          time: '2:18 AM',
+          amount: '28,000',
+          deviceId: 'New Android (DEV-A782)',
+          ip: '49.36.128.91',
+          reason: 'Deterministic firewall: 3 checks triggered (NEW_PAYEE_GUARD, NIGHT_SAFETY_WINDOW, FOREIGN_DEVICE_TRIGGER)'
+        }
+      })
+    } else if (actionName === 'Card Frozen') {
+      setModalConfig({
+        open: true,
+        type: 'card_freeze',
+        data: {
+          entityTitle: 'HDFC Regalia Visa (**** 4821)',
+          location: 'Singapore (SG)',
+          cardLast4: '4821',
+          time: 'Today 11:42 AM',
+          amount: '32,000',
+          reason: 'Cross-Border foreign POS payment from Singapore without 3D Secure OTP'
+        }
+      })
+    } else {
+      showToast(`✓ Alert ${id} processed: ${actionName}`)
+    }
   }
 
   return (
@@ -244,6 +290,27 @@ export default function UserAlertsPage() {
           </div>
         )}
       </div>
+
+      {/* In-app floating toast for safe non-modal actions */}
+      {inAppToast && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-6 right-6 z-50 rounded-2xl border border-white/15 bg-[#0a1718]/95 px-5 py-3 text-xs font-semibold text-white shadow-2xl backdrop-blur-xl flex items-center gap-2.5"
+        >
+          <span className="size-2 rounded-full bg-[#b8f55e] animate-ping" />
+          <span>{inAppToast}</span>
+        </motion.div>
+      )}
+
+      {/* Security Action Modal with Further Defensive Actions */}
+      <SecurityActionModal
+        isOpen={modalConfig.open}
+        onClose={() => setModalConfig((prev) => ({ ...prev, open: false }))}
+        type={modalConfig.type}
+        data={modalConfig.data}
+      />
     </UserLayout>
   )
 }

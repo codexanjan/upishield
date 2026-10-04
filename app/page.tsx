@@ -116,15 +116,9 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/login"
-              className="rounded-xl border border-white/12 bg-white/[.04] px-3.5 py-2 text-xs font-medium text-white hover:bg-white/[.08] transition"
-            >
-              User Login
-            </Link>
-            <Link
-              href="/register"
               className="rounded-xl bg-[#b8f55e] px-4 py-2 text-xs font-semibold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/20"
             >
-              User Signup
+              User Login
             </Link>
           </div>
         </div>
@@ -160,22 +154,16 @@ export default function LandingPage() {
 
             <MotionFadeUp delay={0.45} className="flex flex-wrap items-center gap-3 pt-2">
               <Link
-                href="/register"
+                href="/login"
                 className="inline-flex items-center gap-2 rounded-full bg-[#b8f55e] px-6 py-3.5 text-sm font-semibold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/25"
               >
-                User Signup <ArrowUpRight className="size-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.04] px-6 py-3.5 text-sm font-medium text-white hover:bg-white/[.08] transition"
-              >
-                User Login
+                Launch User Vault <ArrowUpRight className="size-4" />
               </Link>
               <Link
                 href="/admin/login"
-                className="inline-flex items-center gap-2 rounded-full border border-[#b8f55e]/30 bg-[#b8f55e]/10 px-5 py-3.5 text-sm font-medium text-[#b8f55e] hover:bg-[#b8f55e]/20 transition"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.04] px-6 py-3.5 text-sm font-medium text-white hover:bg-white/[.08] transition"
               >
-                Admin Login
+                Admin Command Center
               </Link>
               <a
                 href="#simulator"

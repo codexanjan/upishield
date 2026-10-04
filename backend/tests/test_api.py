@@ -65,6 +65,26 @@ def test_upi_qr_parse(client):
     assert data["receiver_upi"] == "merchant@upi"
     assert data["amount"] == 500.0
 
+def test_verified_merchant_qr(client):
+    verified_qr = "upi://pay?pa=starbucks.india@icici&pn=Starbucks+Coffee+India&am=290.00&cu=INR&tn=Order-B7892&mc=5812"
+    res = client.post("/api/v1/upi/parse-qr", json={"qr_data": verified_qr})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_upi"] is True
+    assert data["receiver_upi"] == "starbucks.india@icici"
+    assert data["amount"] == 290.0
+    assert data["is_reported"] is False
+
+def test_fraudulent_scam_qr_blocked(client):
+    scam_qr = "upi://pay?pa=quickcash.refund@fakeicici&pn=Electricity+Bill+Refund+Desk&am=15000.00&cu=INR&tn=Refund+Claim+Disbursement&mc=0000"
+    res = client.post("/api/v1/upi/parse-qr", json={"qr_data": scam_qr})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_upi"] is True
+    assert data["receiver_upi"] == "quickcash.refund@fakeicici"
+    assert data["is_reported"] is True
+    assert "Warning" in data["warning_message"] or "fraud" in data["warning_message"].lower()
+
 def test_financial_summary_deterministic(client):
     login = client.post("/api/v1/auth/login", json={"email": "user@upishield.com", "password": "user123"}).json()
     token = login["access_token"]

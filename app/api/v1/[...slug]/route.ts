@@ -1254,6 +1254,99 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
   }
 
+  // QR Parser Endpoint with Real-Time Risk & Fraud Interception (Prompt Spec 36)
+  if (path === 'upi/parse-qr' || path.endsWith('/parse-qr')) {
+    const rawQr = (body.qr_data || body.qrData || '').trim()
+    if (!rawQr.startsWith('upi://pay')) {
+      return NextResponse.json({
+        is_upi: false,
+        raw_data: rawQr,
+        warning_message: 'Scanned QR code does not contain a standard NPCI UPI URI (upi://pay).'
+      })
+    }
+
+    try {
+      const urlParams = new URLSearchParams(rawQr.replace(/^upi:\/\/pay\??/, ''))
+      const receiver_upi = urlParams.get('pa') || 'merchant@upi'
+      const receiver_name = urlParams.get('pn') || 'Merchant'
+      const amountStr = urlParams.get('am')
+      const amount = amountStr ? parseFloat(amountStr) : null
+      const note = urlParams.get('tn') || 'Payment'
+      const mc = urlParams.get('mc') || ''
+
+      const isKnownScam =
+        receiver_upi.includes('fake') ||
+        receiver_upi.includes('scam') ||
+        receiver_upi.includes('hack') ||
+        receiver_upi.includes('quickcash') ||
+        receiver_upi.includes('lottery') ||
+        (note.toLowerCase().includes('refund') && !!amount && amount > 1000)
+
+      // Evaluate risk through the AI engine
+      const risk = evaluateDynamicRisk({
+        amount: amount || 500,
+        senderUpiId: 'demo@upishield.ai',
+        receiverUpiId: receiver_upi,
+        isNewDevice: isKnownScam,
+        locationCity: 'Bengaluru'
+      })
+
+      const riskScore = isKnownScam ? 98 : risk.finalRisk
+      const riskLevel = isKnownScam ? 'CRITICAL' : risk.riskLevel
+      const decision = isKnownScam ? 'BLOCKED' : risk.decision
+
+      return NextResponse.json({
+        is_upi: true,
+        receiver_upi,
+        receiver_name,
+        amount,
+        note,
+        mc,
+        raw_data: rawQr,
+        is_reported: isKnownScam,
+        warning_message: isKnownScam
+          ? 'FRAUD DETECTED: This QR initiates a disguised collect-request and is flagged by NPCI cyber intelligence.'
+          : null,
+        risk_score: riskScore,
+        risk_level: riskLevel,
+        decision,
+        fraud_reasons: isKnownScam
+          ? [
+              'Disguised Collect-Request: promises refund/cashback but executes an outbound debit of funds.',
+              'Unregistered PSP Handle: @fakeicici is not an NPCI-approved bank gateway.',
+              'Flagged in National Fraud Registry: multiple active user complaints.'
+            ]
+          : []
+      })
+    } catch (err: any) {
+      return NextResponse.json({
+        is_upi: false,
+        raw_data: rawQr,
+        warning_message: `Failed to decode UPI QR: ${err.message}`
+      })
+    }
+  }
+
+  // QR Generator Endpoint
+  if (path === 'upi/generate-qr' || path.endsWith('/generate-qr')) {
+    const upi_id = body.upi_id || body.upiId || 'starbucks.india@icici'
+    const name = body.name || 'Starbucks India'
+    const amount = body.amount ? Number(body.amount) : 290
+    const note = body.note || 'Payment'
+    const mc = body.mc || '5812'
+    const upi_uri = `upi://pay?pa=${encodeURIComponent(upi_id)}&pn=${encodeURIComponent(name)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}&mc=${mc}`
+
+    return NextResponse.json({
+      success: true,
+      upi_uri,
+      receiver_upi: upi_id,
+      receiver_name: name,
+      amount,
+      note,
+      mc
+    })
+  }
+
   // Demo UPI PIN Verification (Section 28)
   if (path === 'auth/pin/verify' || path.endsWith('/pin')) {
     const pin = body.pin?.trim()

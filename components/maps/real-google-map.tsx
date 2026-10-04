@@ -25,6 +25,10 @@ import {
   Globe,
   Radio
 } from 'lucide-react'
+import { SecurityActionModal } from '@/components/security/security-action-modal'
+
+export const CARTO_API_KEY =
+  process.env.NEXT_PUBLIC_CARTO_API_KEY || 'cb1_49gu_1_ab03dc5fb9756871336ffc31'
 
 export interface MapMarkerItem {
   id: string
@@ -129,7 +133,10 @@ export function RealGoogleMap({
   const customPinRef = useRef<any>(null)
 
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [mapLayer, setMapLayer] = useState<'dark' | 'satellite' | 'street' | 'terrain'>('dark')
+  const [mapLayer, setMapLayer] = useState<
+    'carto_dark' | 'carto_voyager' | 'carto_positron' | 'satellite' | 'street' | 'dark'
+  >('carto_dark')
+  const [quarantineModalOpen, setQuarantineModalOpen] = useState(false)
   const [activeMarker, setActiveMarker] = useState<MapMarkerItem | null>(null)
   const [clickedCoord, setClickedCoord] = useState<{ lat: number; lng: number } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -222,19 +229,23 @@ export function RealGoogleMap({
       })
 
       // Layer providers:
-      // Dark Matter by CartoDB (Google dark styling for cybersecurity)
+      // CARTO Basemaps API (Dark Matter, Voyager, Positron) authenticated with key
       // Google Satellite via Google Maps tile servers
       // Google Maps Roadmap
       const tileLayers: Record<string, string> = {
-        dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        carto_dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
+        carto_voyager: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
+        carto_positron: `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
+        dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
         satellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
         street: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
         terrain: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'
       }
 
-      const activeTileLayer = L.tileLayer(tileLayers[mapLayer], {
+      const activeTileLayer = L.tileLayer(tileLayers[mapLayer] || tileLayers.carto_dark, {
         maxZoom: 19,
-        subdomains: 'abcd'
+        subdomains: 'abcd',
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
       }).addTo(map)
 
       mapInstanceRef.current = map
@@ -298,15 +309,19 @@ export function RealGoogleMap({
     }
 
     const tileLayers: Record<string, string> = {
-      dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      carto_dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
+      carto_voyager: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
+      carto_positron: `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
+      dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
       satellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
       street: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
       terrain: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'
     }
 
-    const newLayer = L.tileLayer(tileLayers[mapLayer], {
+    const newLayer = L.tileLayer(tileLayers[mapLayer] || tileLayers.carto_dark, {
       maxZoom: 19,
-      subdomains: 'abcd'
+      subdomains: 'abcd',
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }).addTo(map)
 
     ;(map as any)._activeTileLayer = newLayer
@@ -407,11 +422,11 @@ export function RealGoogleMap({
               <h3 className="text-xs font-bold tracking-tight text-white">{title}</h3>
               <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-mono font-bold text-emerald-400">
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
-                REAL GOOGLE MAPS ENGINE
+                CARTO APIS ACTIVE · cb1_49gu...fc31
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-mono">
-              Live Coordinate Pointing · Click anywhere or point pin to inspect GPS telemetry
+              Live Coordinate Pointing · CARTO Basemaps + Google Satellite Telemetry
             </p>
           </div>
         </div>
@@ -432,18 +447,40 @@ export function RealGoogleMap({
           )}
 
           {showLayers && (
-            <div className="flex rounded-xl border border-white/10 bg-[#071014] p-1 text-[11px] font-semibold">
+            <div className="flex rounded-xl border border-white/10 bg-[#071014] p-1 text-[11px] font-semibold overflow-x-auto">
               <button
-                onClick={() => setMapLayer('dark')}
-                className={`rounded-lg px-2.5 py-1 transition ${
-                  mapLayer === 'dark' ? 'bg-[#b8f55e] text-[#071014] font-bold' : 'text-slate-400 hover:text-white'
+                onClick={() => setMapLayer('carto_dark')}
+                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
+                  mapLayer === 'carto_dark' || mapLayer === 'dark'
+                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Dark Cyber
+                CARTO Dark
+              </button>
+              <button
+                onClick={() => setMapLayer('carto_voyager')}
+                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
+                  mapLayer === 'carto_voyager'
+                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                CARTO Voyager
+              </button>
+              <button
+                onClick={() => setMapLayer('carto_positron')}
+                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
+                  mapLayer === 'carto_positron'
+                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                CARTO Positron
               </button>
               <button
                 onClick={() => setMapLayer('satellite')}
-                className={`rounded-lg px-2.5 py-1 transition ${
+                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
                   mapLayer === 'satellite' ? 'bg-[#b8f55e] text-[#071014] font-bold' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -451,7 +488,7 @@ export function RealGoogleMap({
               </button>
               <button
                 onClick={() => setMapLayer('street')}
-                className={`rounded-lg px-2.5 py-1 transition ${
+                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
                   mapLayer === 'street' ? 'bg-[#b8f55e] text-[#071014] font-bold' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -669,9 +706,10 @@ export function RealGoogleMap({
 
               {activeMarker && (
                 <button
-                  onClick={() => alert(`Initiating quarantine sequence on entity: ${activeMarker.title}`)}
-                  className="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition shadow-lg shadow-rose-600/25"
+                  onClick={() => setQuarantineModalOpen(true)}
+                  className="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition shadow-lg shadow-rose-600/25 flex items-center gap-1"
                 >
+                  <ShieldAlert className="size-3.5" />
                   Quarantine Node
                 </button>
               )}
@@ -679,6 +717,20 @@ export function RealGoogleMap({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Threat Node Quarantine Action Modal */}
+      <SecurityActionModal
+        isOpen={quarantineModalOpen}
+        onClose={() => setQuarantineModalOpen(false)}
+        type="node_quarantine"
+        data={{
+          entityTitle: activeMarker?.title,
+          location: activeMarker?.city,
+          amount: activeMarker?.amount,
+          riskScore: activeMarker?.riskScore,
+          reason: activeMarker?.anomalyReason || 'Geospatial syndicate cluster or anomalous transaction node'
+        }}
+      />
     </div>
   )
 }
