@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1000" height="520" viewBox="0 0 1000 520" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
@@ -89,7 +90,7 @@
   <path d="M320 320 L360 320" stroke="#B8F55E" stroke-width="2" stroke-dasharray="4 4"/>
   <polygon points="360,320 352,316 352,324" fill="#B8F55E"/>
 
-  <!-- Column 2: Intelligence & Fraud Engine -->
+  <!-- Column 2: Intelligence &amp; Fraud Engine -->
   <g transform="translate(360, 105)">
     <rect x="0" y="0" width="280" height="375" rx="16" fill="url(#cardGrad)" stroke="url(#borderGrad)" stroke-width="1.5" filter="url(#boxShadow)"/>
     <text x="20" y="32" fill="#06B6D4" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
@@ -143,7 +144,7 @@
   <path d="M640 220 L680 220" stroke="#10B981" stroke-width="2" stroke-dasharray="4 4"/>
   <polygon points="680,220 672,216 672,224" fill="#10B981"/>
 
-  <!-- Column 3: Storage & Integration Layer -->
+  <!-- Column 3: Storage &amp; Integration Layer -->
   <g transform="translate(680, 105)">
     <rect x="0" y="0" width="280" height="375" rx="16" fill="url(#cardGrad)" stroke="url(#borderGrad)" stroke-width="1.5" filter="url(#boxShadow)"/>
     <text x="20" y="32" fill="#10B981" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700" letter-spacing="1">
@@ -165,7 +166,7 @@
       • Pydantic V2 Strict Validation
     </text>
 
-    <!-- Sub-card: SQLite & Audit Ledger -->
+    <!-- Sub-card: SQLite &amp; Audit Ledger -->
     <rect x="16" y="156" width="248" height="106" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
     <text x="30" y="180" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">
       💾 Immutable Audit Ledger

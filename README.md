@@ -1,7 +1,7 @@
 # UPI SHIELD AI
 
 <p align="center">
-  <img src="docs/assets/upi-shield-banner.svg" alt="UPI Shield AI Banner" width="100%">
+  <img src="docs/assets/upi-shield-banner.png" alt="UPI Shield AI Banner" width="100%">
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
 ## 🏗️ System Architecture
 
 <p align="center">
-  <img src="docs/assets/architecture-diagram.svg" alt="System Architecture Diagram" width="100%">
+  <img src="docs/assets/architecture-diagram.png" alt="System Architecture Diagram" width="100%">
 </p>
 
 UPI Shield AI combines a **Next.js 16 (Turbopack)** reactive frontend with a high-throughput **FastAPI** Python backend, backed by SQLite / PostgreSQL and an append-only cryptographic audit trail.
@@ -45,19 +45,19 @@ UPI Shield AI combines a **Next.js 16 (Turbopack)** reactive frontend with a hig
 ### 1. Real Google Maps Geospatial Intelligence & Telemetry Inspector
 Full Google Maps satellite, street, and dark terrain tiles with interactive pins, live speed velocity checks, and distance calculations.
 <p align="center">
-  <img src="docs/assets/preview-real-google-maps.svg" alt="Real Google Maps Geospatial Radar" width="100%">
+  <img src="docs/assets/preview-real-google-maps.png" alt="Real Google Maps Geospatial Radar" width="100%">
 </p>
 
 ### 2. User Security Vault & Explainable AI (XAI) Transparency
 Neural network decision explanations with factor contributions, transaction quarantine, and instant dispute filing.
 <p align="center">
-  <img src="docs/assets/preview-user-portal.svg" alt="User Portal & Explainable AI" width="100%">
+  <img src="docs/assets/preview-user-portal.png" alt="User Portal &amp; Explainable AI" width="100%">
 </p>
 
 ### 3. Admin Command Center & Fraud Ring Syndicate Graph
 Comprehensive triage queue, dynamic rule knobs, and graph neural network topological mule ring visualization.
 <p align="center">
-  <img src="docs/assets/preview-admin-command-center.svg" alt="Admin Command Center" width="100%">
+  <img src="docs/assets/preview-admin-command-center.png" alt="Admin Command Center" width="100%">
 </p>
 
 ---
@@ -67,7 +67,7 @@ Comprehensive triage queue, dynamic rule knobs, and graph neural network topolog
 UPI is the backbone of Indian financial inclusion. UPI Shield AI features **native multi-lingual localization across 8 major Indian languages**, switchable with a single click from the top header or settings:
 
 <p align="center">
-  <img src="docs/assets/multilingual-matrix.svg" alt="Multilingual Matrix" width="100%">
+  <img src="docs/assets/multilingual-matrix.png" alt="Multilingual Matrix" width="100%">
 </p>
 
 | Language | Native Name | Region / Financial Hub Focus | Default Status |
@@ -153,10 +153,10 @@ Route (app): 84 routes prerendered cleanly. 0 build errors.
 ```bash
 > pytest backend/tests
 
-backend/tests/test_api.py .......
-======================= 7 passed in 14.71s =======================
+backend/tests/test_api.py .........
+======================= 9 passed in 15.20s =======================
 ```
-All API test suites (Health check, User login, Admin login, UPI validation, QR parsing, Financial summary, Fraud report lifecycle) pass with 100% success.
+All API test suites (Health check, User login, Admin login, UPI validation, QR parsing, Verified Merchant QR, Fraudulent Scam QR interception, Financial summary, Fraud report lifecycle) pass with 100% success.
 
 ---
 

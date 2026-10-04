@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <!-- Background Gradients -->
@@ -58,7 +59,7 @@
     <circle cx="120" cy="122.5" r="9" fill="#FFFFFF" filter="url(#glowFilter)"/>
   </g>
 
-  <!-- Typography & Brand Title -->
+  <!-- Typography &amp; Brand Title -->
   <g transform="translate(340, 110)">
     <!-- Category Pill -->
     <rect x="0" y="0" width="310" height="28" rx="14" fill="rgba(184, 245, 94, 0.1)" stroke="rgba(184, 245, 94, 0.3)" stroke-width="1"/>
