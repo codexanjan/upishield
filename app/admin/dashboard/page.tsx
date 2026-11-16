@@ -119,7 +119,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link
               href="/admin/payment-map"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 text-xs font-semibold text-white transition shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 text-xs font-semibold text-slate-900 dark:text-white transition shadow-sm"
             >
               <MapPin className="size-3.5 text-[#b8f55e]" /> Live Map
             </Link>

@@ -106,7 +106,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-[#b8f55e]/30">
+    <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-emerald-500/30">
       {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (

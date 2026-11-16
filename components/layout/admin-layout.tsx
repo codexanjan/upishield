@@ -86,7 +86,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-[#b8f55e]/30">
+    <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-emerald-500/30">
       {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -290,7 +290,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
               <Link
                 href="/admin/fraud-rules"
-                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition shadow-sm"
+                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-slate-200 hover:bg-white/10 transition shadow-sm"
               >
                 <Sliders className="size-3.5 text-[#b8f55e]" />
                 <span>Configure Rules</span>

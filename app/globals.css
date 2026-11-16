@@ -174,73 +174,179 @@
 
 /* ==========================================================================
    Comprehensive Light Mode Engine (UPI Shield AI)
+   High-Contrast, WCAG Compliant, Zero Invisibility
    ========================================================================== */
 html.light {
   color-scheme: light;
 }
 
-html.light body {
+html.light body,
+html.light .min-h-screen {
   background-color: #f8fafc !important;
   color: #0f172a !important;
+}
+
+/* Hide dark-mode ambient blur glow orbs so light mode stays pristine */
+html.light [class*="blur-[120px]"],
+html.light [class*="blur-[140px]"],
+html.light [class*="blur-[150px]"],
+html.light [class*="blur-2xl"],
+html.light .blur-3xl {
+  display: none !important;
 }
 
 /* Primary surface backgrounds */
 html.light [class*="bg-[#071014]"],
 html.light [class*="bg-[#071317]"],
 html.light [class*="bg-[#050b0e]"],
-html.light [class*="bg-[#09110f]"] {
+html.light [class*="bg-[#09110f]"],
+html.light [class*="bg-[#060e12]"] {
   background-color: #f8fafc !important;
 }
 
-html.light header[class*="bg-[#071014]"] {
+html.light header[class*="bg-[#071014]"],
+html.light header {
   background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: #e2e8f0 !important;
   backdrop-filter: blur(12px) !important;
 }
 
-html.light aside[class*="bg-[#071014]"] {
+html.light aside[class*="bg-[#071014]"],
+html.light aside[class*="bg-[#0a1718]"],
+html.light aside {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
 
-/* Cards, Panels, Drawers and Modals */
+/* Cards, Panels, Drawers, HUD and Modals */
 html.light [class*="bg-[#0a1718]"],
 html.light [class*="bg-[#0e1f20]"],
 html.light [class*="bg-[#081716]"],
 html.light [class*="bg-[#0d1f1e]"],
 html.light [class*="bg-[#0B1B2D]"],
 html.light [class*="bg-[#0c1619]"],
-html.light [class*="bg-[#061214]"] {
+html.light [class*="bg-[#061214]"],
+html.light [class*="from-[#091726]"],
+html.light [class*="bg-[#06101D]"],
+html.light [class*="bg-[#091726]"] {
+  background: #ffffff !important;
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* Sub-containers & subtle pills */
+html.light [class*="bg-white/[.03]"],
 html.light [class*="bg-white/[.04]"],
+html.light [class*="bg-white/[.05]"],
 html.light [class*="bg-white/[.06]"],
 html.light [class*="bg-white/[.08]"],
 html.light [class*="bg-white/5"],
-html.light [class*="bg-white/10"] {
+html.light [class*="bg-white/10"],
+html.light [class*="bg-white/15"] {
   background-color: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
 }
 
-/* High-contrast Text hierarchy */
+/* ==========================================================================
+   BUTTONS IN LIGHT MODE: Crisp, Dark, 100% Readable Text
+   ========================================================================== */
+/* Any light/white button or outline button */
+html.light button[class*="bg-white"],
+html.light a[class*="bg-white"],
+html.light button[class*="border-white"],
+html.light a[class*="border-white"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light button[class*="bg-white"] span,
+html.light a[class*="bg-white"] span,
+html.light button[class*="bg-white"] p,
+html.light a[class*="bg-white"] p,
+html.light button[class*="border-white"] span,
+html.light a[class*="border-white"] span,
+html.light button[class*="border-white"] p,
+html.light a[class*="border-white"] p {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+html.light button[class*="bg-white"] svg,
+html.light a[class*="bg-white"] svg,
+html.light button[class*="border-white"] svg,
+html.light a[class*="border-white"] svg {
+  color: #0f172a !important;
+}
+
+/* Lime Action Buttons (e.g., Send UPI, User Panel) */
+html.light button[class*="bg-[#b8f55e]"],
+html.light a[class*="bg-[#b8f55e]"],
+html.light a[class*="from-emerald-400"] {
+  background: #16a34a !important;
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #15803d !important;
+}
+
+html.light button[class*="bg-[#b8f55e]"] span,
+html.light a[class*="bg-[#b8f55e]"] span,
+html.light button[class*="bg-[#b8f55e]"] svg,
+html.light a[class*="bg-[#b8f55e]"] svg,
+html.light a[class*="from-emerald-400"] span,
+html.light a[class*="from-emerald-400"] svg {
+  color: #ffffff !important;
+}
+
+/* Rose / Red Buttons (e.g. Admin Login, Admin SOC Center) */
+html.light [class*="bg-rose-600/20"],
+html.light [class*="border-rose-500/40"],
+html.light a[href*="admin/login"] {
+  background-color: #ffe4e6 !important;
+  border-color: #f43f5e !important;
+  color: #9f1239 !important;
+}
+
+html.light [class*="bg-rose-600/20"] span,
+html.light [class*="border-rose-500/40"] span,
+html.light a[href*="admin/login"] span,
+html.light a[href*="admin/login"] svg,
+html.light [class*="bg-rose-600/20"] svg,
+html.light [class*="border-rose-500/40"] svg {
+  color: #9f1239 !important;
+  font-weight: 700 !important;
+}
+
+/* Blue Buttons (e.g. Fraud Simulator) */
+html.light a[href*="fraud/simulator"] {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+html.light a[href*="fraud/simulator"] * {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   STAT CARDS & HIGH-CONTRAST DATA METRICS
+   ========================================================================== */
 html.light .text-white,
 html.light [class*="text-[#eef8f7]"] {
   color: #0f172a !important;
 }
 
+/* Sub-labels and muted indicators (e.g., "Active Users", "Submitted") */
 html.light [class*="text-[#8fa9a6]"],
 html.light [class*="text-[#819694]"],
 html.light [class*="text-[#78908d]"],
 html.light .text-slate-400 {
-  color: #64748b !important;
+  color: #475569 !important;
+  font-weight: 600;
 }
 
 html.light .text-slate-300,
-html.light .text-slate-200 {
+html.light .text-slate-200,
+html.light .text-slate-100 {
   color: #1e293b !important;
 }
 
@@ -248,31 +354,74 @@ html.light .text-slate-500 {
   color: #64748b !important;
 }
 
+/* Colored Metric Numbers & Sub-labels */
+html.light .text-amber-400,
+html.light [class*="text-amber-400"],
+html.light .text-amber-300 {
+  color: #b45309 !important; /* Deep readable amber */
+}
+
+html.light [class*="text-amber-400/80"] {
+  color: #92400e !important;
+  font-weight: 600;
+}
+
+html.light .text-sky-400,
+html.light [class*="text-sky-400"],
+html.light [class*="text-[#5BD6FF]"] {
+  color: #0369a1 !important; /* Deep sky blue */
+}
+
+html.light [class*="text-sky-400/80"] {
+  color: #075985 !important;
+  font-weight: 600;
+}
+
+html.light .text-emerald-400,
+html.light [class*="text-emerald-400"],
+html.light [class*="text-[#b8f55e]"] {
+  color: #15803d !important; /* Rich emerald */
+}
+
+html.light [class*="text-[#b8f55e]/80"],
+html.light [class*="text-emerald-400/80"] {
+  color: #166534 !important;
+  font-weight: 600;
+}
+
+html.light .text-rose-400,
+html.light .text-rose-500,
+html.light [class*="text-rose-400"],
+html.light [class*="text-rose-500"],
+html.light [class*="text-[#ff7a82]"] {
+  color: #be123c !important; /* Rich deep rose */
+}
+
+html.light [class*="text-rose-400/80"] {
+  color: #9f1239 !important;
+  font-weight: 600;
+}
+
 /* Border normalization */
 html.light [class*="border-white/5"],
+html.light [class*="border-white/8"],
 html.light [class*="border-white/10"],
 html.light [class*="border-white/15"],
 html.light [class*="border-white/20"] {
   border-color: #e2e8f0 !important;
 }
 
-/* Accessible Accent Greens for Light Mode */
-html.light [class*="text-[#b8f55e]"] {
-  color: #15803d !important;
-}
-
-html.light [class*="border-[#b8f55e]"] {
-  border-color: #16a34a !important;
-}
-
-html.light [class*="bg-[#b8f55e]"] {
-  background-color: #16a34a !important;
-  color: #ffffff !important;
-}
-
+/* Light badge pills */
 html.light [class*="bg-[#b8f55e]/10"],
 html.light [class*="bg-[#b8f55e]/15"],
 html.light [class*="bg-[#b8f55e]/20"] {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+html.light [class*="bg-emerald-500/10"],
+html.light [class*="bg-emerald-500/20"] {
   background-color: #dcfce7 !important;
   color: #15803d !important;
   border-color: #86efac !important;
@@ -300,7 +449,8 @@ html.light textarea:focus {
 }
 
 /* Tables in Light Mode */
-html.light thead[class*="bg-[#071014]"] {
+html.light thead[class*="bg-[#071014]"],
+html.light thead {
   background-color: #f8fafc !important;
   border-color: #e2e8f0 !important;
 }

@@ -260,11 +260,10 @@ export default function AdminPaymentMapPage() {
               <button
                 key={t}
                 onClick={() => setTimeFilter(t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  timeFilter === t
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${timeFilter === t
                     ? 'bg-[#b8f55e] text-[#071014] font-semibold'
                     : 'bg-[#071014] text-[#8fa9a6] hover:text-white border border-white/5'
-                }`}
+                  }`}
               >
                 {t}
               </button>
@@ -313,11 +312,10 @@ export default function AdminPaymentMapPage() {
                   className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5 cursor-pointer hover:border-white/20 transition"
                 >
                   <span className="text-slate-300 font-medium">{layer.label}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    layer.state
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${layer.state
                       ? 'bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30'
                       : 'bg-white/5 text-slate-500'
-                  }`}>
+                    }`}>
                     {layer.state ? 'ON' : 'OFF'}
                   </span>
                 </div>
@@ -397,9 +395,8 @@ export default function AdminPaymentMapPage() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#b8f55e]">
                       TRANSACTION INSPECTOR
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      selectedMarker.risk === 'Critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${selectedMarker.risk === 'Critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>
                       {selectedMarker.risk}
                     </span>
                   </div>
@@ -432,9 +429,8 @@ export default function AdminPaymentMapPage() {
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
                     <span className="text-[#8fa9a6]">Device Status</span>
-                    <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                      selectedMarker.deviceStatus === 'NEW' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
-                    }`}>
+                    <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${selectedMarker.deviceStatus === 'NEW' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
+                      }`}>
                       {selectedMarker.deviceStatus}
                     </span>
                   </div>

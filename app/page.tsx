@@ -74,10 +74,10 @@ const steps = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-[#b8f55e]/30 overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-emerald-500/30 overflow-x-hidden font-sans">
       <CyberShieldIntro />
-      {/* Background Ambient Glows */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+      {/* Background Ambient Glows (Dark Mode Only) */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden dark:block hidden">
         <div className="absolute -top-32 left-1/4 size-[550px] rounded-full bg-[#b8f55e]/10 blur-[140px]" />
         <div className="absolute top-[35%] -right-28 size-[500px] rounded-full bg-[#10b981]/10 blur-[150px]" />
         <div className="absolute bottom-10 left-1/3 size-[450px] rounded-full bg-[#b8f55e]/5 blur-[120px]" />
@@ -112,7 +112,7 @@ export default function LandingPage() {
 
             <Link
               href="/admin/login"
-              className="rounded-xl border border-rose-500/40 bg-rose-600/20 px-4 py-2 text-xs font-bold text-rose-200 hover:bg-rose-600 hover:text-white transition shadow-lg shadow-rose-950/40"
+              className="rounded-xl border border-rose-500/40 bg-rose-600/20 px-4 py-2 text-xs font-bold text-rose-800 dark:text-rose-200 hover:bg-rose-600 hover:text-white transition shadow-lg shadow-rose-950/40"
             >
               Admin Login
             </Link>
@@ -165,14 +165,14 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/admin/login"
-                className="inline-flex items-center gap-2 rounded-full border border-rose-500/40 bg-rose-600/20 hover:bg-rose-600/35 text-rose-200 px-6 py-3.5 text-sm font-semibold transition shadow-lg shadow-rose-950/40"
+                className="inline-flex items-center gap-2 rounded-full border border-rose-500/40 bg-rose-600/20 hover:bg-rose-600/35 text-rose-800 dark:text-rose-200 px-6 py-3.5 text-sm font-semibold transition shadow-lg shadow-rose-950/40"
               >
-                <Terminal className="size-4 text-rose-400" />
+                <Terminal className="size-4 text-rose-600 dark:text-rose-400" />
                 <span>Admin SOC Center</span>
               </Link>
               <Link
                 href="/docs"
-                className="inline-flex items-center gap-1.5 rounded-full px-4 py-3.5 text-xs font-semibold text-[#8fa9a6] hover:text-white transition"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-3.5 text-xs font-semibold text-slate-700 dark:text-[#8fa9a6] hover:text-slate-900 dark:hover:text-white transition"
               >
                 Documentation <ChevronRight className="size-3.5" />
               </Link>
@@ -277,10 +277,10 @@ export default function LandingPage() {
                 {/* Direct Action Link to User Panel */}
                 <Link
                   href="/login"
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 py-3 text-xs font-bold text-white transition group"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 py-3 text-xs font-bold text-slate-900 dark:text-white transition group"
                 >
                   <span>Launch Protected Workspace</span>
-                  <ArrowRight className="size-3.5 text-[#b8f55e] group-hover:translate-x-1 transition" />
+                  <ArrowRight className="size-3.5 text-emerald-600 dark:text-[#b8f55e] group-hover:translate-x-1 transition" />
                 </Link>
               </div>
             </div>
