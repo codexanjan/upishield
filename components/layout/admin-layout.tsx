@@ -24,7 +24,6 @@ import {
   X,
   Lock,
   ShieldCheck,
-  Sparkles,
   MapPin,
   Flame,
   Smartphone,
@@ -42,6 +41,7 @@ import {
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
 import { LanguageSelector } from './language-selector'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const adminNavItems = [
   { label: 'Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -218,7 +218,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               href="/dashboard"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#b8f55e] hover:bg-[#b8f55e]/10 transition font-medium"
             >
-              <Sparkles className="size-3.5 text-[#b8f55e]" />
+              <ShieldCheck className="size-3.5 text-[#b8f55e]" />
               <span>User Portal</span>
             </Link>
 
@@ -262,6 +262,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Light / Dark Mode Toggle */}
+              <ThemeToggle />
+
               <LanguageSelector />
 
               <button
@@ -278,10 +281,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               </button>
 
               <Link
-                href="/admin/fraud-rules"
-                className="hidden sm:flex items-center gap-1.5 rounded-xl bg-[#b8f55e] px-3.5 py-2 text-xs font-semibold text-[#09110f] hover:brightness-110 transition shadow-md shadow-[#b8f55e]/20"
+                href="/pay"
+                className="hidden sm:flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-[#b8f55e] px-3.5 py-2 text-xs font-bold text-[#09110f] hover:brightness-110 transition shadow-md shadow-[#b8f55e]/25"
               >
-                <Sliders className="size-3.5" />
+                <Send className="size-3.5" />
+                <span>Send UPI</span>
+              </Link>
+
+              <Link
+                href="/admin/fraud-rules"
+                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition shadow-sm"
+              >
+                <Sliders className="size-3.5 text-[#b8f55e]" />
                 <span>Configure Rules</span>
               </Link>
             </div>

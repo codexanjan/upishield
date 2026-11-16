@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowLeftRight,
@@ -21,9 +21,11 @@ import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
 import { fadeUp } from '@/components/motion/presets'
 import { MotionWordReveal, MotionBadge } from '@/components/motion/animated-text'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 export default function AdminTransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([])
+  const { transactions: storeTransactions, cardTransactions: storeCardTransactions } = useUPIGuardStore()
+  const [apiTransactions, setApiTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
@@ -39,13 +41,13 @@ export default function AdminTransactionsPage() {
       setLoading(true)
       const data = await apiRequest('/admin/transactions?limit=100')
       if (Array.isArray(data) && data.length > 0) {
-        setTransactions(data)
+        setApiTransactions(data)
       } else {
         throw new Error('Fallback')
       }
     } catch {
       // offline fallback
-      setTransactions([
+      setApiTransactions([
         {
           id: 1,
           transaction_reference: 'TXN-849210-UPI',
@@ -121,6 +123,61 @@ export default function AdminTransactionsPage() {
       setLoading(false)
     }
   }
+
+  // Unified real-time transactions merging user payments with historical admin records
+  const transactions = useMemo(() => {
+    const mappedStoreTxns = (storeTransactions || []).map((st: any) => ({
+      id: `store_${st.id || st.transactionId}`,
+      transaction_reference: st.transactionId || `TXN-${st.id}`,
+      user_id: 1,
+      user_name: st.senderName || 'Anjan Sharma',
+      merchant: st.receiverName || 'Merchant Payee',
+      receiver_upi: st.receiverUpiId || 'payee@upi',
+      city: st.location?.city || 'Bengaluru',
+      area: st.location?.region || 'Central',
+      device: st.deviceId || 'Primary Phone',
+      amount: st.amount,
+      transaction_type: 'UPI',
+      payment_method: st.source === 'QR' ? 'QR Dynamic Scan' : 'UPI App Intent',
+      transaction_date: st.timestamps?.settled || st.timestamps?.created || new Date().toISOString(),
+      status: st.status === 'SETTLED' || st.status === 'APPROVED' ? 'Completed' : st.status === 'BLOCKED' ? 'Blocked' : st.status,
+      flag_status: st.riskLevel === 'CRITICAL' ? 'Critical' : st.riskLevel === 'HIGH' ? 'High' : st.riskScore > 50 ? 'Suspicious' : 'Normal',
+      has_report: st.riskLevel === 'CRITICAL' || st.status === 'BLOCKED',
+      flag_reason: st.riskFactors?.[0]?.description || (st.riskLevel === 'CRITICAL' ? 'High-risk anomaly blocked by engine' : undefined)
+    }))
+
+    const mappedCardTxns = (storeCardTransactions || []).map((ct: any) => ({
+      id: `store_card_${ct.id}`,
+      transaction_reference: ct.id,
+      user_id: 1,
+      user_name: 'Anjan Sharma',
+      merchant: ct.merchantName,
+      receiver_upi: ct.cardId,
+      city: ct.location?.city || 'Bengaluru',
+      area: ct.location?.region || 'POS Terminal',
+      device: ct.device?.deviceName || 'Card POS',
+      amount: ct.amount,
+      transaction_type: 'Card',
+      payment_method: 'Virtual Card',
+      transaction_date: ct.createdAt,
+      status: ct.status === 'SETTLED' ? 'Completed' : ct.status === 'BLOCKED' ? 'Blocked' : ct.status,
+      flag_status: ct.riskLevel === 'CRITICAL' ? 'Critical' : ct.riskLevel === 'HIGH' ? 'High' : 'Normal',
+      has_report: ct.riskLevel === 'CRITICAL',
+      flag_reason: ct.riskFactors?.[0]?.description
+    }))
+
+    const seenRefs = new Set<string>()
+    const combined: any[] = []
+
+    for (const t of [...mappedStoreTxns, ...mappedCardTxns, ...apiTransactions]) {
+      const ref = t.transaction_reference || String(t.id)
+      if (!seenRefs.has(ref)) {
+        seenRefs.add(ref)
+        combined.push(t)
+      }
+    }
+    return combined
+  }, [storeTransactions, storeCardTransactions, apiTransactions])
 
   const filteredTxns = (transactions || []).filter((t) => {
     const matchesSearch =

@@ -19,8 +19,7 @@ import {
   Copy,
   Check,
   Share2,
-  MapPin,
-  Sparkles
+  MapPin
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
@@ -460,3 +459,5 @@ export default function ProfilePage() {
     </UserLayout>
   )
 }
+
+

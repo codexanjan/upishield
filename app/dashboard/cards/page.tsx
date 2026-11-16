@@ -29,7 +29,6 @@ import {
   TrendingUp,
   Download,
   Smartphone,
-  Sparkles,
   Info,
   Clock,
   RotateCcw,
@@ -308,6 +307,16 @@ export default function VirtualCardsPage() {
       riskFactors: res.riskFactors || []
     })
 
+    if (res.decision === 'BLOCK') {
+      setSimResult({
+        status: 'BLOCKED',
+        message: `CRITICAL FRAUD INTERCEPTED: Multi-vector AI risk score evaluated at ${res.riskScore || 95}/100. Autonomous guardrails blocked card authorization and dispatched incident alert to SOC operations.`,
+        tx: res.cardTransaction
+      })
+      setSimStep('RESULT')
+      return
+    }
+
     // Advance to Risk Breakdown and "WAS THIS YOU?"
     setSimStep('WAS_THIS_YOU')
   }
@@ -388,7 +397,7 @@ export default function VirtualCardsPage() {
         setSimForm({
           merchantName: 'ABC Motors Hubballi',
           merchantId: 'merch_motors_01',
-          amount: 850000,
+          amount: 150000,
           category: 'Automotive',
           paymentChannel: 'POS',
           city: 'Hubballi',
@@ -1982,18 +1991,24 @@ export default function VirtualCardsPage() {
                       />
                     </div>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2">
-                      <Scan className="size-10 text-cyan-400 mx-auto animate-pulse" />
-                      <span className="text-xs font-bold text-white block">Face Scanner Ready</span>
-                      <span className="text-[10px] text-slate-400 block">Click continue to confirm biological match</span>
+                    <div className="p-4 rounded-2xl bg-gradient-to-b from-cyan-950/30 to-purple-950/30 border border-cyan-500/30 text-center space-y-3">
+                      <div className="relative size-20 rounded-full border-2 border-dashed border-cyan-400 mx-auto flex items-center justify-center">
+                        <Scan className="size-10 text-cyan-400 animate-pulse" />
+                        <div className="absolute inset-0 rounded-full border border-purple-400/50 animate-ping" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">Face Biometric Scanner Active</span>
+                        <span className="text-[10px] text-cyan-300 font-mono block">3D Liveness & Landmark Mesh: 94% Verified</span>
+                      </div>
                     </div>
                   )}
 
                   <button
                     onClick={handleVerifyAuthMethod}
-                    className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-[#06101D] font-extrabold text-xs uppercase"
+                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-[#06101D] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2"
                   >
-                    CONTINUE TO OTP VERIFICATION
+                    <ShieldCheck className="size-4" />
+                    {simAuthMethod === 'FACE_SCAN' ? 'VERIFY FACE & ADVANCE TO NEXT LAYER →' : 'CONTINUE TO OTP VERIFICATION →'}
                   </button>
                 </div>
               )}
@@ -2264,3 +2279,4 @@ export default function VirtualCardsPage() {
     </UserLayout>
   )
 }
+

@@ -14,7 +14,7 @@ import {
   Send,
   Eye,
   ArrowRight,
-  Sparkles,
+  ShieldCheck,
   Info,
   CheckCircle2,
   AlertTriangle,
@@ -456,3 +456,5 @@ export default function UserPaymentMapPage() {
     </UserLayout>
   )
 }
+
+

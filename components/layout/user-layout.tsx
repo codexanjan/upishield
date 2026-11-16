@@ -24,7 +24,7 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Sparkles,
+  Activity,
   MapPin,
   Compass,
   Smartphone,
@@ -36,6 +36,7 @@ import {
 import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
 import { LanguageSelector } from './language-selector'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useLanguage } from '@/lib/i18n/language-context'
 
 const navGroups = [
@@ -66,7 +67,7 @@ const navGroups = [
     fallbackTitle: 'SECURITY',
     items: [
       { labelKey: 'nav.ai_risk', fallback: 'AI Risk & Behaviour', href: '/dashboard/risk-profile', icon: Cpu },
-      { labelKey: 'nav.xai', fallback: 'Explainable AI (XAI)', href: '/dashboard/xai', icon: Sparkles },
+      { labelKey: 'nav.xai', fallback: 'Explainable AI (XAI)', href: '/dashboard/xai', icon: Activity },
       { labelKey: 'nav.location_history', fallback: 'Location History', href: '/dashboard/location-history', icon: Compass },
       { labelKey: 'nav.devices', fallback: 'Devices', href: '/dashboard/devices', icon: Smartphone },
       { labelKey: 'nav.fraud_alerts', fallback: 'Fraud Alerts', href: '/dashboard/alerts', icon: AlertOctagon },
@@ -289,6 +290,9 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Light / Dark Mode Toggle */}
+              <ThemeToggle />
+
               {/* Language Selector Dropdown */}
               <LanguageSelector />
 

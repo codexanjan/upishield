@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   Users,
   Search,
-  Sparkles,
   Zap,
   Info,
   Lock,
@@ -611,3 +610,5 @@ export default function AdminAdaptiveThresholdsPage() {
     </AdminLayout>
   )
 }
+
+

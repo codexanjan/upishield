@@ -217,6 +217,15 @@ const demoState = {
   notifications: [
     {
       id: 1,
+      title: 'Wallet Funded: ₹1,00,00,000 (1 Crore)',
+      message: '₹1,00,00,000 credited to your primary UPI Shield AI wallet. Real-time interception and biometric protection active.',
+      type: 'Wallet Credit',
+      link: '/dashboard',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 1).toISOString()
+    },
+    {
+      id: 2,
       title: 'Case Under Review',
       message: 'Case CASE-2026-000001 status changed to Under Review by Lead Investigator.',
       type: 'Case Status Changed',
@@ -225,13 +234,31 @@ const demoState = {
       created_at: new Date(Date.now() - 3600000 * 2).toISOString()
     },
     {
-      id: 2,
+      id: 3,
+      title: 'AI Anomaly Protection Active',
+      message: 'Isolation Forest anomaly detection & Random Forest ensemble synchronized with CARTO Geospatial telemetry.',
+      type: 'Security Alert',
+      link: '/dashboard/risk-profile',
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString()
+    },
+    {
+      id: 4,
       title: 'Suspect VPA Threshold Warning',
       message: 'VPA scammer.refund@okaxis has reached 12 reports, surpassing threshold (3).',
       type: 'Reported UPI reaches threshold',
       link: '/admin/reported-upi',
-      is_read: false,
+      is_read: true,
       created_at: new Date(Date.now() - 3600000 * 6).toISOString()
+    },
+    {
+      id: 5,
+      title: 'Budget Alert (Shopping)',
+      message: 'Shopping category has reached 88% of your configured monthly threshold.',
+      type: 'Budget Warning',
+      link: '/dashboard/budgets',
+      is_read: true,
+      created_at: new Date(Date.now() - 3600000 * 24).toISOString()
     }
   ],
   auditLogs: [
@@ -739,11 +766,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   if (path === 'admin/transactions') {
-    return NextResponse.json(demoState.transactions)
+    const txType = request.nextUrl.searchParams.get('tx_type')
+    const limit = Number(request.nextUrl.searchParams.get('limit')) || 100
+    let txns = demoState.transactions
+    if (txType) {
+      txns = txns.filter((t: any) => (t.transaction_type || '').toLowerCase() === txType.toLowerCase())
+    }
+    return NextResponse.json(txns.slice(0, limit))
   }
 
   if (path === 'cases' || path === 'admin/cases') {
     return NextResponse.json(demoState.cases)
+  }
+
+  if (path === 'notifications' || path === 'admin/notifications') {
+    return NextResponse.json(demoState.notifications)
   }
 
   if (path.startsWith('cases/') || path.startsWith('admin/cases/')) {
@@ -941,11 +978,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   if (path === 'transactions' || path === 'admin/transactions') {
-    return NextResponse.json(demoState.transactions)
+    const txType = searchParams.get('tx_type')
+    const limit = Number(searchParams.get('limit')) || 100
+    let txns = demoState.transactions
+    if (txType) {
+      txns = txns.filter((t: any) => (t.transaction_type || '').toLowerCase() === txType.toLowerCase())
+    }
+    return NextResponse.json(txns.slice(0, limit))
   }
 
   if (path === 'cases' || path === 'admin/cases') {
     return NextResponse.json(demoState.cases)
+  }
+
+  if (path === 'notifications' || path === 'admin/notifications') {
+    return NextResponse.json(demoState.notifications)
   }
 
   if (path === 'entities/quarantined' || path === 'admin/quarantined') {
@@ -1058,6 +1105,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     body = await request.json()
   } catch {
     // Body is empty or form-data
+  }
+
+  // Notifications API Handlers
+  if (path === 'notifications/read-all' || path === 'notifications/mark-all-read' || path === 'admin/notifications/read-all' || path === 'admin/notifications/mark-all-read') {
+    demoState.notifications = demoState.notifications.map((n: any) => ({ ...n, is_read: true }))
+    return NextResponse.json({ success: true, message: 'All notifications marked as read' })
+  }
+
+  if (path.startsWith('notifications/') && path.endsWith('/read')) {
+    const id = Number(path.split('/')[1])
+    demoState.notifications = demoState.notifications.map((n: any) => n.id === id ? { ...n, is_read: true } : n)
+    return NextResponse.json({ success: true, message: 'Notification marked as read' })
   }
 
   if (path === 'auth/login' || path === 'admin/login' || path === 'auth/admin-login') {
@@ -1956,6 +2015,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     body = await request.json()
   } catch {}
 
+  if (path.startsWith('notifications/') && path.endsWith('/read')) {
+    const id = Number(path.split('/')[1])
+    demoState.notifications = demoState.notifications.map((n: any) => n.id === id ? { ...n, is_read: true } : n)
+    return NextResponse.json({ success: true, message: 'Notification marked as read' })
+  }
+
   // Update Fraud Rule
   if (path === 'rules' || path.startsWith('rules/') || path === 'admin/rules') {
     const ruleId = Number(body.rule_id || body.id || path.split('/')[1])
@@ -2240,6 +2305,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const id = Number(path.split('/')[1])
     demoState.expenses = demoState.expenses.filter((e: any) => e.id !== id)
     return NextResponse.json({ success: true, message: 'Expense removed' })
+  }
+
+  if (path.startsWith('notifications/')) {
+    const id = Number(path.split('/')[1])
+    demoState.notifications = demoState.notifications.filter((n: any) => n.id !== id)
+    return NextResponse.json({ success: true, message: 'Notification removed' })
   }
 
   return NextResponse.json({ success: true, message: 'Removed successfully' })

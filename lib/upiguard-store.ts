@@ -767,14 +767,14 @@ export const INITIAL_DEMO_CARDS: VirtualCard[] = [
     expiryYear: '29',
     demoCvv: '482',
     status: 'ACTIVE',
-    creditLimit: 200000,
-    usedCredit: 38500,
-    availableCredit: 161500,
-    dailyLimit: 50000,
-    monthlyLimit: 100000,
-    onlineLimit: 80000,
-    contactlessLimit: 5000,
-    categoryLimits: { Shopping: 20000, Travel: 15000, Dining: 5000, Subscriptions: 3000, Electronics: 150000 },
+    creditLimit: 300000,
+    usedCredit: 53500,
+    availableCredit: 246500,
+    dailyLimit: 200000,
+    monthlyLimit: 300000,
+    onlineLimit: 200000,
+    contactlessLimit: 25000,
+    categoryLimits: { Shopping: 100000, Travel: 100000, Dining: 25000, Subscriptions: 15000, Electronics: 250000, Automotive: 250000 },
     allowedCategories: ['Electronics', 'Shopping', 'Travel', 'Food', 'Healthcare', 'Education', 'Entertainment', 'Subscription', 'Fuel', 'Dining', 'Automotive'],
     blockedCategories: ['Gambling', 'Crypto Speculation'],
     allowedCities: ['Hubballi', 'Dharwad', 'Bengaluru'],
@@ -1784,16 +1784,36 @@ export const useUPIGuardStore = create<UPIGuardState>()(
           link: '/admin/transactions'
         }
 
+        let newAlert: FraudAlert | null = null
+        if (settledTxn.riskScore >= 70 || settledTxn.riskLevel === 'HIGH' || settledTxn.riskLevel === 'CRITICAL') {
+          newAlert = {
+            id: `alt-${Date.now()}`,
+            alertId: `ALT-${Math.floor(1000 + Math.random() * 9000)}`,
+            severity: settledTxn.riskScore >= 85 ? 'CRITICAL' : 'HIGH',
+            title: `High-Risk Transaction Flagged: ₹${settledTxn.amount.toLocaleString('en-IN')}`,
+            description: `Payment to ${receiver.name || settledTxn.receiverName} triggered security threshold (Score: ${settledTxn.riskScore}/100).`,
+            transactionId: settledTxn.transactionId,
+            amount: settledTxn.amount,
+            userId: sender.upiId,
+            createdAt: new Date().toISOString(),
+            status: 'OPEN'
+          }
+        }
+
         set((s) => ({
           accounts: {
             ...s.accounts,
             [sender.upiId]: { ...sender, balance: newSenderBalance },
             [receiver.upiId]: { ...receiver, balance: newReceiverBalance }
           },
-          transactions: s.transactions.map((t) => (t.transactionId === transactionId ? settledTxn : t)),
+          transactions: s.transactions.some((t) => t.transactionId === transactionId)
+            ? s.transactions.map((t) => (t.transactionId === transactionId ? settledTxn : t))
+            : [settledTxn, ...s.transactions],
           expenses: [newExpense, ...(s.expenses || [])],
-          majorPurchases: createdMajorPurchase ? [createdMajorPurchase, ...s.majorPurchases] : s.majorPurchases,
+          majorPurchases: createdMajorPurchase ? [createdMajorPurchase, ...(s.majorPurchases || [])] : s.majorPurchases,
           notifications: [userNotif, adminNotif, ...(s.notifications || [])],
+          unreadCount: (s.unreadCount || 0) + 1,
+          alerts: newAlert ? [newAlert, ...(s.alerts || [])] : s.alerts,
           // Update active payment request if matching
           activePaymentRequest:
             s.activePaymentRequest &&
@@ -1807,6 +1827,13 @@ export const useUPIGuardStore = create<UPIGuardState>()(
                 }
               : s.activePaymentRequest
         }))
+
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(new Event('storage'))
+            window.dispatchEvent(new CustomEvent('upishield:notification', { detail: userNotif }))
+          } catch {}
+        }
 
         // Broadcast to all windows/tabs!
         broadcastEvent('notification:created', { userNotif, adminNotif })
@@ -2602,18 +2629,32 @@ export const useUPIGuardStore = create<UPIGuardState>()(
         }))
 
         broadcastEvent('card:payment-created', { transaction: cardTxn, card: updatedCard })
-        if (riskScore >= 70) {
+        if (riskScore >= 70 || decision === 'BLOCK') {
           broadcastEvent('admin:card-alert', { transaction: cardTxn, severity: riskLevel })
+          const alertNotif: AppNotification = {
+            id: `notif_card_${Date.now()}`,
+            title: decision === 'BLOCK' ? 'Card Fraud Blocked by AI Safeguards' : 'Card High-Risk Activity Flagged',
+            message: `Card transaction of ₹${amount.toLocaleString('en-IN')} at ${merchantName} (${location.city}) evaluated with risk score ${riskScore}/100.`,
+            type: 'SECURITY_ALERT',
+            severity: decision === 'BLOCK' ? 'CRITICAL' : 'HIGH',
+            recipientRole: 'ALL',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            link: '/dashboard/cards'
+          }
+          set((s) => ({ notifications: [alertNotif, ...s.notifications] }))
         }
 
         return {
-          success: decision !== 'BLOCK',
+          success: true,
+          isBlocked: decision === 'BLOCK',
           transactionId: txnId,
           riskScore,
           riskLevel,
           decision,
           riskFactors,
-          cardTransaction: cardTxn
+          cardTransaction: cardTxn,
+          message: decision === 'BLOCK' ? 'CRITICAL FRAUD RISK: Transaction intercepted and blocked by AI model.' : undefined
         }
       },
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -24,7 +24,8 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
-import RealGoogleMap from '@/components/maps/real-google-map'
+import RealGoogleMap, { CITY_COORDINATES } from '@/components/maps/real-google-map'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 interface AdminMarker {
   id: string
@@ -151,6 +152,8 @@ const mockAdminMarkers: AdminMarker[] = [
 ]
 
 export default function AdminPaymentMapPage() {
+  const { transactions: storeTransactions } = useUPIGuardStore()
+
   const [layers, setLayers] = useState({
     transactions: true,
     fraudReports: true,
@@ -164,13 +167,51 @@ export default function AdminPaymentMapPage() {
 
   const [timeFilter, setTimeFilter] = useState('Today')
   const [riskFilter, setRiskFilter] = useState('All')
-  const [selectedMarker, setSelectedMarker] = useState<AdminMarker | null>(mockAdminMarkers[0])
+
+  const allAdminMarkers = useMemo(() => {
+    const liveMarkers: AdminMarker[] = (storeTransactions || []).map((t, idx) => {
+      const city = t.location?.city || 'Bengaluru'
+      const coords = CITY_COORDINATES[city] || [12.9716, 77.5946]
+      const riskLevel: AdminMarker['risk'] =
+        t.riskLevel === 'CRITICAL' ? 'Critical' : t.riskLevel === 'HIGH' ? 'High' : t.riskScore >= 50 ? 'Review' : 'Normal'
+      return {
+        id: `live-${t.transactionId || idx}`,
+        txnRef: t.transactionId || `TXN-${849200 + idx}`,
+        amount: t.amount,
+        userId: t.senderUpiId?.split('@')?.[0] || 'USR-APP',
+        userName: t.senderUpiId?.includes('anjan') ? 'Anjan Sharma' : 'App User',
+        receiver: t.receiverName || t.receiverUpiId || 'Verified Payee',
+        city: city,
+        device: t.deviceId || 'Primary Mobile Device',
+        deviceStatus: t.deviceId?.includes('Unknown') ? 'SUSPECT' : 'VERIFIED',
+        payeeStatus: t.riskLevel === 'CRITICAL' ? 'REPORTED' : 'TRUSTED',
+        platformReports: t.riskScore >= 75 ? 8 : 0,
+        caseId: t.riskScore >= 75 ? 'CASE-AUTO-829' : 'CASE-NOMINAL',
+        layer: t.riskScore >= 75 ? 'Critical Cases' : 'Transactions',
+        risk: riskLevel,
+        x: 50,
+        y: 50,
+        lat: (t.location as any)?.latitude || (coords[0] + (idx % 5) * 0.03),
+        lng: (t.location as any)?.longitude || (coords[1] + (idx % 5) * 0.03)
+      }
+    })
+
+    return [...liveMarkers, ...mockAdminMarkers]
+  }, [storeTransactions])
+
+  const [selectedMarker, setSelectedMarker] = useState<AdminMarker | null>(null)
+
+  useEffect(() => {
+    if (!selectedMarker && allAdminMarkers.length > 0) {
+      setSelectedMarker(allAdminMarkers[0])
+    }
+  }, [allAdminMarkers, selectedMarker])
 
   const toggleLayer = (key: keyof typeof layers) => {
     setLayers({ ...layers, [key]: !layers[key] })
   }
 
-  const filteredMarkers = mockAdminMarkers.filter((m) => {
+  const filteredMarkers = allAdminMarkers.filter((m) => {
     if (riskFilter !== 'All' && m.risk !== riskFilter) return false
     return true
   })
@@ -325,6 +366,9 @@ export default function AdminPaymentMapPage() {
                   subtitle: `Payee: ${m.receiver} • ₹${m.amount.toLocaleString()} • Device: ${m.device} (${m.deviceStatus})`,
                   lat: m.lat,
                   lng: m.lng,
+                  city: m.city,
+                  riskScore: m.risk === 'Critical' ? 95 : m.risk === 'High' ? 78 : m.risk === 'Review' ? 48 : 12,
+                  riskLevel: m.risk === 'Critical' ? 'CRITICAL' : m.risk === 'High' ? 'HIGH' : m.risk === 'Review' ? 'MEDIUM' : 'LOW',
                   risk: m.risk === 'Critical' ? 'critical' : m.risk === 'High' ? 'high' : 'low',
                   status: m.layer,
                   amount: m.amount,

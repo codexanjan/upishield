@@ -19,3 +19,6 @@ backend/venv/
 __pycache__/
 *.pyc
 *.tsbuildinfo
+
+.vercel
+.env*

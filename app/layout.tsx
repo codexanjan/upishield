@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { LanguageProvider } from '@/lib/i18n/language-context'
+import { ThemeProvider } from '@/lib/theme/theme-context'
 
 export const metadata: Metadata = {
   title: 'UPI Shield AI — Intelligent payment security',
@@ -34,9 +35,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="antialiased bg-[#071014] text-[#eef8f7] selection:bg-[#b8f55e]/30">
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

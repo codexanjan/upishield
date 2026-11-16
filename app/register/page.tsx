@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ShieldCheck, Lock, Mail, User, Phone, ArrowUpRight, ArrowLeft, Check, Sparkles } from 'lucide-react'
+import { ShieldCheck, Lock, Mail, User, Phone, ArrowUpRight, ArrowLeft, Check, CheckCircle2 } from 'lucide-react'
 import { useAppStore, saveRegisteredUser } from '@/lib/store'
 import { apiRequest } from '@/lib/api'
 
@@ -269,7 +269,7 @@ export default function RegisterPage() {
             </p>
 
             <div className="mt-8 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[.16em] text-[#526b68]">
-              <Sparkles className="size-3" /> Secure instant onboarding · No spam
+              <CheckCircle2 className="size-3 text-[#b8f55e]" /> Secure instant onboarding · No spam
             </div>
           </div>
         </section>

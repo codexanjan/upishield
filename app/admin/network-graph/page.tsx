@@ -20,7 +20,7 @@ import {
   Layers,
   ChevronRight,
   Info,
-  Sparkles
+  ShieldCheck
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { FRAUD_NETWORK_GRAPH_DATA } from '@/lib/ai-fraud-engine'
@@ -281,6 +281,9 @@ export default function AdminFraudNetworkGraphPage() {
                         subtitle: `Type: ${n.type} • Risk: ${n.risk}/100 • Edges: ${connectedLinks.length}`,
                         lat: coords[0],
                         lng: coords[1],
+                        city: n.label || 'Network Node',
+                        riskScore: n.risk,
+                        riskLevel: n.risk >= 70 ? 'CRITICAL' : n.risk >= 30 ? 'HIGH' : 'LOW',
                         risk: n.risk >= 70 ? 'critical' : n.risk >= 30 ? 'high' : 'low',
                         status: quarantinedNodeIds.has(n.id) ? 'QUARANTINED' : n.type,
                         category: n.type
@@ -560,3 +563,5 @@ export default function AdminFraudNetworkGraphPage() {
     </AdminLayout>
   )
 }
+
+

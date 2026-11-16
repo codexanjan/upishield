@@ -20,7 +20,6 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
-  Sparkles,
   Terminal,
   FileCode,
   Search,
@@ -1000,3 +999,5 @@ print(response.json())`
     </div>
   )
 }
+
+

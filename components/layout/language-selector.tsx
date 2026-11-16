@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Globe, Check, ChevronDown, Sparkles } from 'lucide-react'
+import { Globe, Check, ChevronDown } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/language-context'
 import { SupportedLanguage } from '@/lib/i18n/translations'
 
@@ -31,9 +31,8 @@ export function LanguageSelector({ compact = false, className = '' }: LanguageSe
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`group flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-200 hover:border-[#b8f55e]/40 hover:bg-white/[0.08] hover:text-white transition shadow-sm ${
-          open ? 'border-[#b8f55e]/50 bg-white/[0.08] ring-1 ring-[#b8f55e]/30' : ''
-        }`}
+        className={`group flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-200 hover:border-[#b8f55e]/40 hover:bg-white/[0.08] hover:text-white transition shadow-sm ${open ? 'border-[#b8f55e]/50 bg-white/[0.08] ring-1 ring-[#b8f55e]/30' : ''
+          }`}
         aria-label="Select interface language"
       >
         <Globe className="size-3.5 text-[#b8f55e] transition-transform group-hover:rotate-45" />
@@ -46,9 +45,8 @@ export function LanguageSelector({ compact = false, className = '' }: LanguageSe
           </span>
         )}
         <ChevronDown
-          className={`size-3 text-slate-400 transition-transform duration-200 ${
-            open ? 'rotate-180 text-[#b8f55e]' : ''
-          }`}
+          className={`size-3 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180 text-[#b8f55e]' : ''
+            }`}
         />
       </button>
 
@@ -64,7 +62,7 @@ export function LanguageSelector({ compact = false, className = '' }: LanguageSe
             {/* Header info */}
             <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 text-[10px] uppercase tracking-wider text-slate-400">
               <span className="flex items-center gap-1.5 font-bold text-[#b8f55e]">
-                <Sparkles className="size-3" />
+                <Globe className="size-3" />
                 Select Language
               </span>
               <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-mono text-slate-300">
@@ -84,11 +82,10 @@ export function LanguageSelector({ compact = false, className = '' }: LanguageSe
                       setLanguage(lang.code as SupportedLanguage)
                       setOpen(false)
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition ${
-                      isSelected
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition ${isSelected
                         ? 'bg-[#b8f55e]/15 text-[#b8f55e] font-bold'
                         : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-2">

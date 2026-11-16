@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Send,
@@ -16,9 +16,11 @@ import {
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionBadge } from '@/components/motion/animated-text'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 export default function AdminUPITransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([])
+  const { transactions: storeTransactions } = useUPIGuardStore()
+  const [apiTransactions, setApiTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -31,13 +33,13 @@ export default function AdminUPITransactionsPage() {
       setLoading(true)
       const data = await apiRequest('/admin/transactions?tx_type=UPI&limit=100')
       if (Array.isArray(data) && data.length > 0) {
-        setTransactions(data)
+        setApiTransactions(data)
       } else {
         throw new Error('Fallback')
       }
     } catch {
       // offline fallback
-      setTransactions([
+      setApiTransactions([
         {
           id: 1,
           transaction_reference: 'TXN-849210-UPI',
@@ -89,13 +91,46 @@ export default function AdminUPITransactionsPage() {
     }
   }
 
+  // Unified UPI transactions combining user app transfers and historical records
+  const transactions = useMemo(() => {
+    const mappedStoreTxns = (storeTransactions || []).map((st: any) => ({
+      id: `store_upi_${st.id || st.transactionId}`,
+      transaction_reference: st.transactionId || `TXN-${st.id}`,
+      user_id: 1,
+      user_name: st.senderName || 'Anjan Sharma',
+      receiver_name: st.receiverName || 'Merchant Payee',
+      receiver_upi: st.receiverUpiId || 'payee@upi',
+      city: st.location?.city || 'Bengaluru',
+      area: st.location?.region || 'Central',
+      amount: st.amount,
+      transaction_date: st.timestamps?.settled || st.timestamps?.created || new Date().toISOString(),
+      status: st.status === 'SETTLED' || st.status === 'APPROVED' ? 'Completed' : st.status === 'BLOCKED' ? 'Blocked' : st.status,
+      has_report: st.riskLevel === 'CRITICAL' || st.status === 'BLOCKED',
+      flag_status: st.riskLevel === 'CRITICAL' ? 'Critical' : st.riskLevel === 'HIGH' ? 'High' : 'Normal'
+    }))
+
+    const seenRefs = new Set<string>()
+    const combined: any[] = []
+
+    for (const t of [...mappedStoreTxns, ...apiTransactions]) {
+      const ref = t.transaction_reference || String(t.id)
+      if (!seenRefs.has(ref)) {
+        seenRefs.add(ref)
+        combined.push(t)
+      }
+    }
+    return combined
+  }, [storeTransactions, apiTransactions])
+
   const filtered = (transactions || []).filter((t) => {
     const s = search.toLowerCase()
     return (
       (t.transaction_reference && t.transaction_reference.toLowerCase().includes(s)) ||
       (t.receiver_upi && t.receiver_upi.toLowerCase().includes(s)) ||
       (t.receiver_name && t.receiver_name.toLowerCase().includes(s)) ||
-      (t.city && t.city.toLowerCase().includes(s))
+      (t.merchant && t.merchant.toLowerCase().includes(s)) ||
+      (t.city && t.city.toLowerCase().includes(s)) ||
+      (t.amount && String(t.amount).includes(s))
     )
   })
 
@@ -171,8 +206,8 @@ export default function AdminUPITransactionsPage() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <span className="font-semibold text-white block">{t.receiver_name}</span>
-                        <span className="text-[11px] font-mono text-slate-400">{t.receiver_upi}</span>
+                        <span className="font-semibold text-white block">{t.receiver_name || t.merchant || 'Payee'}</span>
+                        <span className="text-[11px] font-mono text-slate-400">{t.receiver_upi || 'payee@upi'}</span>
                       </td>
 
                       <td className="px-5 py-4">

@@ -21,7 +21,7 @@ import {
   EyeOff,
   Filter,
   ArrowUpRight,
-  Sparkles
+  ShieldCheck
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -584,3 +584,5 @@ export default function ExpensesPage() {
     </UserLayout>
   )
 }
+
+

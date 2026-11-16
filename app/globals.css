@@ -157,10 +157,179 @@
   html {
     background: #071014;
   }
+  html.light {
+    background: #f8fafc;
+  }
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
   }
+  html.light body {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+  }
+}
+
+/* ==========================================================================
+   Comprehensive Light Mode Engine (UPI Shield AI)
+   ========================================================================== */
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Primary surface backgrounds */
+html.light [class*="bg-[#071014]"],
+html.light [class*="bg-[#071317]"],
+html.light [class*="bg-[#050b0e]"],
+html.light [class*="bg-[#09110f]"] {
+  background-color: #f8fafc !important;
+}
+
+html.light header[class*="bg-[#071014]"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+html.light aside[class*="bg-[#071014]"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Cards, Panels, Drawers and Modals */
+html.light [class*="bg-[#0a1718]"],
+html.light [class*="bg-[#0e1f20]"],
+html.light [class*="bg-[#081716]"],
+html.light [class*="bg-[#0d1f1e]"],
+html.light [class*="bg-[#0B1B2D]"],
+html.light [class*="bg-[#0c1619]"],
+html.light [class*="bg-[#061214]"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Sub-containers & subtle pills */
+html.light [class*="bg-white/[.04]"],
+html.light [class*="bg-white/[.06]"],
+html.light [class*="bg-white/[.08]"],
+html.light [class*="bg-white/5"],
+html.light [class*="bg-white/10"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* High-contrast Text hierarchy */
+html.light .text-white,
+html.light [class*="text-[#eef8f7]"] {
+  color: #0f172a !important;
+}
+
+html.light [class*="text-[#8fa9a6]"],
+html.light [class*="text-[#819694]"],
+html.light [class*="text-[#78908d]"],
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-300,
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Border normalization */
+html.light [class*="border-white/5"],
+html.light [class*="border-white/10"],
+html.light [class*="border-white/15"],
+html.light [class*="border-white/20"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Accessible Accent Greens for Light Mode */
+html.light [class*="text-[#b8f55e]"] {
+  color: #15803d !important;
+}
+
+html.light [class*="border-[#b8f55e]"] {
+  border-color: #16a34a !important;
+}
+
+html.light [class*="bg-[#b8f55e]"] {
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+}
+
+html.light [class*="bg-[#b8f55e]/10"],
+html.light [class*="bg-[#b8f55e]/15"],
+html.light [class*="bg-[#b8f55e]/20"] {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+/* Form Elements (Inputs, Selects, Textareas) */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2) !important;
+}
+
+/* Tables in Light Mode */
+html.light thead[class*="bg-[#071014]"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light table thead th {
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light table tbody tr {
+  border-color: #e2e8f0 !important;
+}
+
+html.light table tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Drawers and Dropdown Overlays */
+html.light [role="dialog"],
+html.light .notification-drawer-panel {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Code and mono snippets */
+html.light code,
+html.light pre {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
 }

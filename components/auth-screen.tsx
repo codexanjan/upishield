@@ -49,10 +49,10 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
   const executeLogin = (userData: any, token: string) => {
     if (admin) {
       setAdmin(userData, token)
-      router.push(redirectPath || '/admin/dashboard')
+      window.location.href = redirectPath || '/admin/dashboard'
     } else {
       setUser(userData, token)
-      router.push(redirectPath || '/dashboard')
+      window.location.href = redirectPath || '/dashboard'
     }
   }
 
@@ -64,9 +64,11 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     setPassword(credentials.password)
 
     if (admin) {
-      executeLogin(DEFAULT_ADMIN, 'demo-admin-token')
+      setAdmin(DEFAULT_ADMIN, 'demo-admin-token')
+      window.location.href = redirectPath || '/admin/dashboard'
     } else {
-      executeLogin(DEFAULT_USER, 'demo-user-token')
+      setUser(DEFAULT_USER, 'demo-user-token')
+      window.location.href = redirectPath || '/dashboard'
     }
   }
 
@@ -87,9 +89,11 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     // 1. Fast-path: Check built-in demo credentials instantly
     if (cleanEmail === credentials.email && cleanPassword === credentials.password) {
       if (admin) {
-        executeLogin(DEFAULT_ADMIN, 'demo-admin-token')
+        setAdmin(DEFAULT_ADMIN, 'demo-admin-token')
+        window.location.href = redirectPath || '/admin/dashboard'
       } else {
-        executeLogin(DEFAULT_USER, 'demo-user-token')
+        setUser(DEFAULT_USER, 'demo-user-token')
+        window.location.href = redirectPath || '/dashboard'
       }
       return
     }
@@ -98,7 +102,8 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     if (admin) {
       const result = verifyAdminCredentials(cleanEmail, cleanPassword)
       if (result.success && result.admin) {
-        executeLogin(result.admin, 'demo-admin-token')
+        setAdmin(result.admin, 'demo-admin-token')
+        window.location.href = redirectPath || '/admin/dashboard'
         return
       } else {
         setError(result.message || 'Invalid administrator credentials. Access restricted.')
@@ -106,7 +111,8 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
     } else {
       const result = await verifyUserCredentials(cleanEmail, cleanPassword)
       if (result.success && result.user) {
-        executeLogin(result.user, 'demo-user-token')
+        setUser(result.user, 'demo-user-token')
+        window.location.href = redirectPath || '/dashboard'
         return
       } else {
         setError(result.message || 'Invalid email or password. Please verify your credentials.')
@@ -249,9 +255,12 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
                 type="button"
                 onClick={handleQuickDemoLogin}
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-[#b8f55e] hover:bg-[#a5e44e] text-[#071014] font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-[#b8f55e]/25 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                className={`w-full py-3 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer ${admin
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/40'
+                    : 'bg-[#b8f55e] hover:bg-[#a5e44e] text-[#071014] shadow-lg shadow-[#b8f55e]/25'
+                  }`}
               >
-                <Zap className="size-4 fill-current text-[#071014]" />
+                <Zap className={`size-4 fill-current ${admin ? 'text-white' : 'text-[#071014]'}`} />
                 {admin ? 'Launch Admin Command Center (1-Click)' : 'Launch User Security Vault (1-Click)'}
               </button>
             </div>
@@ -302,15 +311,18 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-2 h-11 w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 font-bold text-xs text-white transition flex items-center justify-center gap-2 disabled:opacity-50"
+                className={`mt-2 h-11 w-full rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 ${admin
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-950/40'
+                    : 'bg-white/10 hover:bg-white/20 border border-white/10 text-white'
+                  }`}
               >
                 {loading ? (
                   <>
-                    <RefreshCw className="size-3.5 animate-spin text-[#b8f55e]" />
-                    <span>Verifying session...</span>
+                    <RefreshCw className="size-3.5 animate-spin text-white" />
+                    <span>Signing In...</span>
                   </>
                 ) : (
-                  <span>Sign In</span>
+                  <span>{admin ? 'Sign In to Admin SOC' : 'Sign In'}</span>
                 )}
               </button>
             </form>

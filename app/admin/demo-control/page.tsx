@@ -4,13 +4,12 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   RotateCcw,
-  Sparkles,
+  ShieldCheck,
   Database,
   CheckCircle2,
   AlertTriangle,
   Play,
   Flame,
-  ShieldCheck,
   RefreshCw,
   Users,
   Store,
@@ -230,3 +229,5 @@ export default function DemoControlPage() {
     </AdminLayout>
   )
 }
+
+

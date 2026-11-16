@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Play,
   RotateCcw,
-  Sparkles,
   Zap,
   ArrowRight,
   ExternalLink,
@@ -546,3 +545,5 @@ export default function FraudSimulatorPage() {
     </AdminLayout>
   )
 }
+
+

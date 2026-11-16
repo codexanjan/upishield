@@ -20,6 +20,7 @@ import {
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import RealGoogleMap from '@/components/maps/real-google-map'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 
 interface Cluster {
   id: string
@@ -42,6 +43,7 @@ const mockClusters: Cluster[] = [
 ]
 
 export default function AdminFraudMapPage() {
+  const { alerts, transactions } = useUPIGuardStore()
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(mockClusters[1])
   const [zoomLevel, setZoomLevel] = useState(1)
 
@@ -147,6 +149,9 @@ export default function AdminFraudMapPage() {
                   subtitle: `${c.count} platform fraud reports • ₹${c.amount.toLocaleString('en-IN')} volume`,
                   lat: c.lat,
                   lng: c.lng,
+                  city: c.city,
+                  riskScore: c.risk === 'critical' ? 96 : c.risk === 'high' ? 78 : 45,
+                  riskLevel: (c.risk === 'critical' ? 'CRITICAL' : c.risk === 'high' ? 'HIGH' : 'MEDIUM') as any,
                   risk: c.risk,
                   status: `${c.count} Reports`,
                   amount: c.amount,
@@ -178,6 +183,17 @@ export default function AdminFraudMapPage() {
               </div>
 
               <div className="mt-4 space-y-3 text-xs">
+                {/* Dynamic user incident alerts from store */}
+                {(alerts || []).slice(0, 3).map((alt) => (
+                  <div key={alt.id} className="p-3.5 rounded-xl bg-[#071014] border border-rose-500/40 space-y-1 shadow-lg shadow-rose-950/20">
+                    <div className="flex items-center justify-between font-mono">
+                      <span className="text-[#b8f55e] text-[10px] font-bold">REAL-TIME INCIDENT</span>
+                      <span className="text-rose-400 font-bold">₹{alt.amount?.toLocaleString('en-IN') || '0'}</span>
+                    </div>
+                    <p className="font-bold text-white">{alt.title}</p>
+                    <p className="text-[#8fa9a6] text-[11px]">{alt.description}</p>
+                  </div>
+                ))}
                 {/* 10:43 PM */}
                 <div className="p-3.5 rounded-xl bg-[#071014] border border-white/5 space-y-1">
                   <div className="flex items-center justify-between font-mono">

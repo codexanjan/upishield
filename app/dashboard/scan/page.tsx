@@ -16,7 +16,6 @@ import {
   Smartphone,
   Info,
   QrCode,
-  Sparkles,
   Copy,
   Download,
   Check,
@@ -24,7 +23,8 @@ import {
   ShieldCheck,
   FileText,
   AlertOctagon,
-  ExternalLink
+  ExternalLink,
+  Zap
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
@@ -75,6 +75,8 @@ export default function QrScannerPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Simulation Lab states
+  const [customAmount, setCustomAmount] = useState('290')
+  const [customNote, setCustomNote] = useState('Order-B7892')
   const [verifiedQrDataUrl, setVerifiedQrDataUrl] = useState<string>('')
   const [fraudQrDataUrl, setFraudQrDataUrl] = useState<string>('')
   const [selectedDemoTab, setSelectedDemoTab] = useState<'verified' | 'fraud'>('fraud')
@@ -161,22 +163,12 @@ export default function QrScannerPage() {
   }, [activeMode, scannedResult])
 
   // Handle detection from camera, uploaded image, or interactive simulation
-  const handleQrDetected = async (rawQrText: string) => {
+  const handleQrDetected = (rawQrText: string) => {
     setLoading(true)
     setErrorMessage(null)
 
-    try {
-      const res = await apiRequest('/upi/parse-qr', {
-        method: 'POST',
-        body: JSON.stringify({ qr_data: rawQrText })
-      })
-
-      setScannedResult(res)
-      if (res.amount) {
-        setAmount(res.amount.toString())
-      }
-    } catch {
-      // Deterministic offline fallback parser
+    // Immediate deterministic client-side evaluation (sub-50ms)
+    setTimeout(() => {
       const isUpi = rawQrText.startsWith('upi://pay')
       let recUpi = 'merchant@upi'
       let recName = 'Merchant'
@@ -185,12 +177,25 @@ export default function QrScannerPage() {
       let mc = ''
 
       if (isUpi) {
-        const urlParams = new URLSearchParams(rawQrText.replace(/^upi:\/\/pay\??/, ''))
-        recUpi = urlParams.get('pa') || 'merchant@upi'
-        recName = urlParams.get('pn') || 'Merchant'
-        amt = urlParams.get('am') || ''
-        note = urlParams.get('tn') || 'Payment'
-        mc = urlParams.get('mc') || ''
+        try {
+          const urlParams = new URLSearchParams(rawQrText.replace(/^upi:\/\/pay\??/, ''))
+          recUpi = urlParams.get('pa') || 'merchant@upi'
+          recName = urlParams.get('pn') || 'Merchant'
+          amt = urlParams.get('am') || ''
+          note = urlParams.get('tn') || 'Payment'
+          mc = urlParams.get('mc') || ''
+        } catch {
+          // Fallback parsing
+          const paMatch = rawQrText.match(/pa=([^&]+)/)
+          const pnMatch = rawQrText.match(/pn=([^&]+)/)
+          const amMatch = rawQrText.match(/am=([^&]+)/)
+          if (paMatch) recUpi = decodeURIComponent(paMatch[1])
+          if (pnMatch) recName = decodeURIComponent(pnMatch[1])
+          if (amMatch) amt = decodeURIComponent(amMatch[1])
+        }
+      } else if (rawQrText.includes('@')) {
+        recUpi = rawQrText.trim()
+        recName = recUpi.split('@')[0]
       }
 
       const isRep =
@@ -198,6 +203,7 @@ export default function QrScannerPage() {
         recUpi.includes('scam') ||
         recUpi.includes('quickcash') ||
         recUpi.includes('lottery') ||
+        rawQrText.includes('quickcash.refund') ||
         (note.toLowerCase().includes('refund') && amt && parseFloat(amt) > 1000)
 
       setScannedResult({
@@ -225,9 +231,8 @@ export default function QrScannerPage() {
       })
 
       if (amt) setAmount(amt)
-    } finally {
       setLoading(false)
-    }
+    }, 60)
   }
 
   // Handle QR image file upload
@@ -318,7 +323,7 @@ export default function QrScannerPage() {
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Sparkles className="size-4" /> QR Simulator & Test Lab
+              <ShieldCheck className="size-4" /> QR Simulator & Test Lab
             </button>
             <button
               onClick={() => setActiveMode('camera')}
@@ -547,7 +552,7 @@ export default function QrScannerPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/5 bg-[#071014] p-3.5 space-y-2 text-xs font-mono">
+                  <div className="rounded-2xl border border-white/5 bg-[#071014] p-3.5 space-y-2.5 text-xs font-mono">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Merchant VPA:</span>
                       <span className="text-[#b8f55e] font-bold">{VERIFIED_QR_CONFIG.vpa}</span>
@@ -556,24 +561,91 @@ export default function QrScannerPage() {
                       <span className="text-slate-500">NPCI Category:</span>
                       <span className="text-white font-semibold">MCC {VERIFIED_QR_CONFIG.mcc} (Dining)</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Registered Amount:</span>
-                      <span className="text-white font-semibold">₹290.00</span>
+
+                    {/* Custom Editable Amount Input */}
+                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-slate-400 font-sans text-xs">Enter Payment Amount (₹):</label>
+                        <span className="text-[10px] text-emerald-400">Custom Editable</span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                        <input
+                          type="number"
+                          value={customAmount}
+                          onChange={(e) => setCustomAmount(e.target.value)}
+                          className="w-full h-10 rounded-xl bg-white/5 border border-white/10 pl-8 pr-4 text-sm font-bold text-white font-mono focus:border-[#b8f55e] focus:outline-none"
+                          placeholder="290"
+                        />
+                      </div>
+                      {/* Quick Amount Pills */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {['100', '290', '500', '1000', '2500'].map((amt) => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setCustomAmount(amt)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
+                              customAmount === amt
+                                ? 'bg-[#b8f55e] text-[#071014]'
+                                : 'bg-white/5 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            ₹{amt}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Fraud Reports:</span>
-                      <span className="text-emerald-400 font-bold">0 Active Complaints</span>
+
+                    {/* Note Input */}
+                    <div className="space-y-1 pt-1 border-t border-white/5">
+                      <label className="text-slate-400 font-sans text-xs">Payment Note:</label>
+                      <input
+                        type="text"
+                        value={customNote}
+                        onChange={(e) => setCustomNote(e.target.value)}
+                        className="w-full h-9 rounded-xl bg-white/5 border border-white/10 px-3 text-xs text-white focus:border-[#b8f55e] focus:outline-none"
+                        placeholder="Order note"
+                      />
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleQrDetected(VERIFIED_QR_CONFIG.payload)}
-                    disabled={loading}
-                    className="w-full py-3 rounded-xl bg-[#b8f55e] hover:bg-[#b8f55e]/90 text-[#071014] font-bold text-xs transition shadow-lg shadow-[#b8f55e]/25 flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle2 className="size-4" />
-                    {loading ? 'Verifying Payload...' : '⚡ SIMULATE SCAN VERIFIED QR'}
-                  </button>
+                  {/* Dual Action Buttons: Direct Pay & Scan Payload */}
+                  <div className="space-y-2 pt-1">
+                    <button
+                      onClick={() => {
+                        const amt = customAmount || '290'
+                        const nt = customNote || 'Order-B7892'
+                        router.push(
+                          `/dashboard/pay?recipient=${encodeURIComponent(
+                            VERIFIED_QR_CONFIG.vpa
+                          )}&amount=${encodeURIComponent(amt)}&note=${encodeURIComponent(
+                            nt
+                          )}&name=${encodeURIComponent(VERIFIED_QR_CONFIG.name)}&source=QR`
+                        )
+                      }}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-[#b8f55e] hover:brightness-110 text-[#071014] font-extrabold text-xs transition shadow-lg shadow-[#b8f55e]/25 flex items-center justify-center gap-2"
+                    >
+                      <Zap className="size-4" />
+                      <span>⚡ PAY DIRECTLY FROM QR (₹{customAmount || '290'})</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const updatedPayload = `upi://pay?pa=${VERIFIED_QR_CONFIG.vpa}&pn=${encodeURIComponent(
+                          VERIFIED_QR_CONFIG.name
+                        )}&am=${customAmount || '290'}.00&cu=INR&tn=${encodeURIComponent(
+                          customNote || 'Payment'
+                        )}&mc=${VERIFIED_QR_CONFIG.mcc}`
+                        handleQrDetected(updatedPayload)
+                      }}
+                      disabled={loading}
+                      className="w-full py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs transition flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="size-3.5 text-[#b8f55e]" />
+                      <span>{loading ? 'Auditing Payload...' : 'Audit & Preview Security Rules First'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

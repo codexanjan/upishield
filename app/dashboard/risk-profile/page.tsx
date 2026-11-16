@@ -18,7 +18,6 @@ import {
   XCircle,
   HelpCircle,
   Sliders,
-  Sparkles,
   Lock,
   RefreshCw,
   QrCode,
@@ -333,7 +332,7 @@ export default function UserRiskProfilePage() {
         <div className="flex flex-wrap items-center gap-1.5 border-b border-white/10 pb-3">
           {[
             { id: 'overview', label: 'Risk Overview', icon: Activity },
-            { id: 'xai', label: 'Explainable AI (XAI)', icon: Sparkles },
+            { id: 'xai', label: 'Explainable AI (XAI)', icon: Cpu },
             { id: 'breakdown', label: 'Risk Breakdown', icon: Layers },
             { id: 'behaviour', label: 'Behaviour Profile', icon: Compass },
             { id: 'history', label: 'Risk History', icon: HistoryIcon },
@@ -770,7 +769,7 @@ export default function UserRiskProfilePage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30 flex items-center gap-1.5">
-                      <Sparkles className="size-3" />
+                      <Cpu className="size-3" />
                       EXPLAINABLE AI (XAI)
                     </span>
                     <span className="text-xs text-white/50">Feature Attributions &amp; Decision Transparency</span>
@@ -1526,3 +1525,4 @@ export default function UserRiskProfilePage() {
     </UserLayout>
   )
 }
+

@@ -70,9 +70,10 @@ export function SecurityActionModal({
     setLoadingAction('pin')
     setTimeout(() => {
       setPinSuccess(true)
+      setActiveStep('main')
       setLoadingAction(null)
       if (onActionComplete) onActionComplete('UPI PIN Reset')
-    }, 600)
+    }, 40)
   }
 
   const handleRevokeSessions = () => {
@@ -81,7 +82,7 @@ export function SecurityActionModal({
       setSessionsRevoked(true)
       setLoadingAction(null)
       if (onActionComplete) onActionComplete('All Device Sessions Revoked')
-    }, 700)
+    }, 40)
   }
 
   const handleToggleBiometric = () => {
@@ -90,7 +91,7 @@ export function SecurityActionModal({
       setBiometricEnabled(true)
       setLoadingAction(null)
       if (onActionComplete) onActionComplete('Biometric Kill-Switch Enabled')
-    }, 500)
+    }, 40)
   }
 
   const handleCopyIncidentReport = () => {

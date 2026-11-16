@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
-  Sparkles,
+  ShieldCheck,
   BarChart3,
   TrendingUp,
   Sliders,
@@ -220,7 +220,7 @@ export default function AdminModelCenterPage() {
             className="p-3.5 rounded-xl border border-[#b8f55e]/30 bg-[#b8f55e]/10 text-sm text-[#b8f55e] flex items-center justify-between"
           >
             <div className="flex items-center gap-2.5">
-              <Sparkles className="size-4 shrink-0 animate-pulse" />
+              <ShieldCheck className="size-4 shrink-0 animate-pulse" />
               <span>{retrainMessage}</span>
             </div>
             {isRetraining && (
@@ -232,7 +232,7 @@ export default function AdminModelCenterPage() {
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 border-b border-white/10 pb-2 overflow-x-auto">
           {[
-            { id: 'feedback', label: 'AI Model Self-Learning & Feedback Loop', icon: Sparkles },
+            { id: 'feedback', label: 'AI Model Self-Learning & Feedback Loop', icon: ShieldCheck },
             { id: 'metrics', label: 'Model Performance & Confusion Matrix', icon: Activity },
             { id: 'drift', label: 'Data & Concept Drift Monitor', icon: TrendingUp },
             { id: 'registry', label: 'Model Registry & Rollback', icon: Database },
@@ -272,7 +272,7 @@ export default function AdminModelCenterPage() {
                     <span className="text-xs text-white/50">• Batch / Periodic Retraining Pipeline</span>
                   </div>
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Sparkles className="size-4 text-[#b8f55e]" />
+                    <ShieldCheck className="size-4 text-[#b8f55e]" />
                     Closed-Loop Adaptive Feedback & Self-Learning Architecture
                   </h3>
                   <p className="text-xs text-white/60 max-w-3xl leading-relaxed">
@@ -1023,3 +1023,4 @@ export default function AdminModelCenterPage() {
     </AdminLayout>
   )
 }
+

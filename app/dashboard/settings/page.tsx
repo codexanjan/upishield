@@ -16,7 +16,10 @@ import {
   ToggleRight,
   ShieldCheck,
   Globe,
-  Check
+  Check,
+  Compass,
+  Radio,
+  Trash2
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
@@ -34,6 +37,12 @@ export default function SecuritySettingsPage() {
   const [changingPass, setChangingPass] = useState(false)
   const [passSuccess, setPassSuccess] = useState<string | null>(null)
   const [passError, setPassError] = useState<string | null>(null)
+
+  // Geospatial Map Settings
+  const [cartoApiKey, setCartoApiKey] = useState('cb1_4l2w_1_c04473e1984c633bf7453355')
+  const [selectedMapEngine, setSelectedMapEngine] = useState<'dark_cyber' | 'radar' | 'satellite' | 'osm'>('dark_cyber')
+  const [mapSettingMsg, setMapSettingMsg] = useState<string | null>(null)
+  const [cartoRemoved, setCartoRemoved] = useState(false)
 
   // 2FA toggle
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
@@ -188,7 +197,161 @@ export default function SecuritySettingsPage() {
           </div>
         </div>
 
-        {/* Change Password */}
+        {/* Geospatial Telemetry & Map Engine Settings */}
+        <div className="p-6 rounded-2xl bg-[#0a1718] border border-white/10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+            <div className="flex items-center gap-2">
+              <Compass className="w-5 h-5 text-[#b8f55e]" />
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Geospatial Telemetry & Basemap Engine
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure map providers, watermark-free dark basemaps, or zero-tile Cyber Radar Grid.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
+              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+              {cartoRemoved ? 'Watermark-Free Clean Engine' : 'Telemetry Engine Active'}
+            </span>
+          </div>
+
+          {mapSettingMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{mapSettingMsg}</span>
+            </div>
+          )}
+
+          {/* Map Engine Modes */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+              Default Telemetry Basemap Mode
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                {
+                  id: 'dark_cyber',
+                  label: 'Dark Cyber Canvas',
+                  desc: 'ESRI Dark Gray · 100% Watermark Free',
+                  badge: 'Recommended'
+                },
+                {
+                  id: 'radar',
+                  label: 'Cyber Radar Grid',
+                  desc: 'Vector Mode · Zero Tiles · 100% Offline',
+                  badge: 'Zero Network'
+                },
+                {
+                  id: 'satellite',
+                  label: 'Google Satellite',
+                  desc: 'Hybrid Aerial View with Roads & Labels',
+                  badge: 'High-Res'
+                },
+                {
+                  id: 'osm',
+                  label: 'OpenStreetMap',
+                  desc: 'Global Community Cartography',
+                  badge: 'Standard'
+                }
+              ].map((engine) => {
+                const isSelected = selectedMapEngine === engine.id
+                return (
+                  <button
+                    key={engine.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMapEngine(engine.id as any)
+                      setMapSettingMsg(`Default map engine set to ${engine.label}. Applied across all payment maps.`)
+                      setTimeout(() => setMapSettingMsg(null), 4000)
+                    }}
+                    className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                      isSelected
+                        ? 'border-[#b8f55e] bg-[#b8f55e]/10 shadow-lg shadow-[#b8f55e]/10 ring-1 ring-[#b8f55e]/40'
+                        : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-white">{engine.label}</span>
+                      {isSelected && (
+                        <div className="grid size-4 place-items-center rounded-full bg-[#b8f55e] text-[#071014]">
+                          <Check className="size-2.5 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-slate-300 font-medium mt-1">{engine.desc}</span>
+                    <span className="text-[9px] text-[#b8f55e] mt-2 font-mono uppercase tracking-wider">
+                      {engine.badge}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* CARTO Key Configuration & 1-Click Removal */}
+          <div className="pt-4 border-t border-white/5 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="text-xs font-semibold text-slate-300">
+                  CARTO Basemaps API Key
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  {cartoRemoved
+                    ? 'CARTO is removed. Watermark-Free High-Definition Dark Mode is permanently active.'
+                    : 'Manage or completely remove the CARTO API key to prevent "API KEY REQUIRED" watermarks.'}
+                </p>
+              </div>
+              {cartoRemoved ? (
+                <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                  CARTO WATERMARKS PURGED
+                </span>
+              ) : (
+                <span className="text-[11px] font-mono text-slate-400">
+                  Key: {cartoApiKey ? `${cartoApiKey.slice(0, 10)}...` : 'None'}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 max-w-xl">
+              <input
+                type="text"
+                value={cartoApiKey}
+                onChange={(e) => {
+                  setCartoApiKey(e.target.value)
+                  setCartoRemoved(false)
+                }}
+                placeholder="Enter CARTO API key (or leave empty to use clean free dark tiles)"
+                className="flex-1 bg-[#071014] border border-white/10 rounded-xl px-4 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#b8f55e] transition"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setMapSettingMsg('CARTO API Key updated and verified.')
+                  setTimeout(() => setMapSettingMsg(null), 4000)
+                }}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition"
+              >
+                Save Key
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCartoApiKey('')
+                  setCartoRemoved(true)
+                  setSelectedMapEngine('dark_cyber')
+                  setMapSettingMsg('CARTO tiles removed. Switched to Watermark-Free Dark Cyber Canvas!')
+                  setTimeout(() => setMapSettingMsg(null), 4000)
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 text-xs font-semibold transition flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="size-3.5" />
+                Remove CARTO
+              </button>
+            </div>
+          </div>
+        </div>
         <div className="p-6 rounded-2xl bg-[#0a1718] border border-white/10 space-y-5">
           <div className="flex items-center gap-2 border-b border-white/5 pb-3">
             <KeyRound className="w-5 h-5 text-[#b8f55e]" />

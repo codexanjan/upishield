@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
-import { QrCode, Download, Share2, Copy, Check, Sparkles } from 'lucide-react'
+import {
+  QrCode,
+  Download,
+  Share2,
+  Copy,
+  Check,
+  ShieldCheck
+} from 'lucide-react'
 import { MerchantLayout } from '@/components/layout/merchant-layout'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
 
@@ -129,7 +136,7 @@ export default function MerchantQrPage() {
           <div className="rounded-3xl border border-[#0B1B2D] bg-[#091726] p-6 shadow-xl flex flex-col items-center justify-center text-center">
             <div className="w-full max-w-xs p-6 rounded-3xl bg-white shadow-2xl border-4 border-[#5BD6FF]/40 text-[#06101D]">
               <div className="flex items-center justify-center gap-1.5 font-bold text-sm text-[#438EFF] uppercase tracking-wider mb-2 font-mono">
-                <Sparkles className="size-4" /> UPIGuard Pay
+                <ShieldCheck className="size-4" /> UPIGuard Pay
               </div>
               <h4 className="font-extrabold text-lg text-slate-900">{merchant.name}</h4>
               <p className="text-xs font-mono text-slate-500 mb-4">{merchant.upiId}</p>
@@ -157,3 +164,5 @@ export default function MerchantQrPage() {
     </MerchantLayout>
   )
 }
+
+

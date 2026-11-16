@@ -24,6 +24,7 @@ import {
 import { UserLayout } from '@/components/layout/user-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import RealGoogleMap, { MapMarkerItem } from '@/components/maps/real-google-map'
+import { SecurityActionModal } from '@/components/security/security-action-modal'
 
 
 export default function UserLocationHistoryPage() {
@@ -41,6 +42,7 @@ export default function UserLocationHistoryPage() {
   })
 
   const [showNewLocModal, setShowNewLocModal] = useState(true)
+  const [securityModalOpen, setSecurityModalOpen] = useState(false)
 
   return (
     <UserLayout>
@@ -127,12 +129,12 @@ export default function UserLocationHistoryPage() {
                 >
                   Report Transaction
                 </Link>
-                <Link
-                  href="/dashboard/settings"
+                <button
+                  onClick={() => setSecurityModalOpen(true)}
                   className="px-3.5 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium text-slate-300 transition"
                 >
                   Secure Account
-                </Link>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -489,6 +491,21 @@ export default function UserLocationHistoryPage() {
             })}
           </div>
         </div>
+
+        {/* Security Action Modal */}
+        <SecurityActionModal
+          isOpen={securityModalOpen}
+          onClose={() => setSecurityModalOpen(false)}
+          type="device_lockdown"
+          data={{
+            deviceId: 'DEV-A782',
+            location: 'Delhi, India',
+            ip: '49.36.128.91',
+            time: 'Today 10:38 AM',
+            reason: 'Concurrent session anomaly: Transacted from Delhi while registered phone was in Bengaluru',
+            amount: '28,000'
+          }}
+        />
       </div>
     </UserLayout>
   )

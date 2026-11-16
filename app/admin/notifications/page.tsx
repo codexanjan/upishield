@@ -16,63 +16,105 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
+import { useUPIGuardStore, INITIAL_APP_NOTIFICATIONS } from '@/lib/upiguard-store'
+import { useAppStore } from '@/lib/store'
 import { MotionWordReveal, MotionBadge } from '@/components/motion/animated-text'
 
 export default function AdminNotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const storeNotifs = useUPIGuardStore((s) => s.notifications)
+  const markAllInStore = useUPIGuardStore((s) => s.markAllNotificationsRead)
+  const markOneInStore = useUPIGuardStore((s) => s.markNotificationRead)
+  const { setUnreadCount } = useAppStore()
+
+  const [notifications, setNotifications] = useState<any[]>(() => {
+    const list = storeNotifs && storeNotifs.length > 0 ? storeNotifs : INITIAL_APP_NOTIFICATIONS
+    return (list || [])
+      .filter((n) => n.recipientRole === 'ADMIN' || n.recipientRole === 'ALL')
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type || 'Operational Alert',
+        link: n.link || '/admin/alerts',
+        is_read: n.isRead,
+        created_at: n.createdAt
+      }))
+  })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchNotifications()
-  }, [])
+  }, [storeNotifs])
 
   const fetchNotifications = async () => {
     try {
       setLoading(true)
       const data = await apiRequest('/notifications')
-      if (Array.isArray(data) && data.length > 0) {
-        setNotifications(data)
+      const apiList = Array.isArray(data) && data.length > 0 ? data : []
+
+      const mappedStoreList = (storeNotifs || [])
+        .filter((n) => n.recipientRole === 'ADMIN' || n.recipientRole === 'ALL')
+        .map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          type: n.type || 'Operational Alert',
+          link: n.link || '/admin/alerts',
+          is_read: n.isRead,
+          created_at: n.createdAt
+        }))
+
+      const combined = [...mappedStoreList]
+      apiList.forEach((an: any) => {
+        if (!combined.some((c) => String(c.id) === String(an.id) || c.title === an.title)) {
+          combined.push(an)
+        }
+      })
+
+      if (combined.length === 0) {
+        setNotifications([
+          {
+            id: 'adm_1',
+            title: 'Impossible Travel Velocity Flagged',
+            message: 'User Anjan Sharma transacted in Bengaluru at 09:02 and Delhi at 09:24 (~1,700 km in 22 mins).',
+            type: 'Location Conflict',
+            link: '/admin/alerts',
+            is_read: false,
+            created_at: new Date(Date.now() - 3600000 * 1).toISOString()
+          },
+          {
+            id: 'adm_2',
+            title: 'New High Priority Fraud Report',
+            message: 'User Anjan Sharma filed an incident report REP-2026-000012 for ₹18,500.',
+            type: 'New Fraud Report',
+            link: '/admin/cases?id=1',
+            is_read: false,
+            created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+          },
+          {
+            id: 'adm_3',
+            title: 'Suspect VPA Threshold Warning',
+            message: 'VPA scammer.refund@okaxis has reached 12 reports, surpassing threshold (3).',
+            type: 'Reported UPI reaches threshold',
+            link: '/admin/reported-upi',
+            is_read: false,
+            created_at: new Date(Date.now() - 3600000 * 6).toISOString()
+          }
+        ])
       } else {
-        throw new Error('Fallback')
+        setNotifications(combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
       }
     } catch {
       // offline fallback
       setNotifications([
         {
-          id: 1,
+          id: 'adm_fb_1',
           title: 'Impossible Travel Velocity Flagged',
           message: 'User Anjan Sharma transacted in Bengaluru at 09:02 and Delhi at 09:24 (~1,700 km in 22 mins).',
           type: 'Location Conflict',
           link: '/admin/alerts',
           is_read: false,
           created_at: new Date(Date.now() - 3600000 * 1).toISOString()
-        },
-        {
-          id: 2,
-          title: 'New High Priority Fraud Report',
-          message: 'User Anjan Sharma filed an incident report REP-2026-000012 for ₹18,500.',
-          type: 'New Fraud Report',
-          link: '/admin/cases?id=1',
-          is_read: false,
-          created_at: new Date(Date.now() - 3600000 * 2).toISOString()
-        },
-        {
-          id: 3,
-          title: 'Suspect VPA Threshold Warning',
-          message: 'VPA scammer.refund@okaxis has reached 12 reports, surpassing threshold (3).',
-          type: 'Reported UPI reaches threshold',
-          link: '/admin/reported-upi',
-          is_read: false,
-          created_at: new Date(Date.now() - 3600000 * 6).toISOString()
-        },
-        {
-          id: 4,
-          title: 'Evidence Uploaded by Complainant',
-          message: 'Debit SMS screenshot uploaded on case CASE-2026-00421. SHA-256 integrity verified.',
-          type: 'New Evidence',
-          link: '/admin/cases?id=1',
-          is_read: true,
-          created_at: new Date(Date.now() - 3600000 * 18).toISOString()
         }
       ])
     } finally {
@@ -80,8 +122,25 @@ export default function AdminNotificationsPage() {
     }
   }
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    try {
+      await apiRequest('/notifications/read-all', { method: 'POST' })
+    } catch {}
+    markAllInStore('ADMIN')
     setNotifications((prev) => (prev || []).map((n) => ({ ...n, is_read: true })))
+    setUnreadCount(0)
+  }
+
+  const markOneRead = async (id: any) => {
+    try {
+      await apiRequest(`/notifications/${id}/read`, { method: 'PATCH' })
+    } catch {}
+    markOneInStore(String(id))
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+    )
+    const remainingUnread = notifications.filter((n) => n.id !== id && !n.is_read).length
+    setUnreadCount(remainingUnread)
   }
 
   return (
@@ -162,14 +221,26 @@ export default function AdminNotificationsPage() {
                     </div>
                   </div>
 
-                  {n.link && (
-                    <Link
-                      href={n.link}
-                      className="px-3 py-1.5 rounded-lg bg-[#071014] hover:bg-white/5 border border-white/10 text-xs font-semibold text-[#b8f55e] transition flex items-center gap-1 shrink-0"
-                    >
-                      Inspect <ExternalLink className="size-3" />
-                    </Link>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {n.link && (
+                      <Link
+                        href={n.link}
+                        onClick={() => !n.is_read && markOneRead(n.id)}
+                        className="px-3 py-1.5 rounded-lg bg-[#071014] hover:bg-white/5 border border-white/10 text-xs font-semibold text-[#b8f55e] transition flex items-center gap-1"
+                      >
+                        Inspect <ExternalLink className="size-3" />
+                      </Link>
+                    )}
+                    {!n.is_read && (
+                      <button
+                        onClick={() => markOneRead(n.id)}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition"
+                        title="Mark as Read"
+                      >
+                        <CheckCircle2 className="size-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })

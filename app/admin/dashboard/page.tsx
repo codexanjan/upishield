@@ -28,8 +28,7 @@ import {
   Smartphone,
   Eye,
   KanbanSquare,
-  ArrowRight,
-  Sparkles
+  ArrowRight
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
@@ -107,16 +106,22 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 font-mono">
               <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
               Live Platform Engine
             </span>
             <Link
-              href="/admin/payment-map"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#b8f55e] px-4 py-2 text-xs font-semibold text-[#071014] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/20"
+              href="/pay"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-[#b8f55e] px-3.5 py-2 text-xs font-bold text-[#071014] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/25"
             >
-              <MapPin className="size-3.5" /> Live Map
+              <Send className="size-3.5" /> Send UPI
+            </Link>
+            <Link
+              href="/admin/payment-map"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 text-xs font-semibold text-white transition shadow-sm"
+            >
+              <MapPin className="size-3.5 text-[#b8f55e]" /> Live Map
             </Link>
           </div>
         </div>
@@ -269,6 +274,8 @@ export default function AdminDashboardPage() {
                       lat: 12.9716,
                       lng: 77.5946,
                       risk: 'critical',
+                      riskScore: 94,
+                      riskLevel: 'CRITICAL',
                       status: '128 Reports',
                       amount: 840000,
                       city: 'Bengaluru'
@@ -280,6 +287,8 @@ export default function AdminDashboardPage() {
                       lat: 28.6139,
                       lng: 77.2090,
                       risk: 'critical',
+                      riskScore: 98,
+                      riskLevel: 'CRITICAL',
                       status: '94 Reports',
                       amount: 1420000,
                       city: 'Delhi'
@@ -291,6 +300,8 @@ export default function AdminDashboardPage() {
                       lat: 19.0760,
                       lng: 72.8777,
                       risk: 'high',
+                      riskScore: 78,
+                      riskLevel: 'HIGH',
                       status: '78 Reports',
                       amount: 610000,
                       city: 'Mumbai'
@@ -302,6 +313,8 @@ export default function AdminDashboardPage() {
                       lat: 22.5726,
                       lng: 88.3639,
                       risk: 'medium',
+                      riskScore: 42,
+                      riskLevel: 'MEDIUM',
                       status: '42 Reports',
                       amount: 290000,
                       city: 'Kolkata'
@@ -488,3 +501,5 @@ export default function AdminDashboardPage() {
     </AdminLayout>
   )
 }
+
+

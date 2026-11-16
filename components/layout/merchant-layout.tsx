@@ -14,7 +14,6 @@ import {
   LogOut,
   Menu,
   X,
-  Sparkles,
   RefreshCw,
   Bell,
   CheckCircle2,
@@ -24,6 +23,7 @@ import {
   Laptop
 } from 'lucide-react'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function MerchantLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -142,6 +142,9 @@ export function MerchantLayout({ children }: { children: React.ReactNode }) {
               </span>
             </div>
 
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Quick Switch to User / Admin Portal */}
             <div className="flex items-center gap-1 border-l border-white/10 pl-2">
               <Link
@@ -178,3 +181,5 @@ export function MerchantLayout({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+

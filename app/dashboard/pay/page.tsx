@@ -23,7 +23,6 @@ import {
   ThumbsDown,
   Copy,
   Check,
-  Sparkles,
   Info,
   MapPin,
   Clock,
@@ -87,8 +86,8 @@ export default function SendUpiPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
-      const u = params.get('receiver_upi')
-      const n = params.get('receiver_name')
+      const u = params.get('receiver_upi') || params.get('recipient')
+      const n = params.get('receiver_name') || params.get('name')
       const a = params.get('amount')
       if (u) setReceiverUpi(decodeURIComponent(u))
       if (n) setReceiverName(decodeURIComponent(n))
@@ -348,7 +347,7 @@ export default function SendUpiPage() {
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Sparkles className="size-4" /> UPIGuard AI Simulator (Live Viva Demonstration)
+            <ShieldCheck className="size-4" /> UPIGuard AI Simulator (Live Viva Demonstration)
           </button>
           <button
             onClick={() => setFlowMode('legacy_intent')}
@@ -905,7 +904,7 @@ export default function SendUpiPage() {
               {simulationState !== 'idle' && simulationState !== 'completed' && (
                 <div className="p-3 rounded-xl border border-white/10 bg-black/40 text-xs space-y-2">
                   <div className="flex items-center gap-2 text-[#b8f55e]">
-                    <Sparkles className="size-4 animate-spin" />
+                    <Activity className="size-4 animate-spin" />
                     <span>
                       {simulationState === 'logging_ledger' && 'Step 1/3: Writing transaction event to immutable ledger...'}
                       {simulationState === 'recording_ai' && 'Step 2/3: Recording risk outcome & SHAP vectors in centralized intelligence DB...'}
@@ -1008,3 +1007,4 @@ export default function SendUpiPage() {
     </UserLayout>
   )
 }
+

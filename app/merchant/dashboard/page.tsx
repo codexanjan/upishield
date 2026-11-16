@@ -8,11 +8,10 @@ import {
   Store,
   QrCode,
   IndianRupee,
-  Sparkles,
+  ShieldCheck,
   ArrowRight,
   CheckCircle2,
   Clock,
-  ShieldCheck,
   AlertTriangle,
   RotateCcw,
   Copy,
@@ -440,3 +439,5 @@ export default function MerchantDashboardPage() {
     </MerchantLayout>
   )
 }
+
+

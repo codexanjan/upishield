@@ -33,6 +33,11 @@ export function middleware(request: NextRequest) {
 
   // Protected User Dashboard Routes (/dashboard/*)
   if (pathname.startsWith('/dashboard')) {
+    // Allow /dashboard/pay publicly so Send UPI simulation works without forcing login redirect
+    if (pathname === '/dashboard/pay') {
+      return NextResponse.next()
+    }
+
     // If not authenticated, redirect to User Login
     if (!session || !session.authenticated) {
       const url = request.nextUrl.clone()

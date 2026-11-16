@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Sparkles, Brain, Cpu, ShieldAlert, BarChart3, Info, ArrowUpRight } from 'lucide-react'
+import { ShieldCheck, Brain, Cpu, ShieldAlert, BarChart3, Info, ArrowUpRight } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { MODEL_PERFORMANCE_METRICS } from '@/lib/ai-fraud-engine'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
@@ -35,7 +35,7 @@ export default function AdminExplainabilityPage() {
             SHAP (SHapley Additive exPlanations)
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-2 flex items-center gap-3">
-            <Sparkles className="size-8 text-[#5BD6FF]" />
+            <ShieldCheck className="size-8 text-[#5BD6FF]" />
             Explainable AI (XAI) & Attribution
           </h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -132,3 +132,4 @@ export default function AdminExplainabilityPage() {
     </AdminLayout>
   )
 }
+

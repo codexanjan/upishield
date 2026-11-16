@@ -9,7 +9,7 @@ import {
   Building,
   Plane,
   Gem,
-  Sparkles,
+  Car,
   Plus,
   ArrowRight,
   ShieldCheck,
@@ -52,7 +52,7 @@ export default function MajorPurchasesPage() {
 
   const getCategoryIcon = (cat: string) => {
     const c = cat.toLowerCase()
-    if (c.includes('vehic') || c.includes('car')) return <Sparkles className="size-5 text-amber-400" />
+    if (c.includes('vehic') || c.includes('car')) return <Car className="size-5 text-amber-400" />
     if (c.includes('elec') || c.includes('laptop')) return <Laptop className="size-5 text-blue-400" />
     if (c.includes('edu')) return <GraduationCap className="size-5 text-purple-400" />
     if (c.includes('prop')) return <Building className="size-5 text-emerald-400" />

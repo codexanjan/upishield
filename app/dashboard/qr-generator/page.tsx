@@ -8,7 +8,7 @@ import {
   Copy,
   Share2,
   Check,
-  Sparkles,
+  ShieldCheck,
   Smartphone
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
@@ -224,3 +224,5 @@ export default function QrGeneratorPage() {
     </UserLayout>
   )
 }
+
+

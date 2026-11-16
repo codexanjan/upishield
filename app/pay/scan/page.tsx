@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  Sparkles,
   QrCode,
   Store
 } from 'lucide-react'
@@ -185,7 +184,7 @@ export default function PayScanPage() {
                   onClick={handleUseActiveMerchantRequest}
                   className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#438EFF]/20 to-[#5BD6FF]/20 border border-[#5BD6FF]/40 text-[#5BD6FF] text-xs font-bold hover:brightness-110 transition flex items-center justify-center gap-2"
                 >
-                  <Sparkles className="size-4" />
+                  <ShieldCheck className="size-4" />
                   DETECT ABC ELECTRONICS QR (₹5,000 Viva Demo)
                 </button>
 
@@ -326,3 +325,5 @@ export default function PayScanPage() {
     </div>
   )
 }
+
+

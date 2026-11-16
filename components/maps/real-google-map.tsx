@@ -23,12 +23,15 @@ import {
   Filter,
   Flame,
   Globe,
-  Radio
+  Radio,
+  Wifi,
+  WifiOff,
+  Radar
 } from 'lucide-react'
 import { SecurityActionModal } from '@/components/security/security-action-modal'
 
 export const CARTO_API_KEY =
-  process.env.NEXT_PUBLIC_CARTO_API_KEY || 'cb1_49gu_1_ab03dc5fb9756871336ffc31'
+  process.env.NEXT_PUBLIC_CARTO_API_KEY || 'cb1_4l2w_1_c04473e1984c633bf7453355'
 
 export interface MapMarkerItem {
   id: string
@@ -50,7 +53,6 @@ export interface MapMarkerItem {
 }
 
 export type MapMarker = MapMarkerItem
-
 
 interface RealGoogleMapProps {
   markers?: MapMarkerItem[]
@@ -112,11 +114,50 @@ export function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: n
   return Math.round(R * c)
 }
 
+// City & Risk Resolution Helpers (Prevents any 'undefined' rendering)
+export function resolveMarkerCity(m: any): string {
+  if (m?.city && String(m.city).trim() && m.city !== 'undefined') return String(m.city).trim()
+  if (m?.area && String(m.area).trim() && m.area !== 'undefined') return String(m.area).trim()
+  if (m?.title && typeof m.title === 'string') {
+    if (m.title.includes('•')) return m.title.split('•')[0].trim()
+    if (m.title.includes('Threat Cluster')) return m.title.replace('Threat Cluster', '').trim()
+    if (m.title.includes('(') && m.title.includes(')')) {
+      const match = m.title.match(/\(([^)]+)\)/)
+      if (match) return match[1].trim()
+    }
+    return m.title.trim()
+  }
+  return 'Bengaluru'
+}
+
+export function resolveMarkerScore(m: any): number {
+  if (typeof m?.riskScore === 'number' && !isNaN(m.riskScore)) return m.riskScore
+  const rawRisk = String(m?.riskLevel || m?.risk || '').toLowerCase()
+  if (rawRisk.includes('crit')) return 96
+  if (rawRisk.includes('high')) return 78
+  if (rawRisk.includes('med') || rawRisk.includes('rev')) return 48
+  if (typeof m?.amount === 'number' && m.amount > 50000) return 85
+  return 12
+}
+
+export function resolveMarkerLevel(m: any): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+  if (m?.riskLevel && ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(m.riskLevel)) return m.riskLevel
+  const rawRisk = String(m?.risk || '').toLowerCase()
+  if (rawRisk.includes('crit')) return 'CRITICAL'
+  if (rawRisk.includes('high')) return 'HIGH'
+  if (rawRisk.includes('med') || rawRisk.includes('rev')) return 'MEDIUM'
+  const score = resolveMarkerScore(m)
+  if (score >= 75) return 'CRITICAL'
+  if (score >= 50) return 'HIGH'
+  if (score >= 25) return 'MEDIUM'
+  return 'LOW'
+}
+
 export function RealGoogleMap({
   markers = [],
   selectedMarkerId,
   onSelectMarker,
-  center = [20.5937, 78.9629], // Center of India
+  center = [20.5937, 78.9629],
   zoom = 5,
   height = '520px',
   title = 'Geospatial Location Intelligence Map',
@@ -133,9 +174,11 @@ export function RealGoogleMap({
   const customPinRef = useRef<any>(null)
 
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [viewMode, setViewMode] = useState<'map' | 'radar'>('map')
+  const [tileError, setTileError] = useState(false)
   const [mapLayer, setMapLayer] = useState<
-    'carto_dark' | 'carto_voyager' | 'carto_positron' | 'satellite' | 'street' | 'dark'
-  >('carto_dark')
+    'dark_cyber' | 'satellite' | 'street' | 'osm' | 'carto_dark' | 'carto_voyager' | 'carto_positron'
+  >('dark_cyber')
   const [quarantineModalOpen, setQuarantineModalOpen] = useState(false)
   const [activeMarker, setActiveMarker] = useState<MapMarkerItem | null>(null)
   const [clickedCoord, setClickedCoord] = useState<{ lat: number; lng: number } | null>(null)
@@ -143,23 +186,32 @@ export function RealGoogleMap({
   const [searchQuery, setSearchQuery] = useState('')
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
 
-  // Sync external selectedMarkerId with internal state
   useEffect(() => {
     if (selectedMarkerId) {
       const match = markers.find((m) => m.id === selectedMarkerId)
       if (match) {
         setActiveMarker(match)
-        if (mapInstanceRef.current) {
+        if (mapInstanceRef.current && viewMode === 'map') {
           mapInstanceRef.current.flyTo([match.lat, match.lng], 13, { duration: 1.2 })
         }
       }
     }
-  }, [selectedMarkerId, markers])
+  }, [selectedMarkerId, markers, viewMode])
 
-  // Filter markers
+  // Filter markers and ensure 100% defined metadata
   const filteredMarkers = useMemo(() => {
-    return markers.filter((m) => {
-      if (sourceFilter !== 'ALL' && m.source !== sourceFilter) return false
+    return markers.map((m) => {
+      const city = resolveMarkerCity(m)
+      const riskScore = resolveMarkerScore(m)
+      const riskLevel = resolveMarkerLevel(m)
+      return {
+        ...m,
+        city,
+        riskScore,
+        riskLevel
+      }
+    }).filter((m) => {
+      if (sourceFilter !== 'ALL' && m.source && m.source !== sourceFilter) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         return (
@@ -172,16 +224,27 @@ export function RealGoogleMap({
     })
   }, [markers, sourceFilter, searchQuery])
 
+  // Tile layer sources (Watermark-free high-definition dark mode and satellite endpoints)
+  const tileLayers: Record<string, string> = {
+    dark_cyber: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    carto_dark: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    carto_voyager: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    carto_positron: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    satellite: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    street: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
+  }
+
   // Initialize Leaflet Map
   useEffect(() => {
+    if (viewMode !== 'map') return
     let isMounted = true
 
-    // Dynamically inject Leaflet CSS and JS
     const loadLeaflet = async () => {
       if (typeof window === 'undefined') return
 
       if (!(window as any).L) {
-        // Load CSS
+        // Load Leaflet CSS
         if (!document.getElementById('leaflet-css')) {
           const link = document.createElement('link')
           link.id = 'leaflet-css'
@@ -191,7 +254,7 @@ export function RealGoogleMap({
           document.head.appendChild(link)
         }
 
-        // Load JS
+        // Load Leaflet JS
         await new Promise<void>((resolve, reject) => {
           if (document.getElementById('leaflet-js')) {
             const checkL = setInterval(() => {
@@ -207,7 +270,11 @@ export function RealGoogleMap({
           script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
           script.crossOrigin = ''
           script.onload = () => resolve()
-          script.onerror = reject
+          script.onerror = () => {
+            // If Leaflet script fails to load from CDN, fallback to Cyber Radar Grid automatically
+            setViewMode('radar')
+            resolve()
+          }
           document.body.appendChild(script)
         })
       }
@@ -215,6 +282,11 @@ export function RealGoogleMap({
       if (!isMounted || !mapContainerRef.current) return
 
       const L = (window as any).L
+      if (!L) {
+        setViewMode('radar')
+        return
+      }
+
       leafletRef.current = L
 
       if (mapInstanceRef.current) {
@@ -228,25 +300,18 @@ export function RealGoogleMap({
         attributionControl: false
       })
 
-      // Layer providers:
-      // CARTO Basemaps API (Dark Matter, Voyager, Positron) authenticated with key
-      // Google Satellite via Google Maps tile servers
-      // Google Maps Roadmap
-      const tileLayers: Record<string, string> = {
-        carto_dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-        carto_voyager: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-        carto_positron: `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-        dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-        satellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        street: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-        terrain: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'
-      }
+      const targetUrl = tileLayers[mapLayer] || tileLayers.dark_cyber
 
-      const activeTileLayer = L.tileLayer(tileLayers[mapLayer] || tileLayers.carto_dark, {
+      const activeTileLayer = L.tileLayer(targetUrl, {
         maxZoom: 19,
         subdomains: 'abcd',
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
       }).addTo(map)
+
+      // Listen for tile errors
+      activeTileLayer.on('tileerror', () => {
+        setTileError(true)
+      })
 
       mapInstanceRef.current = map
       ;(map as any)._activeTileLayer = activeTileLayer
@@ -262,7 +327,6 @@ export function RealGoogleMap({
           const lng = parseFloat(e.latlng.lng.toFixed(6))
           setClickedCoord({ lat, lng })
 
-          // Add a pulsating temporary pin
           if (customPinRef.current) {
             markerGroup.removeLayer(customPinRef.current)
           }
@@ -287,7 +351,9 @@ export function RealGoogleMap({
       setMapLoaded(true)
     }
 
-    loadLeaflet().catch(console.error)
+    loadLeaflet().catch(() => {
+      setViewMode('radar')
+    })
 
     return () => {
       isMounted = false
@@ -296,11 +362,11 @@ export function RealGoogleMap({
         mapInstanceRef.current = null
       }
     }
-  }, [])
+  }, [viewMode])
 
-  // Switch Layer
+  // Switch Layer in Leaflet
   useEffect(() => {
-    if (!mapInstanceRef.current || !leafletRef.current) return
+    if (viewMode !== 'map' || !mapInstanceRef.current || !leafletRef.current) return
     const L = leafletRef.current
     const map = mapInstanceRef.current
 
@@ -308,33 +374,27 @@ export function RealGoogleMap({
       map.removeLayer((map as any)._activeTileLayer)
     }
 
-    const tileLayers: Record<string, string> = {
-      carto_dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-      carto_voyager: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-      carto_positron: `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-      dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`,
-      satellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-      street: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-      terrain: 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'
-    }
-
-    const newLayer = L.tileLayer(tileLayers[mapLayer] || tileLayers.carto_dark, {
+    const targetUrl = tileLayers[mapLayer] || tileLayers.dark_cyber
+    const newLayer = L.tileLayer(targetUrl, {
       maxZoom: 19,
       subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(map)
 
-    ;(map as any)._activeTileLayer = newLayer
-  }, [mapLayer])
+    newLayer.on('tileerror', () => {
+      setTileError(true)
+    })
 
-  // Plot and update markers
+    ;(map as any)._activeTileLayer = newLayer
+  }, [mapLayer, viewMode])
+
+  // Plot and update markers in Leaflet
   useEffect(() => {
-    if (!mapLoaded || !mapInstanceRef.current || !markersGroupRef.current || !leafletRef.current) return
+    if (viewMode !== 'map' || !mapLoaded || !mapInstanceRef.current || !markersGroupRef.current || !leafletRef.current) return
     const L = leafletRef.current
     const group = markersGroupRef.current
     group.clearLayers()
 
-    // Re-add custom click pin if exists
     if (clickedCoord && customPinRef.current) {
       customPinRef.current.addTo(group)
     }
@@ -343,35 +403,44 @@ export function RealGoogleMap({
       const isCritical = marker.riskLevel === 'CRITICAL' || marker.riskScore >= 75
       const isHigh = marker.riskLevel === 'HIGH' || (marker.riskScore >= 50 && marker.riskScore < 75)
       const isMedium = marker.riskLevel === 'MEDIUM' || (marker.riskScore >= 25 && marker.riskScore < 50)
-      const isSafe = !isCritical && !isHigh && !isMedium
 
       const color = isCritical
-        ? '#f43f5e' // Rose red
+        ? '#f43f5e'
         : isHigh
-        ? '#f59e0b' // Amber
-        : isMedium
-        ? '#38bdf8' // Cyan
-        : '#b8f55e' // Neon Green
-
-      const pulseColor = isCritical
-        ? 'rgba(244, 63, 94, 0.45)'
-        : isHigh
-        ? 'rgba(245, 158, 11, 0.45)'
-        : 'rgba(184, 245, 94, 0.35)'
+          ? '#f59e0b'
+          : isMedium
+            ? '#38bdf8'
+            : '#b8f55e'
 
       const markerIcon = L.divIcon({
         className: 'real-map-marker-pin',
         html: `
           <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-            <div style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background: ${pulseColor}; animation: pulse 2s infinite;"></div>
-            <div style="width: 22px; height: 22px; border-radius: 50%; background: #071014; border: 2.5px solid ${color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px ${color};">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: ${color};"></div>
-            </div>
             ${
-              marker.amount
-                ? `<div style="position: absolute; top: -14px; background: rgba(7, 16, 20, 0.85); color: ${color}; font-size: 9px; font-weight: bold; font-family: monospace; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;">₹${marker.amount >= 100000 ? `${(marker.amount / 100000).toFixed(1)}L` : marker.amount.toLocaleString('en-IN')}</div>`
+              isCritical
+                ? `<div style="position: absolute; inset: -4px; border-radius: 50%; background: rgba(244, 63, 94, 0.35); animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>`
                 : ''
             }
+            <div style="
+              width: 26px;
+              height: 26px;
+              border-radius: 50%;
+              background: #071014;
+              border: 2px solid ${color};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 0 12px ${color};
+              color: ${color};
+              font-family: monospace;
+              font-size: 10px;
+              font-weight: bold;
+            ">
+              ${marker.riskScore}
+            </div>
+            <div style="position: absolute; top: -14px; background: rgba(7, 16, 20, 0.95); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 1px 4px; font-size: 8px; font-weight: bold; color: #fff; white-space: nowrap; pointer-events: none;">
+              ${marker.city}
+            </div>
           </div>
         `,
         iconSize: [34, 34],
@@ -387,7 +456,7 @@ export function RealGoogleMap({
         mapInstanceRef.current.flyTo([marker.lat, marker.lng], 12, { duration: 0.8 })
       })
     })
-  }, [filteredMarkers, mapLoaded])
+  }, [filteredMarkers, mapLoaded, viewMode])
 
   const handleCopyCoord = (lat: number, lng: number) => {
     navigator.clipboard.writeText(`${lat.toFixed(6)}, ${lng.toFixed(6)}`)
@@ -396,17 +465,29 @@ export function RealGoogleMap({
   }
 
   const handleFlyTo = (lat: number, lng: number, zoomLevel = 12) => {
-    if (mapInstanceRef.current) {
+    if (viewMode === 'map' && mapInstanceRef.current) {
       mapInstanceRef.current.flyTo([lat, lng], zoomLevel, { duration: 1 })
     }
   }
 
   const resetView = () => {
-    if (mapInstanceRef.current) {
+    if (viewMode === 'map' && mapInstanceRef.current) {
       mapInstanceRef.current.flyTo(center, zoom, { duration: 1 })
-      setActiveMarker(null)
-      setClickedCoord(null)
     }
+    setActiveMarker(null)
+    setClickedCoord(null)
+  }
+
+  // Radar Node Coordinates Projection (Map India relative to Center [20.5937, 78.9629])
+  const projectToRadar = (lat: number, lng: number) => {
+    const centerLat = 20.5937
+    const centerLng = 78.9629
+    // Range scale: ~14 degrees radius mapped to 42% SVG radius
+    const deltaX = (lng - centerLng) * 2.8
+    const deltaY = (centerLat - lat) * 2.8
+    const x = Math.max(8, Math.min(92, 50 + deltaX))
+    const y = Math.max(8, Math.min(92, 50 + deltaY))
+    return { x, y }
   }
 
   return (
@@ -415,24 +496,30 @@ export function RealGoogleMap({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0a1718]/90 px-4 py-3 backdrop-blur-md z-10 relative">
         <div className="flex items-center gap-2.5">
           <div className="grid size-8 place-items-center rounded-xl bg-[#b8f55e]/15 text-[#b8f55e] border border-[#b8f55e]/20">
-            <Globe className="size-4 animate-spin-slow" />
+            {viewMode === 'radar' ? (
+              <Radio className="size-4 animate-pulse text-[#b8f55e]" />
+            ) : (
+              <Globe className="size-4 animate-spin-slow" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-xs font-bold tracking-tight text-white">{title}</h3>
               <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-mono font-bold text-emerald-400">
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
-                CARTO APIS ACTIVE · cb1_49gu...fc31
+                {viewMode === 'radar' ? 'CYBER RADAR ENGINE ACTIVE' : 'GEOSPATIAL TILE ENGINE ACTIVE'}
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-mono">
-              Live Coordinate Pointing · CARTO Basemaps + Google Satellite Telemetry
+              {viewMode === 'radar'
+                ? 'Zero-Dependency Vector Telemetry · 100% Offline Resilient'
+                : 'High-Definition Watermark-Free Dark Cyber Canvas + Satellite'}
             </p>
           </div>
         </div>
 
-        {/* Right side toggles: Search, Layers, Filters */}
-        <div className="flex items-center gap-2">
+        {/* Controls: Search, View Mode, Layer Toggles */}
+        <div className="flex flex-wrap items-center gap-2">
           {showSearch && (
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
@@ -441,47 +528,58 @@ export function RealGoogleMap({
                 placeholder="Search city, payee, or coord..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 sm:w-64 rounded-xl border border-white/10 bg-[#071014] pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:border-[#b8f55e] focus:outline-none transition"
+                className="w-40 sm:w-56 rounded-xl border border-white/10 bg-[#071014] pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:border-[#b8f55e] focus:outline-none transition"
               />
             </div>
           )}
 
-          {showLayers && (
-            <div className="flex rounded-xl border border-white/10 bg-[#071014] p-1 text-[11px] font-semibold overflow-x-auto">
+          {/* View Mode Toggle: Interactive Map vs Cyber Vector Radar */}
+          <div className="flex rounded-xl border border-white/10 bg-[#071014] p-1 text-[11px] font-semibold">
+            <button
+              onClick={() => {
+                setViewMode('map')
+                setTileError(false)
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
+                viewMode === 'map'
+                  ? 'bg-[#b8f55e] text-[#071014] font-bold shadow-md shadow-[#b8f55e]/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Globe className="size-3.5" />
+              <span>Map Tiles</span>
+            </button>
+            <button
+              onClick={() => setViewMode('radar')}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
+                viewMode === 'radar'
+                  ? 'bg-gradient-to-r from-emerald-400 to-[#b8f55e] text-[#071014] font-bold shadow-md shadow-[#b8f55e]/25'
+                  : 'text-[#b8f55e]/80 hover:text-[#b8f55e]'
+              }`}
+            >
+              <Radio className="size-3.5" />
+              <span>Cyber Radar (Offline Grid)</span>
+            </button>
+          </div>
+
+          {showLayers && viewMode === 'map' && (
+            <div className="hidden sm:flex rounded-xl border border-white/10 bg-[#071014] p-1 text-[11px] font-semibold overflow-x-auto">
               <button
-                onClick={() => setMapLayer('carto_dark')}
+                onClick={() => setMapLayer('dark_cyber')}
                 className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
-                  mapLayer === 'carto_dark' || mapLayer === 'dark'
+                  mapLayer === 'dark_cyber' || mapLayer === 'carto_dark'
                     ? 'bg-[#b8f55e] text-[#071014] font-bold'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                CARTO Dark
-              </button>
-              <button
-                onClick={() => setMapLayer('carto_voyager')}
-                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
-                  mapLayer === 'carto_voyager'
-                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                CARTO Voyager
-              </button>
-              <button
-                onClick={() => setMapLayer('carto_positron')}
-                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
-                  mapLayer === 'carto_positron'
-                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                CARTO Positron
+                Dark Cyber (Clean)
               </button>
               <button
                 onClick={() => setMapLayer('satellite')}
                 className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
-                  mapLayer === 'satellite' ? 'bg-[#b8f55e] text-[#071014] font-bold' : 'text-slate-400 hover:text-white'
+                  mapLayer === 'satellite'
+                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Satellite
@@ -489,30 +587,46 @@ export function RealGoogleMap({
               <button
                 onClick={() => setMapLayer('street')}
                 className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
-                  mapLayer === 'street' ? 'bg-[#b8f55e] text-[#071014] font-bold' : 'text-slate-400 hover:text-white'
+                  mapLayer === 'street'
+                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Roadmap
+              </button>
+              <button
+                onClick={() => setMapLayer('osm')}
+                className={`rounded-lg px-2.5 py-1 transition whitespace-nowrap ${
+                  mapLayer === 'osm'
+                    ? 'bg-[#b8f55e] text-[#071014] font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                OpenStreetMap
               </button>
             </div>
           )}
 
           {showControls && (
             <div className="flex items-center gap-1 border-l border-white/10 pl-2">
-              <button
-                onClick={() => mapInstanceRef.current?.zoomIn()}
-                className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
-                title="Zoom In"
-              >
-                <ZoomIn className="size-3.5" />
-              </button>
-              <button
-                onClick={() => mapInstanceRef.current?.zoomOut()}
-                className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
-                title="Zoom Out"
-              >
-                <ZoomOut className="size-3.5" />
-              </button>
+              {viewMode === 'map' && (
+                <>
+                  <button
+                    onClick={() => mapInstanceRef.current?.zoomIn()}
+                    className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
+                    title="Zoom In"
+                  >
+                    <ZoomIn className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={() => mapInstanceRef.current?.zoomOut()}
+                    className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
+                    title="Zoom Out"
+                  >
+                    <ZoomOut className="size-3.5" />
+                  </button>
+                </>
+              )}
               <button
                 onClick={resetView}
                 className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition"
@@ -525,12 +639,156 @@ export function RealGoogleMap({
         </div>
       </div>
 
-      {/* Main Map Canvas */}
-      <div
-        ref={mapContainerRef}
-        style={{ height, width: '100%' }}
-        className="relative z-0 bg-[#06101D] cursor-crosshair"
-      />
+      {/* Network Alert / Tile Failure Graceful Warning */}
+      {tileError && viewMode === 'map' && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs text-amber-300">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="size-4 text-amber-400 shrink-0" />
+            <span>Map tile service throttled or blocked by network/adblocker. Switch to OpenStreetMap or Vector Radar:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setMapLayer('osm')
+                setTileError(false)
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-[11px]"
+            >
+              Try OpenStreetMap
+            </button>
+            <button
+              onClick={() => setViewMode('radar')}
+              className="px-2.5 py-1 rounded-lg bg-[#b8f55e] text-[#071014] font-bold text-[11px]"
+            >
+              Switch to Cyber Radar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mode 1: Leaflet Interactive Map View */}
+      {viewMode === 'map' && (
+        <div
+          ref={mapContainerRef}
+          style={{ height, width: '100%' }}
+          className="relative z-0 bg-[#06101D] cursor-crosshair"
+        />
+      )}
+
+      {/* Mode 2: High-Tech Vector Cyber Radar Grid (100% Offline / No Tile Dependency) */}
+      {viewMode === 'radar' && (
+        <div
+          style={{ height, width: '100%' }}
+          className="relative z-0 bg-gradient-to-b from-[#050e14] via-[#071418] to-[#040a0f] overflow-hidden select-none"
+        >
+          {/* Cyber Radial Grid Background Lines */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
+            <defs>
+              <radialGradient id="radarSweepGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#b8f55e" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#071014" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            {/* Concentric distance rings */}
+            <circle cx="50%" cy="50%" r="12%" fill="none" stroke="#b8f55e" strokeWidth="1" strokeDasharray="3 3" opacity="0.3" />
+            <circle cx="50%" cy="50%" r="24%" fill="none" stroke="#b8f55e" strokeWidth="1" opacity="0.4" />
+            <circle cx="50%" cy="50%" r="36%" fill="none" stroke="#b8f55e" strokeWidth="1" strokeDasharray="4 4" opacity="0.4" />
+            <circle cx="50%" cy="50%" r="46%" fill="none" stroke="#b8f55e" strokeWidth="1.5" opacity="0.6" />
+
+            {/* Crosshair lines */}
+            <line x1="50%" y1="2%" x2="50%" y2="98%" stroke="#b8f55e" strokeWidth="1" strokeDasharray="4 4" opacity="0.35" />
+            <line x1="2%" y1="50%" x2="98%" y2="50%" stroke="#b8f55e" strokeWidth="1" strokeDasharray="4 4" opacity="0.35" />
+            <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="#b8f55e" strokeWidth="0.75" strokeDasharray="2 4" opacity="0.2" />
+            <line x1="15%" y1="85%" x2="85%" y2="15%" stroke="#b8f55e" strokeWidth="0.75" strokeDasharray="2 4" opacity="0.2" />
+          </svg>
+
+          {/* Animated Sweeping Radar Beam */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'conic-gradient(from 0deg at 50% 50%, rgba(184, 245, 94, 0.18) 0deg, rgba(184, 245, 94, 0.05) 45deg, transparent 70deg)',
+              animation: 'spin 6s linear infinite'
+            }}
+          />
+
+          {/* Compass Cardinals */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[10px] font-mono font-bold text-[#b8f55e]/70">000° NORTH</div>
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] font-mono font-bold text-[#b8f55e]/70">180° SOUTH</div>
+          <div className="absolute top-1/2 left-3 -translate-y-1/2 text-[10px] font-mono font-bold text-[#b8f55e]/70">270° WEST</div>
+          <div className="absolute top-1/2 right-3 -translate-y-1/2 text-[10px] font-mono font-bold text-[#b8f55e]/70">090° EAST</div>
+
+          {/* Center Point - India Strategic Command Desk */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center">
+            <div className="size-3 rounded-full bg-[#b8f55e] shadow-[0_0_12px_#b8f55e]" />
+            <span className="text-[9px] font-mono text-[#b8f55e] mt-1 bg-black/70 px-1 rounded border border-[#b8f55e]/30">IN-HQ (78.9°E, 20.5°N)</span>
+          </div>
+
+          {/* Major Indian Hub Anchor Nodes */}
+          {Object.entries(CITY_COORDINATES).slice(0, 8).map(([city, coords]) => {
+            const { x, y } = projectToRadar(coords[0], coords[1])
+            const isHubballi = city.toLowerCase().includes('hubli') || city.toLowerCase().includes('hubballi')
+            return (
+              <div
+                key={city}
+                onClick={() => {
+                  setClickedCoord({ lat: coords[0], lng: coords[1] })
+                }}
+                style={{ left: `${x}%`, top: `${y}%` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10"
+              >
+                <div className={`size-2 rounded-full transition-transform group-hover:scale-150 ${isHubballi ? 'bg-cyan-400 shadow-[0_0_8px_#38bdf8]' : 'bg-slate-400'}`} />
+                <span className={`text-[8px] font-mono px-1 rounded opacity-75 group-hover:opacity-100 ${isHubballi ? 'text-cyan-300 font-bold bg-[#071014] border border-cyan-500/40' : 'text-slate-400 bg-black/60'}`}>
+                  {city}
+                </span>
+              </div>
+            )
+          })}
+
+          {/* Interactive Plot of Fraud & Telemetry Markers */}
+          {filteredMarkers.map((marker) => {
+            const { x, y } = projectToRadar(marker.lat, marker.lng)
+            const isCritical = marker.riskLevel === 'CRITICAL' || marker.riskScore >= 75
+            const isHigh = marker.riskLevel === 'HIGH' || (marker.riskScore >= 50 && marker.riskScore < 75)
+            const isMedium = marker.riskLevel === 'MEDIUM' || (marker.riskScore >= 25 && marker.riskScore < 50)
+            const color = isCritical ? '#f43f5e' : isHigh ? '#f59e0b' : isMedium ? '#38bdf8' : '#b8f55e'
+
+            return (
+              <div
+                key={marker.id}
+                onClick={() => {
+                  setActiveMarker(marker)
+                  setClickedCoord({ lat: marker.lat, lng: marker.lng })
+                  if (onSelectMarker) onSelectMarker(marker)
+                }}
+                style={{ left: `${x}%`, top: `${y}%` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-20 group"
+              >
+                {/* Threat Pulse Animation */}
+                {isCritical && (
+                  <div
+                    className="absolute inset-0 -m-2 rounded-full animate-ping pointer-events-none"
+                    style={{ backgroundColor: 'rgba(244, 63, 94, 0.4)' }}
+                  />
+                )}
+                <div
+                  style={{
+                    borderColor: color,
+                    boxShadow: `0 0 12px ${color}`,
+                    color: color
+                  }}
+                  className="size-7 rounded-full bg-[#071014] border-2 flex items-center justify-center font-mono text-[10px] font-extrabold group-hover:scale-125 transition-transform"
+                >
+                  {marker.riskScore}
+                </div>
+                {/* Marker City & Title Badge */}
+                <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-[#071014]/95 border border-white/20 rounded px-1.5 py-0.5 text-[8px] font-mono text-white whitespace-nowrap shadow-lg pointer-events-none group-hover:scale-110 transition-transform">
+                  <span className="font-bold" style={{ color }}>{marker.riskLevel}:</span> {marker.title} ({marker.city})
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Quick City Teleport Floating Bar */}
       <div className="absolute left-4 bottom-4 z-20 hidden md:flex items-center gap-1.5 rounded-2xl border border-white/10 bg-[#071014]/90 p-1.5 backdrop-blur-md text-[11px] shadow-xl">
@@ -538,7 +796,13 @@ export function RealGoogleMap({
         {Object.entries(CITY_COORDINATES).slice(0, 6).map(([cityName, coords]) => (
           <button
             key={cityName}
-            onClick={() => handleFlyTo(coords[0], coords[1], 12)}
+            onClick={() => {
+              if (viewMode === 'map') {
+                handleFlyTo(coords[0], coords[1], 12)
+              } else {
+                setClickedCoord({ lat: coords[0], lng: coords[1] })
+              }
+            }}
             className="rounded-lg border border-white/5 bg-white/5 px-2.5 py-1 text-slate-300 hover:border-[#b8f55e]/40 hover:bg-[#b8f55e]/10 hover:text-[#b8f55e] transition font-medium"
           >
             {cityName}
@@ -563,8 +827,8 @@ export function RealGoogleMap({
                     activeMarker?.riskLevel === 'CRITICAL'
                       ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                       : activeMarker?.riskLevel === 'HIGH'
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                      : 'bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/40'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                        : 'bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/40'
                   }`}
                 >
                   <MapPin className="size-4" />
@@ -651,60 +915,38 @@ export function RealGoogleMap({
                         activeMarker.riskScore >= 75
                           ? 'text-rose-400'
                           : activeMarker.riskScore >= 45
-                          ? 'text-amber-400'
-                          : 'text-[#b8f55e]'
+                            ? 'text-amber-400'
+                            : 'text-[#b8f55e]'
                       }`}
                     >
-                      {activeMarker.riskScore}/100 [{activeMarker.riskLevel}]
+                      {activeMarker.riskScore} / 100 ({activeMarker.riskLevel})
                     </span>
                   </div>
                 </div>
 
-                {activeMarker.amount !== undefined && (
-                  <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-2">
-                    <span className="text-slate-400">Transaction Volume</span>
-                    <span className="font-mono font-bold text-white text-sm">
-                      ₹{activeMarker.amount.toLocaleString('en-IN')}
-                    </span>
+                {activeMarker.amount && (
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-2 flex items-center justify-between">
+                    <span className="text-slate-400 text-[11px]">Transaction Amount:</span>
+                    <span className="font-mono font-bold text-white">₹{activeMarker.amount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
 
                 {activeMarker.anomalyReason && (
-                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-[11px] text-rose-300">
-                    <div className="flex items-center gap-1.5 font-bold mb-0.5">
-                      <AlertTriangle className="size-3.5 text-rose-400" />
-                      Risk Driver Flagged
-                    </div>
-                    {activeMarker.anomalyReason}
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] p-2 text-rose-200 text-[11px] flex items-start gap-1.5">
+                    <AlertTriangle className="size-3.5 text-rose-400 shrink-0 mt-0.5" />
+                    <span>{activeMarker.anomalyReason}</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-2.5 text-xs text-slate-300 space-y-1">
-                <p className="text-[11px] text-slate-400">
-                  Target coordinate selected on real map. Distance to Bengaluru HQ:{' '}
-                  <strong className="text-white font-mono">
-                    {calculateHaversineDistanceKm(clickedCoord!.lat, clickedCoord!.lng, 12.9716, 77.5946)} km
-                  </strong>
-                </p>
+              <div className="text-[11px] text-slate-400">
+                Click any telemetry pin or city marker to view real-time risk classification, haversine velocity, and anomaly reason.
               </div>
             )}
 
-            {/* External Google Maps Link */}
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              <a
-                href={`https://www.google.com/maps?q=${
-                  activeMarker ? activeMarker.lat : clickedCoord!.lat
-                },${activeMarker ? activeMarker.lng : clickedCoord!.lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:border-[#b8f55e]/40 hover:bg-[#b8f55e]/10 hover:text-[#b8f55e] transition"
-              >
-                <ExternalLink className="size-3.5" />
-                Open in Google Maps
-              </a>
-
-              {activeMarker && (
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+              {activeMarker && (activeMarker.riskLevel === 'CRITICAL' || activeMarker.riskScore >= 75) && (
                 <button
                   onClick={() => setQuarantineModalOpen(true)}
                   className="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition shadow-lg shadow-rose-600/25 flex items-center gap-1"
@@ -736,4 +978,3 @@ export function RealGoogleMap({
 }
 
 export default RealGoogleMap
-

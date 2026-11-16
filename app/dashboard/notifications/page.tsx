@@ -17,55 +17,118 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useAppStore } from '@/lib/store'
+import { useUPIGuardStore, INITIAL_APP_NOTIFICATIONS } from '@/lib/upiguard-store'
 import { fadeUp } from '@/components/motion/presets'
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const storeNotifs = useUPIGuardStore((s) => s.notifications)
+  const markAllInStore = useUPIGuardStore((s) => s.markAllNotificationsRead)
+  const markOneInStore = useUPIGuardStore((s) => s.markNotificationRead)
+  const { setUnreadCount } = useAppStore()
+
+  // Immediately initialize with rich notifications so page never flashes (0)
+  const [notifications, setNotifications] = useState<any[]>(() => {
+    const list = storeNotifs && storeNotifs.length > 0 ? storeNotifs : INITIAL_APP_NOTIFICATIONS
+    return (list || [])
+      .filter((n) => n.recipientRole === 'USER' || n.recipientRole === 'ALL')
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type || 'Security Alert',
+        link: n.link || '/dashboard',
+        is_read: n.isRead,
+        created_at: n.createdAt
+      }))
+  })
+  const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL')
-  const { decrementNotifications } = useAuthStore()
 
   useEffect(() => {
     fetchNotifications()
-  }, [])
+  }, [storeNotifs])
 
   const fetchNotifications = async () => {
     try {
       setLoading(true)
       const data = await apiRequest('/notifications')
-      if (Array.isArray(data)) {
-        setNotifications(data)
+      const apiList = Array.isArray(data) && data.length > 0 ? data : []
+      
+      // Merge API list with UPIGuard store notifications
+      const mappedStoreList = (storeNotifs || [])
+        .filter((n) => n.recipientRole === 'USER' || n.recipientRole === 'ALL')
+        .map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          type: n.type || 'Security Alert',
+          link: n.link || '/dashboard',
+          is_read: n.isRead,
+          created_at: n.createdAt
+        }))
+
+      const combined = [...mappedStoreList]
+      apiList.forEach((an: any) => {
+        if (!combined.some((c) => String(c.id) === String(an.id) || c.title === an.title)) {
+          combined.push(an)
+        }
+      })
+
+      if (combined.length === 0) {
+        // Fallback default sample
+        setNotifications([
+          {
+            id: 'init_1',
+            title: 'Wallet Funded: ₹1,00,00,000 (1 Crore)',
+            message: '₹1,00,00,000 credited to your primary UPI Shield AI wallet. Real-time interception and biometric protection active.',
+            type: 'Wallet Credit',
+            link: '/dashboard',
+            is_read: false,
+            created_at: new Date(Date.now() - 3600000 * 1).toISOString()
+          },
+          {
+            id: 'init_2',
+            title: 'Case Under Review',
+            message: 'Case CASE-2026-000001 status changed to Under Review by Lead Investigator.',
+            type: 'Case Status Changed',
+            link: '/dashboard/cases?id=1',
+            is_read: false,
+            created_at: new Date(Date.now() - 3600000 * 2).toISOString()
+          },
+          {
+            id: 'init_3',
+            title: 'Budget Alert (Shopping)',
+            message: 'Shopping category has reached 88% of your configured monthly threshold.',
+            type: 'Budget Warning',
+            link: '/dashboard/budgets',
+            is_read: true,
+            created_at: new Date(Date.now() - 3600000 * 36).toISOString()
+          }
+        ])
+      } else {
+        setNotifications(combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
       }
     } catch {
-      // offline fallback sample
+      // offline fallback
       setNotifications([
         {
-          id: 1,
+          id: 'fb_1',
+          title: 'Wallet Funded: ₹1,00,00,000 (1 Crore)',
+          message: '₹1,00,00,000 credited to your primary UPI Shield AI wallet. Real-time interception and biometric protection active.',
+          type: 'Wallet Credit',
+          link: '/dashboard',
+          is_read: false,
+          created_at: new Date(Date.now() - 3600000 * 1).toISOString()
+        },
+        {
+          id: 'fb_2',
           title: 'Case Under Review',
           message: 'Case CASE-2026-000001 status changed to Under Review by Lead Investigator.',
           type: 'Case Status Changed',
           link: '/dashboard/cases?id=1',
           is_read: false,
           created_at: new Date(Date.now() - 3600000 * 2).toISOString()
-        },
-        {
-          id: 2,
-          title: 'New Investigator Message',
-          message: 'Admin added a message to your incident report CASE-2026-000001.',
-          type: 'Admin Message',
-          link: '/dashboard/cases?id=1',
-          is_read: false,
-          created_at: new Date(Date.now() - 3600000 * 5).toISOString()
-        },
-        {
-          id: 3,
-          title: 'Budget Alert (Shopping)',
-          message: 'Shopping category has reached 88% of your configured monthly threshold.',
-          type: 'Budget Warning',
-          link: '/dashboard/budgets',
-          is_read: true,
-          created_at: new Date(Date.now() - 3600000 * 36).toISOString()
         }
       ])
     } finally {
@@ -73,16 +136,18 @@ export default function NotificationsPage() {
     }
   }
 
-  const markAsRead = async (id: number) => {
+  const markAsRead = async (id: any) => {
     try {
       await apiRequest(`/notifications/${id}/read`, { method: 'PATCH' })
     } catch {
       // offline fallback
     }
+    markOneInStore(String(id))
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     )
-    decrementNotifications()
+    const remainingUnread = notifications.filter((n) => n.id !== id && !n.is_read).length
+    setUnreadCount(remainingUnread)
   }
 
   const markAllAsRead = async () => {
@@ -91,7 +156,9 @@ export default function NotificationsPage() {
     } catch {
       // offline fallback
     }
+    markAllInStore('USER')
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+    setUnreadCount(0)
   }
 
   const getIcon = (type: string) => {

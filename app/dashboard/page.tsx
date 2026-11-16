@@ -19,7 +19,6 @@ import {
   SlidersHorizontal,
   ShieldCheck,
   Activity,
-  Sparkles,
   ArrowRight,
   MapPin,
   Compass,
@@ -32,6 +31,7 @@ import {
   Layers,
   ExternalLink,
   Phone,
+  Lock,
   X
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
@@ -40,6 +40,7 @@ import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import { RealGoogleMap, MapMarkerItem, getCityCoordinates } from '@/components/maps/real-google-map'
+import { SecurityActionModal } from '@/components/security/security-action-modal'
 
 export default function UserDashboard() {
   const { user, privacyMasked, togglePrivacyMask } = useAppStore()
@@ -52,6 +53,7 @@ export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState<'financial' | 'payment' | 'location' | 'security'>('financial')
   const [conflictStatus, setConflictStatus] = useState<'unresolved' | 'verified_me' | 'secured'>('unresolved')
   const [bankModalOpen, setBankModalOpen] = useState(false)
+  const [securityModalOpen, setSecurityModalOpen] = useState(false)
 
   // User's live wallet balance from store (defaults to 1 Crore = ₹1,00,00,000)
   const userAccount = accounts[activeUserUpi] || accounts['anjan@upiguard']
@@ -313,9 +315,13 @@ export default function UserDashboard() {
                     Yes, It Was Me
                   </button>
                   <button
-                    onClick={() => setConflictStatus('secured')}
-                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition shadow-lg shadow-rose-600/25"
+                    onClick={() => {
+                      setConflictStatus('secured')
+                      setSecurityModalOpen(true)
+                    }}
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition shadow-lg shadow-rose-600/25 flex items-center gap-1.5"
                   >
+                    <Lock className="size-3.5" />
                     No, Secure Account
                   </button>
                   <Link
@@ -652,7 +658,7 @@ export default function UserDashboard() {
                 <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-medium text-[#8fa9a6]">New Locations This Month</p>
-                    <Sparkles className="size-4 text-amber-400" />
+                    <MapPin className="size-4 text-amber-400" />
                   </div>
                   <p className="mt-3 text-2xl font-bold text-white font-mono">{locationStats.new_locations}</p>
                   <p className="mt-2 text-xs text-amber-400">Mysuru, Delhi, Udupi</p>
@@ -1043,6 +1049,21 @@ export default function UserDashboard() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Immediate Account Lockdown & Security Action Modal */}
+        <SecurityActionModal
+          isOpen={securityModalOpen}
+          onClose={() => setSecurityModalOpen(false)}
+          type="device_lockdown"
+          data={{
+            deviceId: 'DEV-A782',
+            location: 'Delhi, India',
+            ip: '49.36.128.91',
+            time: 'Today 10:38 AM',
+            reason: 'Concurrent session anomaly: Transacted from Delhi while registered phone was in Bengaluru',
+            amount: '28,000'
+          }}
+        />
       </div>
     </UserLayout>
   )

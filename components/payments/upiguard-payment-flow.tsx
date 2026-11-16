@@ -15,7 +15,7 @@ import {
   Camera,
   KeyRound,
   RotateCcw,
-  Sparkles,
+  Mail,
   ArrowRight,
   Info,
   Clock,
@@ -46,10 +46,12 @@ import {
   ArrowUpRight,
   CheckCheck,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Fingerprint
 } from 'lucide-react'
 import { useUPIGuardStore, SimulationTransaction } from '@/lib/upiguard-store'
 import { calculateUpiGuardMasterRisk, UpiGuardRiskOutput } from '@/lib/ai-fraud-engine'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 interface PaymentFlowProps {
   initialRecipientUpi?: string
@@ -64,10 +66,12 @@ type PaymentStep =
   | 'REVIEW'        // Payment Review screen
   | 'SECURITY'      // Real-time AI Risk Analysis streaming
   | 'WAS_THIS_YOU'  // Mandatory Security Confirmation Layer
-  | 'AUTH_GATE'     // Choose PIN or FACE
+  | 'AUTH_GATE'     // Layer 1: Enter UPI PIN
   | 'PIN_INPUT'     // Enter demo UPI PIN
+  | 'BIOMETRIC_GATE'// Layer 2: Biometrics (Face Scan & Fingerprint)
   | 'FACE_SCAN'     // Live camera face scan
   | 'OTP_GATE'      // Random 6-digit OTP
+  | 'EMAIL_OTP_GATE'// Layer 3: High-Value Registered Email OTP Only
   | 'SUCCESS'       // Settled successfully with receipt
   | 'BLOCKED'       // Critical risk fraud block screen
   | 'USER_REPORTED_BLOCKED' // User explicitly reported "NOT ME"
@@ -142,9 +146,14 @@ export function UPIGuardPaymentFlow({
   ]
 
   // Step 4: Authentication State
+  const { t } = useLanguage()
   const [selectedAuthMethod, setSelectedAuthMethod] = useState<'UPI_PIN' | 'FACE_SCAN'>('UPI_PIN')
   const [enteredPin, setEnteredPin] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
+  const [biometricTab, setBiometricTab] = useState<'FACE' | 'FINGERPRINT'>('FACE')
+  const [fingerprintScanning, setFingerprintScanning] = useState(false)
+  const [fingerprintProgress, setFingerprintProgress] = useState(0)
+  const [fingerprintVerified, setFingerprintVerified] = useState(false)
 
   // Face Scan State
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -161,6 +170,10 @@ export function UPIGuardPaymentFlow({
   const [otpTimer, setOtpTimer] = useState(120)
   const [otpError, setOtpError] = useState<string | null>(null)
   const [otpAttemptsRemaining, setOtpAttemptsRemaining] = useState(5)
+
+  // Registered Email OTP State (Major Purchases Layer)
+  const [emailOtp, setEmailOtp] = useState('')
+  const [emailOtpError, setEmailOtpError] = useState<string | null>(null)
 
   // Step 6: Receipt Modal State
   const [showReceiptModal, setShowReceiptModal] = useState(false)
@@ -186,45 +199,52 @@ export function UPIGuardPaymentFlow({
   // Camera Management for Face Scan
   useEffect(() => {
     let stream: MediaStream | null = null
-    if (step === 'FACE_SCAN') {
+    let timerId: any = null
+    if (step === 'FACE_SCAN' || (step === 'BIOMETRIC_GATE' && biometricTab === 'FACE')) {
       setFaceProgress(0)
-      setFaceStatusText('Initializing camera feed...')
+      setFaceStatusText('Initializing biometric sensors & camera...')
       setCameraDenied(false)
+      setFaceMatchResult(null)
 
-      navigator.mediaDevices
-        ?.getUserMedia({ video: { facingMode: 'user' } })
-        .then((s) => {
-          stream = s
-          if (videoRef.current) {
-            videoRef.current.srcObject = s
-            videoRef.current.play()
-            setCameraActive(true)
-          }
-
-          // Simulate live face detection milestones
-          runFaceDetectionSequence()
-        })
-        .catch((err) => {
-          console.warn('Camera permission denied or camera unavailable', err)
-          setCameraDenied(true)
-        })
+      if (navigator.mediaDevices?.getUserMedia) {
+        navigator.mediaDevices
+          .getUserMedia({ video: { facingMode: 'user' } })
+          .then((s) => {
+            stream = s
+            if (videoRef.current) {
+              videoRef.current.srcObject = s
+              videoRef.current.play().catch(() => {})
+              setCameraActive(true)
+            }
+            runFaceDetectionSequence()
+          })
+          .catch((err) => {
+            console.warn('Camera permission denied or camera unavailable, using simulated biometrics', err)
+            setCameraDenied(true)
+            // Execute simulated face biometric verification sequence without getting stuck
+            runFaceDetectionSequence()
+          })
+      } else {
+        setCameraDenied(true)
+        runFaceDetectionSequence()
+      }
     }
 
     return () => {
       if (stream) {
         stream.getTracks().forEach((t) => t.stop())
       }
+      if (timerId) clearTimeout(timerId)
     }
-  }, [step])
+  }, [step, biometricTab])
 
   const runFaceDetectionSequence = () => {
     const milestones = [
-      { progress: 20, text: 'Initializing camera (20%)' },
-      { progress: 40, text: 'Face detected inside oval guide (40%)' },
-      { progress: 55, text: 'Face centered & aligned (55%)' },
-      { progress: 70, text: 'Facial landmarks & liveness verified (70%)' },
-      { progress: 90, text: 'Identity matching against enrolled profile (90%)' },
-      { progress: 100, text: 'Identity verification complete (100%)' }
+      { progress: 20, text: 'Calibrating optical frame (20%)' },
+      { progress: 45, text: 'Facial contour & landmark detection (45%)' },
+      { progress: 65, text: 'Liveness & 3D depth geometry confirmed (65%)' },
+      { progress: 85, text: 'Matching against enrolled biometric key (85%)' },
+      { progress: 100, text: 'Biometric verified · Advancing to next layer...' }
     ]
 
     milestones.forEach((m, idx) => {
@@ -232,23 +252,30 @@ export function UPIGuardPaymentFlow({
         setFaceProgress(m.progress)
         setFaceStatusText(m.text)
         if (m.progress === 100) {
-          const matchScore = 0.84
+          const matchScore = 0.92
           setFaceMatchResult({ matchScore, verified: true })
           if (currentTransaction) {
             verifyFace(currentTransaction.transactionId, matchScore)
           }
+          // Automatically advance to the next layer (OTP gate)
+          setTimeout(() => {
+            initiateOtpChallenge()
+          }, 800)
         }
-      }, (idx + 1) * 700)
+      }, (idx + 1) * 600)
     })
   }
 
   const handleUseDemoFaceProfile = () => {
     setFaceProgress(100)
-    setFaceStatusText('Demo enrolled face profile verified (84% Match)')
-    setFaceMatchResult({ matchScore: 0.84, verified: true })
+    setFaceStatusText('Instant biometric pass verified (94% Match) · Proceeding...')
+    setFaceMatchResult({ matchScore: 0.94, verified: true })
     if (currentTransaction) {
-      verifyFace(currentTransaction.transactionId, 0.84)
+      verifyFace(currentTransaction.transactionId, 0.94)
     }
+    setTimeout(() => {
+      initiateOtpChallenge()
+    }, 400)
   }
 
   // Step 1 -> Step 2: Proceed to Review
@@ -386,17 +413,36 @@ export function UPIGuardPaymentFlow({
     }
   }
 
-  // Step 4: Verify PIN
+  // Step 4: Verify PIN -> Advance to Layer 2 Biometrics Gate
   const handleVerifyPin = () => {
     setPinError(null)
     if (!currentTransaction) return
     const result = verifyPin(currentTransaction.transactionId, enteredPin)
     if (result.success) {
-      // Proceed to mandatory OTP
-      initiateOtpChallenge()
+      // Advance to Layer 2 Biometrics Gate (Face & Fingerprint)
+      setStep('BIOMETRIC_GATE')
     } else {
       setPinError(result.message)
     }
+  }
+
+  // Layer 2: Fingerprint verification simulator
+  const handleSimulateFingerprint = () => {
+    setFingerprintScanning(true)
+    setFingerprintProgress(15)
+    setTimeout(() => setFingerprintProgress(50), 200)
+    setTimeout(() => setFingerprintProgress(85), 400)
+    setTimeout(() => {
+      setFingerprintProgress(100)
+      setFingerprintVerified(true)
+      setFingerprintScanning(false)
+      if (currentTransaction) {
+        verifyFace(currentTransaction.transactionId, 0.98)
+      }
+      setTimeout(() => {
+        initiateOtpChallenge()
+      }, 600)
+    }, 600)
   }
 
   // Step 4: Face Verified -> Proceed to OTP
@@ -421,6 +467,14 @@ export function UPIGuardPaymentFlow({
     setOtpError(null)
     const result = verifyOtp(otpChallengeId, enteredOtp)
     if (result.success) {
+      const isMajor = paymentMode === 'MAJOR_PURCHASE' || Number(amount) >= 50000 || currentTransaction?.isMajorPurchase
+      if (isMajor) {
+        setEmailOtp('849201')
+        setEmailOtpError(null)
+        setStep('EMAIL_OTP_GATE')
+        return
+      }
+
       // Execute final settlement
       if (currentTransaction) {
         const settlement = settlePayment(currentTransaction.transactionId)
@@ -439,6 +493,30 @@ export function UPIGuardPaymentFlow({
     } else {
       setOtpError(result.message)
       setOtpAttemptsRemaining((r) => Math.max(0, r - 1))
+    }
+  }
+
+  // Step 5B: Verify Registered Email OTP (Only for Major Purchases)
+  const handleVerifyEmailOtp = () => {
+    setEmailOtpError(null)
+    if (!emailOtp || emailOtp.trim() !== '849201') {
+      setEmailOtpError('Invalid Registered Email OTP. Use 849201 dispatched to demo@upishield.ai')
+      return
+    }
+
+    if (currentTransaction) {
+      const settlement = settlePayment(currentTransaction.transactionId)
+      if (settlement.success) {
+        setStep('SUCCESS')
+        try {
+          confetti({ particleCount: 110, spread: 90, origin: { y: 0.55 } })
+        } catch {}
+        if (onComplete && settlement.transaction) {
+          onComplete(settlement.transaction)
+        }
+      } else {
+        setEmailOtpError(settlement.message)
+      }
     }
   }
 
@@ -1390,7 +1468,7 @@ export function UPIGuardPaymentFlow({
         >
           <div className="text-center space-y-2">
             <div className="size-16 rounded-3xl bg-[#5BD6FF]/10 border border-[#5BD6FF]/30 flex items-center justify-center mx-auto text-[#5BD6FF] shadow-lg shadow-[#5BD6FF]/20 animate-pulse">
-              <Sparkles className="size-8 text-[#5BD6FF]" />
+              <ShieldCheck className="size-8 text-[#5BD6FF]" />
             </div>
             <h2 className="text-xl font-extrabold text-white">UPIGUARD AI FRAUD ANALYSIS</h2>
             <p className="text-xs text-slate-400">
@@ -1616,15 +1694,15 @@ export function UPIGuardPaymentFlow({
         </motion.div>
       )}
 
-      {/* STEP 4: AUTHENTICATION GATE (Section 27, 28, 29, 31) */}
-      {step === 'AUTH_GATE' && riskAssessment && (
+      {/* STEP 4: LAYER 1 - UPI PIN AUTHENTICATION GATE */}
+      {(step === 'AUTH_GATE' || step === 'PIN_INPUT') && riskAssessment && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl border border-[#0B1B2D] bg-[#091726] p-6 sm:p-8 shadow-2xl space-y-6"
+          className="rounded-3xl border border-[#b8f55e]/20 bg-[#0a1718] p-6 sm:p-8 shadow-2xl space-y-6"
         >
           {/* Risk Score Pill */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-[#06101D] border border-white/5">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-[#061014] border border-white/5">
             <div className="flex items-center gap-3">
               <div
                 className={`size-12 rounded-2xl flex items-center justify-center font-bold text-lg font-mono ${
@@ -1648,68 +1726,12 @@ export function UPIGuardPaymentFlow({
             </span>
           </div>
 
-          <div className="text-center">
-            <h3 className="text-lg font-bold text-white uppercase tracking-tight">SECURE PAYMENT</h3>
-            <p className="text-xs text-slate-400 mt-1">Choose authentication method to proceed with simulation</p>
-          </div>
-
-          {/* Authentication Options (Section 27) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* UPI PIN Option */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedAuthMethod('UPI_PIN')
-                setStep('PIN_INPUT')
-              }}
-              className="p-6 rounded-3xl border-2 border-white/10 hover:border-[#438EFF] bg-[#06101D] hover:bg-[#438EFF]/5 transition flex flex-col items-center text-center group"
-            >
-              <div className="size-16 rounded-2xl bg-[#438EFF]/20 border border-[#438EFF]/40 flex items-center justify-center text-[#5BD6FF] mb-3 group-hover:scale-110 transition">
-                <Lock className="size-8" />
-              </div>
-              <h4 className="text-base font-bold text-white">UPI PIN</h4>
-              <p className="text-xs text-slate-400 mt-1">Secure with 4-digit PIN</p>
-              <span className="mt-4 px-4 py-1.5 rounded-xl bg-[#438EFF] text-[#06101D] text-xs font-extrabold uppercase">
-                USE UPI PIN
-              </span>
-            </button>
-
-            {/* FACE SCAN Option */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedAuthMethod('FACE_SCAN')
-                setStep('FACE_SCAN')
-              }}
-              className="p-6 rounded-3xl border-2 border-white/10 hover:border-[#7759E8] bg-[#06101D] hover:bg-[#7759E8]/5 transition flex flex-col items-center text-center group"
-            >
-              <div className="size-16 rounded-2xl bg-[#7759E8]/20 border border-[#7759E8]/40 flex items-center justify-center text-purple-300 mb-3 group-hover:scale-110 transition">
-                <Camera className="size-8" />
-              </div>
-              <h4 className="text-base font-bold text-white">FACE SCAN</h4>
-              <p className="text-xs text-slate-400 mt-1">Verify identity with camera biometrics</p>
-              <span className="mt-4 px-4 py-1.5 rounded-xl bg-[#7759E8] text-white text-xs font-extrabold uppercase shadow-lg shadow-[#7759E8]/30">
-                USE FACE SCAN
-              </span>
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* STEP 4A: PIN INPUT SCREEN (Section 28) */}
-      {step === 'PIN_INPUT' && (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl border border-[#0B1B2D] bg-[#091726] p-6 sm:p-8 shadow-2xl space-y-6 text-center"
-        >
-          <div className="size-14 rounded-2xl bg-[#438EFF]/20 border border-[#438EFF]/40 flex items-center justify-center mx-auto text-[#5BD6FF]">
-            <KeyRound className="size-7" />
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold text-white">ENTER UPI PIN</h3>
-            <p className="text-xs text-slate-400 mt-1">Enter your 4-digit demo payment PIN</p>
+          <div className="text-center space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#b8f55e]/10 border border-[#b8f55e]/25 text-[10px] font-mono text-[#b8f55e] uppercase">
+              <Lock className="size-3" /> Layer 1 Security Gate
+            </div>
+            <h3 className="text-xl font-bold text-white tracking-tight">ENTER UPI PIN</h3>
+            <p className="text-xs text-slate-400">Enter your 4-digit PIN to authenticate before Layer 2 biometrics</p>
           </div>
 
           {/* 4-Digit Input */}
@@ -1721,7 +1743,7 @@ export function UPIGuardPaymentFlow({
               onChange={(e) => setEnteredPin(e.target.value.replace(/\D/g, ''))}
               placeholder="••••"
               autoFocus
-              className="w-full text-center text-3xl tracking-[1em] font-black rounded-2xl bg-[#06101D] border border-white/10 py-3.5 text-white font-mono focus:border-[#5BD6FF] focus:outline-none"
+              className="w-full text-center text-3xl tracking-[1em] font-black rounded-2xl bg-[#061014] border border-white/10 py-3.5 text-white font-mono focus:border-[#b8f55e] focus:outline-none"
             />
 
             {/* Demo Hint */}
@@ -1730,125 +1752,235 @@ export function UPIGuardPaymentFlow({
               <button
                 type="button"
                 onClick={() => setEnteredPin(sender.pin)}
-                className="text-[#5BD6FF] font-mono font-bold hover:underline"
+                className="text-[#b8f55e] font-mono font-bold hover:underline"
               >
                 Auto-Fill {sender.pin}
               </button>
             </div>
 
             {pinError && (
-              <p className="text-xs font-semibold text-rose-400">{pinError}</p>
+              <p className="text-xs font-semibold text-rose-400 text-center">{pinError}</p>
             )}
           </div>
 
           <div className="flex gap-3 pt-2">
             <button
-              onClick={() => setStep('AUTH_GATE')}
-              className="py-3 px-5 rounded-2xl bg-[#0B1B2D] text-slate-300 text-xs font-semibold"
+              onClick={() => setStep('WAS_THIS_YOU')}
+              className="py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
             >
               Back
             </button>
             <button
               onClick={handleVerifyPin}
               disabled={enteredPin.length !== 4}
-              className="flex-1 py-3 px-6 rounded-2xl bg-gradient-to-r from-[#438EFF] to-[#5BD6FF] disabled:opacity-50 text-[#06101D] font-extrabold text-xs uppercase tracking-wider"
+              className="flex-1 py-3 px-6 rounded-2xl bg-[#b8f55e] hover:brightness-110 disabled:opacity-50 text-[#09110f] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#b8f55e]/20 transition flex items-center justify-center gap-2"
             >
-              CONFIRM UPI PIN
+              <span>VERIFY PIN & ADVANCE TO LAYER 2 BIOMETRICS</span>
+              <ArrowRight className="size-4" />
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* STEP 4B: FACE SCAN SCREEN (Section 29, 31, 32) */}
-      {step === 'FACE_SCAN' && (
+      {/* STEP 4B: LAYER 2 - MULTI-FACTOR BIOMETRIC GATE (FACE SCAN & FINGERPRINT) */}
+      {(step === 'BIOMETRIC_GATE' || step === 'FACE_SCAN') && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl border border-[#0B1B2D] bg-[#091726] p-6 sm:p-8 shadow-2xl space-y-6 text-center"
+          className="rounded-3xl border border-[#b8f55e]/25 bg-[#0a1718] p-6 sm:p-8 shadow-2xl space-y-6 text-center"
         >
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2">
-              <Camera className="size-5 text-purple-400" />
-              FACE VERIFICATION
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">Look directly at the camera · Center your face inside the oval</p>
+          {/* Header */}
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#b8f55e]/10 border border-[#b8f55e]/25 text-[10px] font-mono text-[#b8f55e] uppercase">
+              <Fingerprint className="size-3" /> Layer 2 Multi-Factor Biometric Gate
+            </div>
+            <h3 className="text-xl font-bold text-white tracking-tight">BIOMETRIC AUTHENTICATION</h3>
+            <p className="text-xs text-slate-400">Choose your enrolled biometric modality to release settlement tokens</p>
           </div>
 
-          {/* Camera Viewfinder with Oval Guide */}
-          <div className="relative mx-auto size-64 sm:size-72 rounded-3xl overflow-hidden bg-black border-2 border-purple-500/40 shadow-2xl flex items-center justify-center">
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              className="absolute inset-0 size-full object-cover -scale-x-100"
-            />
+          {/* Biometric Switcher Tabs (Face Scan vs Fingerprint) */}
+          <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto p-1 rounded-2xl bg-[#061014] border border-white/10">
+            <button
+              type="button"
+              onClick={() => setBiometricTab('FACE')}
+              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                biometricTab === 'FACE'
+                  ? 'bg-[#b8f55e] text-[#09110f] shadow-md shadow-[#b8f55e]/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Camera className="size-4" />
+              <span>Face Scan</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBiometricTab('FINGERPRINT')}
+              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
+                biometricTab === 'FINGERPRINT'
+                  ? 'bg-[#b8f55e] text-[#09110f] shadow-md shadow-[#b8f55e]/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Fingerprint className="size-4" />
+              <span>Fingerprint</span>
+            </button>
+          </div>
 
-            {/* Glowing Face Oval Overlay */}
-            <div className="absolute inset-x-8 inset-y-6 rounded-[50%] border-2 border-dashed border-[#5BD6FF] pointer-events-none animate-pulse flex items-center justify-center">
-              <span className="text-[10px] uppercase tracking-widest text-[#5BD6FF] bg-black/60 px-2 py-0.5 rounded-full font-mono">
-                ◯ FACE GUIDE ◯
-              </span>
-            </div>
+          {/* TAB 1: FACE SCAN VIEW */}
+          {biometricTab === 'FACE' && (
+            <div className="space-y-5">
+              <div className="relative mx-auto size-60 sm:size-64 rounded-3xl overflow-hidden bg-black border-2 border-[#b8f55e]/40 shadow-2xl flex items-center justify-center">
+                <video
+                  ref={videoRef}
+                  playsInline
+                  muted
+                  className="absolute inset-0 size-full object-cover -scale-x-100"
+                />
 
-            {/* Camera Denied fallback warning */}
-            {cameraDenied && (
-              <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-4 text-center z-20">
-                <AlertTriangle className="size-8 text-amber-400 mb-2" />
-                <p className="text-xs text-slate-300 font-semibold">Camera Unavailable</p>
-                <p className="text-[11px] text-slate-400 mt-1">Browser camera permissions denied or device missing.</p>
+                {/* Glowing Face Oval & Target Guides */}
+                <div className="absolute inset-x-8 inset-y-6 rounded-[50%] border-2 border-[#b8f55e]/80 pointer-events-none flex flex-col items-center justify-center shadow-[0_0_15px_rgba(184,245,94,0.4)]">
+                  {/* Biometric Scanning Line animation */}
+                  <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-[#b8f55e] to-transparent animate-pulse shadow-[0_0_10px_#b8f55e]" />
+                  <span className="text-[9px] uppercase tracking-widest text-[#b8f55e] bg-black/70 px-2.5 py-0.5 rounded-full font-mono mt-auto mb-3 border border-[#b8f55e]/30">
+                    ◯ 3D FACIAL DEPTH MESH ◯
+                  </span>
+                </div>
+
+                {/* Fallback Synthetic Mesh */}
+                {cameraDenied && (
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#0a1718]/95 via-[#061014]/95 to-[#0a1718]/95 flex flex-col items-center justify-center p-4 text-center z-10">
+                    <div className="size-16 rounded-full border-2 border-dashed border-[#b8f55e]/60 flex items-center justify-center animate-spin-slow mb-2 shadow-[0_0_20px_rgba(184,245,94,0.25)]">
+                      <Camera className="size-7 text-[#b8f55e]" />
+                    </div>
+                    <p className="text-xs text-white font-bold">Synthetic 3D Facial Mesh Active</p>
+                    <p className="text-[10px] text-[#8fa9a6] mt-1 max-w-[200px]">Simulating 68-point facial node geometry</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Progress & Milestone Status */}
-          <div className="space-y-2 max-w-sm mx-auto">
-            <div className="flex justify-between text-xs text-slate-400 font-mono">
-              <span>{faceStatusText}</span>
-              <span className="font-bold text-purple-300">{faceProgress}%</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-[#06101D] overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#438EFF] to-purple-400 transition-all duration-300"
-                style={{ width: `${faceProgress}%` }}
-              />
-            </div>
-          </div>
+              {/* Progress & Milestone */}
+              <div className="space-y-1.5 max-w-sm mx-auto">
+                <div className="flex justify-between text-xs text-slate-400 font-mono">
+                  <span className="truncate pr-2">{faceStatusText}</span>
+                  <span className="font-bold text-[#b8f55e] shrink-0">{faceProgress}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-[#061014] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-[#b8f55e] transition-all duration-300 shadow-[0_0_8px_rgba(184,245,94,0.5)]"
+                    style={{ width: `${faceProgress}%` }}
+                  />
+                </div>
+              </div>
 
-          {/* Verification Result Feedback */}
-          {faceMatchResult && (
-            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-2">
-              <CheckCircle2 className="size-4" />
-              Face Match: {(faceMatchResult.matchScore * 100).toFixed(0)}% · Identity Verified Successfully
+              {/* Verification Result Feedback */}
+              {faceMatchResult && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="size-4 text-emerald-400" />
+                  Facial Vectors Match: {(faceMatchResult.matchScore * 100).toFixed(0)}% · Advancing to OTP Gate...
+                </motion.div>
+              )}
+
+              <div className="flex gap-3 pt-2 max-w-md mx-auto">
+                <button
+                  onClick={() => setStep('AUTH_GATE')}
+                  className="py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
+                >
+                  Back to PIN
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUseDemoFaceProfile}
+                  className="flex-1 py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-[#b8f55e] hover:brightness-110 text-[#09110f] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#b8f55e]/25 transition flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck className="size-4" />
+                  <span>Instant 3D Face Pass →</span>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Actions & Demo Fallback (Section 70) */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <button
-              onClick={() => setStep('AUTH_GATE')}
-              className="py-3 px-5 rounded-2xl bg-[#0B1B2D] text-slate-300 text-xs font-semibold"
-            >
-              Back
-            </button>
-
-            {/* 100% Reliable Fallback for Examination */}
-            <button
-              type="button"
-              onClick={handleUseDemoFaceProfile}
-              className="py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-purple-300 border border-purple-500/20 text-xs font-medium"
-            >
-              USE DEMO FACE PROFILE (Fallback)
-            </button>
-
-            {faceMatchResult?.verified && (
-              <button
-                onClick={handleFaceSuccessProceed}
-                className="flex-1 py-3 px-6 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:brightness-110 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-purple-500/30"
+          {/* TAB 2: FINGERPRINT SCAN VIEW */}
+          {biometricTab === 'FINGERPRINT' && (
+            <div className="space-y-6 max-w-md mx-auto">
+              {/* Capacitive Sensor Circle */}
+              <div
+                className="relative mx-auto size-44 rounded-full border-2 border-dashed border-[#b8f55e]/40 bg-[#061014] flex flex-col items-center justify-center shadow-[0_0_25px_rgba(184,245,94,0.15)] group cursor-pointer"
+                onClick={handleSimulateFingerprint}
               >
-                PROCEED TO OTP →
-              </button>
-            )}
-          </div>
+                <div className={`size-28 rounded-full flex items-center justify-center transition-all ${
+                  fingerprintScanning
+                    ? 'bg-[#b8f55e]/20 scale-105 shadow-[0_0_20px_#b8f55e]'
+                    : fingerprintVerified
+                    ? 'bg-emerald-500/30'
+                    : 'bg-white/5 hover:bg-[#b8f55e]/10'
+                }`}>
+                  <Fingerprint className={`size-16 transition-all ${
+                    fingerprintVerified
+                      ? 'text-emerald-400 scale-110'
+                      : fingerprintScanning
+                      ? 'text-[#b8f55e] animate-pulse'
+                      : 'text-[#b8f55e]/80 group-hover:text-[#b8f55e]'
+                  }`} />
+                </div>
+                {fingerprintScanning && (
+                  <div className="absolute inset-0 rounded-full border-2 border-[#b8f55e] animate-ping pointer-events-none" />
+                )}
+              </div>
+
+              {/* Progress & Status */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-slate-400 font-mono">
+                  <span>
+                    {fingerprintVerified
+                      ? 'Capacitive minutiae verified (98% Match)'
+                      : fingerprintScanning
+                      ? 'Scanning dermal ridge patterns...'
+                      : 'Tap sensor icon to scan enrolled finger'}
+                  </span>
+                  <span className="font-bold text-[#b8f55e]">{fingerprintProgress}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-[#061014] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-[#b8f55e] transition-all duration-200 shadow-[0_0_8px_rgba(184,245,94,0.5)]"
+                    style={{ width: `${fingerprintProgress}%` }}
+                  />
+                </div>
+              </div>
+
+              {fingerprintVerified && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="size-4 text-emerald-400" />
+                  Fingerprint Verified · Advancing to OTP Gate...
+                </motion.div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setStep('AUTH_GATE')}
+                  className="py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
+                >
+                  Back to PIN
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSimulateFingerprint}
+                  disabled={fingerprintScanning || fingerprintVerified}
+                  className="flex-1 py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-[#b8f55e] hover:brightness-110 disabled:opacity-50 text-[#09110f] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#b8f55e]/25 transition flex items-center justify-center gap-2"
+                >
+                  <Fingerprint className="size-4" />
+                  <span>{fingerprintScanning ? 'Scanning...' : 'Scan Enrolled Fingerprint →'}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -1857,27 +1989,27 @@ export function UPIGuardPaymentFlow({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl border border-[#0B1B2D] bg-[#091726] p-6 sm:p-8 shadow-2xl space-y-6 text-center"
+          className="rounded-3xl border border-[#b8f55e]/20 bg-[#0a1718] p-6 sm:p-8 shadow-2xl space-y-6 text-center"
         >
           {/* Header */}
-          <div className="size-14 rounded-2xl bg-[#FFC85B]/20 border border-[#FFC85B]/40 flex items-center justify-center mx-auto text-[#FFC85B]">
+          <div className="size-14 rounded-2xl bg-[#b8f55e]/15 border border-[#b8f55e]/30 flex items-center justify-center mx-auto text-[#b8f55e]">
             <Lock className="size-7" />
           </div>
 
           <div>
-            <h3 className="text-xl font-bold text-white">OTP VERIFICATION</h3>
+            <h3 className="text-xl font-bold text-white tracking-tight">OTP VERIFICATION</h3>
             <p className="text-xs text-slate-400 mt-1">A cryptographically random demo OTP has been generated</p>
           </div>
 
-          {/* Demo OTP Exposure Banner (Section 34: DEMO_SHOW_OTP=true) */}
-          <div className="p-4 rounded-2xl bg-[#FFC85B]/10 border border-[#FFC85B]/30 text-amber-200 text-xs space-y-2">
+          {/* Demo OTP Exposure Banner */}
+          <div className="p-4 rounded-2xl bg-[#b8f55e]/10 border border-[#b8f55e]/25 text-emerald-200 text-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-semibold uppercase tracking-wider text-[10px] text-amber-300">
+              <span className="font-semibold uppercase tracking-wider text-[10px] text-[#b8f55e] font-mono">
                 🔒 Closed-Loop Demo OTP Service
               </span>
               <button
                 onClick={() => setEnteredOtp(demoGeneratedOtp)}
-                className="px-2.5 py-1 rounded-lg bg-[#FFC85B] text-[#06101D] font-bold text-[10px] hover:brightness-110 transition"
+                className="px-2.5 py-1 rounded-lg bg-[#b8f55e] text-[#09110f] font-bold text-[10px] hover:brightness-110 transition"
               >
                 AUTO-FILL OTP
               </button>
@@ -1885,7 +2017,7 @@ export function UPIGuardPaymentFlow({
             <div className="text-2xl font-black font-mono tracking-widest text-white">
               {demoGeneratedOtp}
             </div>
-            <p className="text-[10px] text-amber-300/80">
+            <p className="text-[10px] text-[#8fa9a6]">
               Generated randomly for each simulated payment · Expires in 2 minutes
             </p>
           </div>
@@ -1899,7 +2031,7 @@ export function UPIGuardPaymentFlow({
               onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
               placeholder="000000"
               autoFocus
-              className="w-full text-center text-3xl tracking-[0.5em] font-black rounded-2xl bg-[#06101D] border border-white/10 py-3.5 text-white font-mono focus:border-[#FFC85B] focus:outline-none"
+              className="w-full text-center text-3xl tracking-[0.5em] font-black rounded-2xl bg-[#061014] border border-white/10 py-3.5 text-white font-mono focus:border-[#b8f55e] focus:outline-none"
             />
 
             <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
@@ -1918,7 +2050,7 @@ export function UPIGuardPaymentFlow({
             <button
               type="button"
               onClick={initiateOtpChallenge}
-              className="py-3.5 px-5 rounded-2xl bg-[#0B1B2D] hover:bg-white/5 text-slate-300 text-xs font-semibold transition"
+              className="py-3.5 px-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
             >
               Resend OTP
             </button>
@@ -1926,9 +2058,88 @@ export function UPIGuardPaymentFlow({
               type="button"
               onClick={handleVerifyOtp}
               disabled={enteredOtp.length !== 6}
-              className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:brightness-110 disabled:opacity-50 text-[#06101D] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20"
+              className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-[#b8f55e] hover:brightness-110 disabled:opacity-50 text-[#09110f] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#b8f55e]/20 transition"
             >
               VERIFY OTP & SETTLE PAYMENT
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* STEP 5B: REGISTERED EMAIL OTP ONLY (Major Purchases Security Gate) */}
+      {step === 'EMAIL_OTP_GATE' && currentTransaction && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-3xl border border-amber-500/40 bg-[#091726] p-6 sm:p-8 shadow-2xl space-y-6"
+        >
+          <div className="text-center space-y-2">
+            <div className="size-14 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mx-auto text-amber-400 shadow-lg shadow-amber-500/20">
+              <Mail className="size-7" />
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              HIGH-VALUE MAJOR PURCHASE GATE
+            </span>
+            <h2 className="text-xl font-extrabold text-white">Registered Email OTP Verification</h2>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              A high-security verification code has been dispatched exclusively to your registered bank email address (<span className="text-amber-300 font-mono font-bold">d***@upishield.ai</span>) for ₹{currentTransaction.amount?.toLocaleString('en-IN')}.
+            </p>
+          </div>
+
+          {/* Secure Demo OTP Token Pill */}
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-4 text-center space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold uppercase tracking-wider text-[10px] text-amber-400 font-mono flex items-center gap-1.5">
+                <Lock className="size-3" /> Encrypted Email Token Sent
+              </span>
+              <button
+                type="button"
+                onClick={() => setEmailOtp('849201')}
+                className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#09110f] font-bold text-[10px] hover:brightness-110 transition"
+              >
+                AUTO-FILL OTP (849201)
+              </button>
+            </div>
+            <div className="text-2xl font-black font-mono tracking-widest text-white">
+              849201
+            </div>
+            <p className="text-[10px] text-slate-400 font-mono">
+              Sent to: demo@upishield.ai · High-Value Asset Authorization
+            </p>
+          </div>
+
+          {/* 6-Digit Input Box */}
+          <div className="max-w-xs mx-auto space-y-3">
+            <input
+              type="text"
+              maxLength={6}
+              value={emailOtp}
+              onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+              placeholder="849201"
+              autoFocus
+              className="w-full text-center text-3xl tracking-[0.5em] font-black rounded-2xl bg-[#061014] border border-white/10 py-3.5 text-white font-mono focus:border-amber-400 focus:outline-none"
+            />
+
+            {emailOtpError && <p className="text-xs font-semibold text-rose-400 text-center">{emailOtpError}</p>}
+          </div>
+
+          {/* Settle Button */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setStep('OTP_GATE')}
+              className="py-3.5 px-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={handleVerifyEmailOtp}
+              disabled={emailOtp.length !== 6}
+              className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-[#b8f55e] hover:brightness-110 disabled:opacity-50 text-[#09110f] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#b8f55e]/20 transition flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="size-4" />
+              <span>CONFIRM EMAIL OTP & SETTLE MAJOR PURCHASE</span>
             </button>
           </div>
         </motion.div>

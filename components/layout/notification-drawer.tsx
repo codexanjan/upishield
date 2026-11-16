@@ -196,6 +196,13 @@ export function NotificationDrawer({ admin = false }: { admin?: boolean }) {
             </div>
 
             <div className="border-t border-white/10 pt-4 text-center">
+              <Link
+                href={admin ? '/admin/notifications' : '/dashboard/notifications'}
+                onClick={() => setNotificationOpen(false)}
+                className="text-xs font-bold text-[#b8f55e] hover:underline block mb-2"
+              >
+                Open Full Notifications Hub →
+              </Link>
               <span className="text-[11px] text-slate-500">
                 Deterministic Alert Engine · Real-time Rule Telemetry
               </span>
