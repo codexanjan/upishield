@@ -158,8 +158,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-h-screen">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex w-64 flex-col border-r border-white/10 bg-[#0a1718] p-5 shrink-0">
-          <div className="flex items-center justify-between pb-4 border-b border-white/10">
+        <aside className="hidden lg:flex w-64 flex-col border-r border-white/10 bg-[#0a1718] p-5 shrink-0 sticky top-0 h-screen">
+          <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="grid size-9 place-items-center rounded-xl bg-[#b8f55e] text-[#09110f] shadow-md shadow-[#b8f55e]/20">
                 <ShieldCheck className="size-5" />
@@ -172,7 +172,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Admin Profile Card */}
-          <div className="mt-4 rounded-xl border border-white/8 bg-white/[.03] p-3">
+          <div className="mt-4 rounded-xl border border-white/8 bg-white/[.03] p-3 shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="grid size-8 place-items-center rounded-full bg-[#b8f55e]/15 text-xs font-bold text-[#b8f55e]">
                 AD
@@ -287,6 +287,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 <Sliders className="size-3.5 text-[#b8f55e]" />
                 <span>Configure Rules</span>
               </Link>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-700 dark:text-rose-300 transition shadow-xs"
+                title="Sign out of Admin Session"
+              >
+                <LogOut className="size-3.5" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
             </div>
           </header>
 

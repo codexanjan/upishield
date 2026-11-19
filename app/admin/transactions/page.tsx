@@ -143,7 +143,8 @@ export default function AdminTransactionsPage() {
       status: st.status === 'SETTLED' || st.status === 'APPROVED' ? 'Completed' : st.status === 'BLOCKED' ? 'Blocked' : st.status,
       flag_status: st.riskLevel === 'CRITICAL' ? 'Critical' : st.riskLevel === 'HIGH' ? 'High' : st.riskScore > 50 ? 'Suspicious' : 'Normal',
       has_report: st.riskLevel === 'CRITICAL' || st.status === 'BLOCKED',
-      flag_reason: st.riskFactors?.[0]?.description || (st.riskLevel === 'CRITICAL' ? 'High-risk anomaly blocked by engine' : undefined)
+      flag_reason: st.riskFactors?.[0]?.description || (st.riskLevel === 'CRITICAL' ? 'High-risk anomaly blocked by engine' : undefined),
+      note: st.note
     }))
 
     const mappedCardTxns = (storeCardTransactions || []).map((ct: any) => ({
@@ -307,7 +308,10 @@ export default function AdminTransactionsPage() {
 
                       <td className="px-5 py-4">
                         <span className="font-semibold text-white block">{t.merchant}</span>
-                        <span className="text-[11px] font-mono text-slate-400">{t.receiver_upi}</span>
+                        <span className="text-[11px] font-mono text-slate-400 block">{t.receiver_upi}</span>
+                        {t.note && (
+                          <span className="text-[10px] text-emerald-400/90 font-medium block mt-0.5">Note: {t.note}</span>
+                        )}
                       </td>
 
                       <td className="px-5 py-4">

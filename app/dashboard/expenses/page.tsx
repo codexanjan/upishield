@@ -37,7 +37,7 @@ import {
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
-import { useUPIGuardStore } from '@/lib/upiguard-store'
+import { useUPIGuardStore, detectCategoryFromMerchant } from '@/lib/upiguard-store'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 
 const CATEGORIES = [
@@ -51,6 +51,7 @@ const COLORS = ['#b8f55e', '#22C55E', '#10B981', '#F59E0B', '#EF4444', '#84CC16'
 export default function ExpensesPage() {
   const { privacyMasked, togglePrivacyMask } = useAppStore()
   const storeExpenses = useUPIGuardStore((s) => s.expenses)
+  const storeTransactions = useUPIGuardStore((s) => s.transactions)
   const [apiExpenses, setApiExpenses] = useState<any[]>([])
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL')
 
@@ -94,15 +95,35 @@ export default function ExpensesPage() {
   const mergedExpenses: any[] = []
 
   ;(storeExpenses || []).forEach((e) => {
-    const key = e.transaction_ref || `exp-${e.id}`
+    const key = e.transaction_ref || e.transaction_reference || e.transactionId || `exp-${e.id}`
     if (!seenRefs.has(key)) {
       seenRefs.add(key)
       mergedExpenses.push(e)
     }
   })
 
+  ;(storeTransactions || []).forEach((t) => {
+    if (t.status === 'SETTLED' || t.status === 'APPROVED') {
+      const key = t.transactionId || `txn-${t.id}`
+      if (!seenRefs.has(key)) {
+        seenRefs.add(key)
+        mergedExpenses.push({
+          id: `sim_${t.transactionId || t.id}`,
+          transaction_ref: t.transactionId,
+          transaction_reference: t.transactionId,
+          amount: t.amount,
+          category: t.purchaseCategory || detectCategoryFromMerchant(t.receiverName || t.receiverUpiId, t.note),
+          merchant: t.receiverName || t.receiverUpiId || 'UPI Payee',
+          payment_method: 'UPI',
+          date: t.timestamps?.settled || t.timestamps?.created || new Date().toISOString(),
+          description: t.note || `UPI payment to ${t.receiverName || t.receiverUpiId}`
+        })
+      }
+    }
+  })
+
   ;(apiExpenses || []).forEach((e) => {
-    const key = e.transaction_ref || `exp-${e.id}`
+    const key = e.transaction_ref || e.transaction_reference || `exp-${e.id}`
     if (!seenRefs.has(key)) {
       seenRefs.add(key)
       mergedExpenses.push(e)

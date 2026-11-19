@@ -13,22 +13,78 @@ import {
 } from 'lucide-react'
 import { UserLayout } from '@/components/layout/user-layout'
 import { apiRequest } from '@/lib/api'
+import { useUPIGuardStore, detectCategoryFromMerchant } from '@/lib/upiguard-store'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 
+const DEFAULT_CATEGORY_LIMITS = [
+  { id: 1, category: 'Food', limit_amount: 9000.0, base_spent: 8400.0 },
+  { id: 2, category: 'Groceries', limit_amount: 6000.0, base_spent: 5120.0 },
+  { id: 3, category: 'Shopping', limit_amount: 8000.0, base_spent: 6200.0 },
+  { id: 4, category: 'Bills', limit_amount: 5000.0, base_spent: 4200.0 },
+  { id: 5, category: 'Travel', limit_amount: 4000.0, base_spent: 3500.0 },
+  { id: 6, category: 'Entertainment', limit_amount: 3000.0, base_spent: 3450.0 }
+]
+
 export default function BudgetsPage() {
-  const [budgetStatus, setBudgetStatus] = useState<any>({
-    total_budget: 35000.0,
-    total_spent: 27420.0,
-    overall_percentage: 78.3,
-    budgets: [
-      { id: 1, category: 'Food', limit_amount: 9000.0, spent_amount: 8400.0, percentage: 93.3, status_color: 'orange' },
-      { id: 2, category: 'Groceries', limit_amount: 6000.0, spent_amount: 5120.0, percentage: 85.3, status_color: 'amber' },
-      { id: 3, category: 'Shopping', limit_amount: 8000.0, spent_amount: 6200.0, percentage: 77.5, status_color: 'amber' },
-      { id: 4, category: 'Bills', limit_amount: 5000.0, spent_amount: 4200.0, percentage: 84.0, status_color: 'amber' },
-      { id: 5, category: 'Travel', limit_amount: 4000.0, spent_amount: 3500.0, percentage: 87.5, status_color: 'orange' },
-      { id: 6, category: 'Entertainment', limit_amount: 3000.0, spent_amount: 3450.0, percentage: 115.0, status_color: 'red' }
-    ]
-  })
+  const storeExpenses = useUPIGuardStore((s) => s.expenses)
+  const storeTransactions = useUPIGuardStore((s) => s.transactions)
+
+  // Compute live spending per category from real-time store
+  const liveCategorySpent = (() => {
+    const map: Record<string, number> = {}
+    
+    // Sum from transactions
+    ;(storeTransactions || []).forEach((t) => {
+      if (t.status === 'SETTLED' || t.status === 'APPROVED') {
+        const cat = t.purchaseCategory || detectCategoryFromMerchant(t.receiverName || t.receiverUpiId, t.note)
+        map[cat] = (map[cat] || 0) + (Number(t.amount) || 0)
+      }
+    })
+
+    // Sum from explicit expenses
+    ;(storeExpenses || []).forEach((e) => {
+      const cat = e.category || 'Shopping'
+      // only add if not duplicate of a transaction
+      if (!e.transactionId && !e.transaction_reference) {
+        map[cat] = (map[cat] || 0) + (Number(e.amount) || 0)
+      }
+    })
+
+    return map
+  })()
+
+  const [categoryBudgets, setCategoryBudgets] = useState<any[]>(DEFAULT_CATEGORY_LIMITS)
+
+  // Derive dynamic budgetStatus combining configured limits and live spending
+  const budgetStatus = (() => {
+    const budgets = categoryBudgets.map((b) => {
+      const additional = liveCategorySpent[b.category] || 0
+      const spent = (b.base_spent || 0) + additional
+      const percentage = Number(((spent / b.limit_amount) * 100).toFixed(1))
+      let status_color = 'emerald'
+      if (percentage > 100) status_color = 'red'
+      else if (percentage > 85) status_color = 'orange'
+      else if (percentage > 70) status_color = 'amber'
+
+      return {
+        ...b,
+        spent_amount: spent,
+        percentage,
+        status_color
+      }
+    })
+
+    const total_budget = budgets.reduce((sum, b) => sum + b.limit_amount, 0)
+    const total_spent = budgets.reduce((sum, b) => sum + b.spent_amount, 0)
+    const overall_percentage = total_budget > 0 ? Number(((total_spent / total_budget) * 100).toFixed(1)) : 0
+
+    return {
+      total_budget,
+      total_spent,
+      overall_percentage,
+      budgets
+    }
+  })()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [category, setCategory] = useState('Food')
@@ -39,7 +95,12 @@ export default function BudgetsPage() {
     try {
       const data = await apiRequest('/budgets/status').catch(() => null)
       if (data && Array.isArray(data.budgets) && data.budgets.length > 0) {
-        setBudgetStatus(data)
+        setCategoryBudgets(data.budgets.map((b: any, idx: number) => ({
+          id: b.id || idx + 1,
+          category: b.category,
+          limit_amount: Number(b.limit_amount) || 5000,
+          base_spent: Number(b.spent_amount) || 0
+        })))
       }
     } catch {}
   }
@@ -64,12 +125,21 @@ export default function BudgetsPage() {
           month: now.getMonth() + 1,
           year: now.getFullYear()
         })
+      }).catch(() => null)
+
+      setCategoryBudgets((prev) => {
+        const existingIdx = prev.findIndex((b) => b.category.toLowerCase() === category.toLowerCase())
+        if (existingIdx >= 0) {
+          const updated = [...prev]
+          updated[existingIdx] = { ...updated[existingIdx], limit_amount: numLimit }
+          return updated
+        } else {
+          return [...prev, { id: Date.now(), category, limit_amount: numLimit, base_spent: 0 }]
+        }
       })
-      await loadData()
+
       setModalOpen(false)
       setLimitAmount('')
-    } catch {
-      setModalOpen(false)
     } finally {
       setLoading(false)
     }
@@ -78,13 +148,10 @@ export default function BudgetsPage() {
   const handleDeleteBudget = async (id: number) => {
     if (!confirm('Remove this category budget?')) return
     try {
-      await apiRequest(`/budgets/${id}`, { method: 'DELETE' })
-      loadData()
+      await apiRequest(`/budgets/${id}`, { method: 'DELETE' }).catch(() => null)
+      setCategoryBudgets((prev) => prev.filter((b) => b.id !== id))
     } catch {
-      setBudgetStatus((prev: any) => ({
-        ...prev,
-        budgets: (prev.budgets || []).filter((b: any) => b.id !== id)
-      }))
+      setCategoryBudgets((prev) => prev.filter((b) => b.id !== id))
     }
   }
 

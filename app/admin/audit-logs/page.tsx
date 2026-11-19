@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   ClipboardList,
@@ -15,14 +15,38 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { apiRequest } from '@/lib/api'
+import { useUPIGuardStore } from '@/lib/upiguard-store'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 
 export default function AdminAuditLogsPage() {
+  const storeTransactions = useUPIGuardStore((s) => s.transactions)
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [actionFilter, setActionFilter] = useState('ALL')
   const [selectedLog, setSelectedLog] = useState<any | null>(null)
+
+  // Convert real-time user/app transactions into live audit trail records
+  const txnAuditLogs = useMemo(() => {
+    return (storeTransactions || []).map((t, idx) => ({
+      id: `txn_audit_${t.transactionId || t.id || idx}`,
+      admin_email: t.senderUpiId || 'anjan@upiguard',
+      action: t.status === 'SETTLED' ? 'UPI Payment Settled' : t.status === 'BLOCKED' ? 'UPI Security Block' : 'UPI Payment Review',
+      target_type: 'UPI Transaction',
+      target_id: t.transactionId || `TXN-${t.id}`,
+      ip_address: '103.212.144.18',
+      details: {
+        amount: `₹${(Number(t.amount) || 0).toLocaleString('en-IN')}`,
+        merchant: t.receiverName || t.receiverUpiId,
+        vpa: t.receiverUpiId,
+        note: t.note || 'UPI Payment',
+        auth_level: (Number(t.amount) || 0) < 2000 ? 'Single-Factor (UPI PIN Only · < ₹2k)' : 'Layer 2 Biometrics + PIN',
+        risk_score: `${t.riskScore || 12}/100`,
+        status: t.status || 'SETTLED'
+      },
+      created_at: t.timestamps?.settled || t.timestamps?.created || new Date().toISOString()
+    }))
+  }, [storeTransactions])
 
   useEffect(() => {
     fetchLogs()
@@ -74,13 +98,34 @@ export default function AdminAuditLogsPage() {
     }
   }
 
-  const filtered = logs.filter((l) => {
+  // Real-time combined audit trail: live transactions always appear at the top
+  const combinedLogs = useMemo(() => {
+    const seen = new Set<string>()
+    const res: any[] = []
+
+    txnAuditLogs.forEach((l) => {
+      seen.add(l.target_id)
+      res.push(l)
+    })
+
+    logs.forEach((l) => {
+      if (!seen.has(l.target_id)) {
+        seen.add(l.target_id)
+        res.push(l)
+      }
+    })
+
+    return res.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }, [txnAuditLogs, logs])
+
+  const filtered = combinedLogs.filter((l) => {
     const s = search.toLowerCase()
     const matchesSearch =
       (l.action && l.action.toLowerCase().includes(s)) ||
       (l.admin_email && l.admin_email.toLowerCase().includes(s)) ||
       (l.target_id && l.target_id.toLowerCase().includes(s)) ||
-      (l.target_type && l.target_type.toLowerCase().includes(s))
+      (l.target_type && l.target_type.toLowerCase().includes(s)) ||
+      (l.details?.note && l.details.note.toLowerCase().includes(s))
 
     const matchesAction = actionFilter === 'ALL' || l.action.includes(actionFilter)
     return matchesSearch && matchesAction

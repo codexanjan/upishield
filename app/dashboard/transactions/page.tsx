@@ -46,7 +46,8 @@ function mapSimulationTxnToTableRow(simTxn: any) {
     upi_details: {
       receiver_name: simTxn.receiverName || simTxn.merchant,
       receiver_upi: simTxn.receiverUpiId || simTxn.upi_details?.receiver_upi || 'receiver@upi'
-    }
+    },
+    note: simTxn.note
   }
 }
 
@@ -272,6 +273,11 @@ export default function TransactionsPage() {
                       <p className="font-semibold text-white">{t.merchant}</p>
                       {t.upi_details?.receiver_upi && (
                         <p className="text-[10px] text-slate-400 font-mono">{t.upi_details.receiver_upi}</p>
+                      )}
+                      {t.note && (
+                        <p className="text-[10px] text-emerald-400/90 font-medium italic mt-0.5">
+                          Note: &ldquo;{t.note}&rdquo;
+                        </p>
                       )}
                     </td>
                     <td className="py-3.5 text-slate-300">{t.payment_method}</td>

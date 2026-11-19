@@ -413,13 +413,31 @@ export function UPIGuardPaymentFlow({
     }
   }
 
-  // Step 4: Verify PIN -> Advance to Layer 2 Biometrics Gate
+  // Step 4: Verify PIN -> If amount < 2000, keep only UPI PIN and settle directly!
+  // If amount >= 2000, advance to Layer 2 Biometrics Gate
   const handleVerifyPin = () => {
     setPinError(null)
     if (!currentTransaction) return
     const result = verifyPin(currentTransaction.transactionId, enteredPin)
     if (result.success) {
-      // Advance to Layer 2 Biometrics Gate (Face & Fingerprint)
+      const numAmount = Number(amount) || Number(currentTransaction.amount) || 0
+      if (numAmount < 2000) {
+        // Less than ₹2,000: NPCI Single-Factor UPI PIN Rule -> settle immediately!
+        const settlement = settlePayment(currentTransaction.transactionId)
+        if (settlement.success) {
+          setStep('SUCCESS')
+          try {
+            confetti({ particleCount: 90, spread: 80, origin: { y: 0.55 } })
+          } catch {}
+          if (onComplete && settlement.transaction) {
+            onComplete(settlement.transaction)
+          }
+        } else {
+          setPinError(settlement.message)
+        }
+        return
+      }
+      // ₹2,000 and above: Advance to Layer 2 Biometrics Gate (Face & Fingerprint)
       setStep('BIOMETRIC_GATE')
     } else {
       setPinError(result.message)
@@ -1429,6 +1447,16 @@ export function UPIGuardPaymentFlow({
               <span className="font-mono text-white">₹{Number(amount).toLocaleString('en-IN')}.00</span>
             </div>
             <div className="flex justify-between text-xs text-slate-400">
+              <span>Payment Note / Purpose</span>
+              <span className="font-medium text-emerald-400 font-mono">{note || 'Payment'}</span>
+            </div>
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>Security Evaluation Level</span>
+              <span className="font-mono text-slate-200">
+                {Number(amount) < 2000 ? 'Single-Factor (UPI PIN Only · < ₹2k)' : 'Multi-Factor (PIN + Biometrics)'}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-slate-400">
               <span>UPIGuard AI Security Fee</span>
               <span className="font-mono text-emerald-400">₹0.00 (Free Demo)</span>
             </div>
@@ -1728,10 +1756,14 @@ export function UPIGuardPaymentFlow({
 
           <div className="text-center space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#b8f55e]/10 border border-[#b8f55e]/25 text-[10px] font-mono text-[#b8f55e] uppercase">
-              <Lock className="size-3" /> Layer 1 Security Gate
+              <Lock className="size-3" /> {Number(amount) < 2000 ? 'Single-Factor UPI Gate (< ₹2,000)' : 'Layer 1 Security Gate'}
             </div>
             <h3 className="text-xl font-bold text-white tracking-tight">ENTER UPI PIN</h3>
-            <p className="text-xs text-slate-400">Enter your 4-digit PIN to authenticate before Layer 2 biometrics</p>
+            <p className="text-xs text-slate-400">
+              {Number(amount) < 2000
+                ? 'NPCI Rule Active: Transfers under ₹2,000 require only UPI PIN for instant settlement'
+                : 'Enter your 4-digit PIN to authenticate before Layer 2 biometrics'}
+            </p>
           </div>
 
           {/* 4-Digit Input */}
@@ -1775,7 +1807,7 @@ export function UPIGuardPaymentFlow({
               disabled={enteredPin.length !== 4}
               className="flex-1 py-3 px-6 rounded-2xl bg-[#b8f55e] hover:brightness-110 disabled:opacity-50 text-[#09110f] font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#b8f55e]/20 transition flex items-center justify-center gap-2"
             >
-              <span>VERIFY PIN & ADVANCE TO LAYER 2 BIOMETRICS</span>
+              <span>{Number(amount) < 2000 ? 'VERIFY PIN & COMPLETE PAYMENT' : 'VERIFY PIN & ADVANCE TO LAYER 2 BIOMETRICS'}</span>
               <ArrowRight className="size-4" />
             </button>
           </div>
@@ -2179,9 +2211,17 @@ export function UPIGuardPaymentFlow({
             <div className="flex justify-between">
               <span className="text-slate-400">Authentication:</span>
               <span className="text-slate-200">
-                {currentTransaction.authMethod ? currentTransaction.authMethod.replace('_', ' ') + ' + OTP' : 'OTP'}
+                {currentTransaction.amount < 2000
+                  ? 'UPI PIN Only (< ₹2,000 Single-Factor Rule)'
+                  : currentTransaction.authMethod ? currentTransaction.authMethod.replace('_', ' ') + ' + OTP' : 'Biometric + OTP'}
               </span>
             </div>
+            {currentTransaction.note && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Payment Note:</span>
+                <span className="text-emerald-400 font-semibold">{currentTransaction.note}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Transaction ID:</span>
               <span className="text-slate-200 font-bold">{currentTransaction.transactionId}</span>

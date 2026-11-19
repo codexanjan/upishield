@@ -177,21 +177,6 @@ export default function LandingPage() {
                 Documentation <ChevronRight className="size-3.5" />
               </Link>
             </MotionFadeUp>
-
-            <MotionFadeUp delay={0.55} className="pt-8 border-t border-white/8 grid grid-cols-3 gap-6 max-w-lg">
-              <div>
-                <p className="text-2xl font-black text-[#b8f55e] tracking-tight font-mono">0 ms</p>
-                <p className="text-xs text-[#8fa9a6] mt-0.5 font-medium">Real-Time Evaluation</p>
-              </div>
-              <div>
-                <p className="text-2xl font-black text-white tracking-tight font-mono">0.00%</p>
-                <p className="text-xs text-[#8fa9a6] mt-0.5 font-medium">Zero False Halt</p>
-              </div>
-              <div>
-                <p className="text-2xl font-black text-emerald-400 tracking-tight font-mono">₹0 Zero</p>
-                <p className="text-xs text-[#8fa9a6] mt-0.5 font-medium">Liability Guarantee</p>
-              </div>
-            </MotionFadeUp>
           </div>
 
           {/* Right Column: Sleek Holographic Security Matrix HUD */}
