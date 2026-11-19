@@ -578,64 +578,64 @@ export default function AdminModelCenterPage() {
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   {/* True Positive */}
                   <div className="p-4 rounded-xl border border-[#b8f55e]/30 bg-[#b8f55e]/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-[#b8f55e]">
+                    <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-[#b8f55e]">
                       <span className="font-semibold">TRUE POSITIVES (TP)</span>
                       <CheckCircle2 className="size-4" />
                     </div>
                     <div className="my-2">
-                      <span className="text-3xl font-mono font-bold text-white">
+                      <span className="text-3xl font-mono font-bold text-slate-900 dark:text-white">
                         {modelState.confusion_matrix.true_positives.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/60">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 font-medium">
                       Fraudulent transfers correctly blocked or placed on biometric hold.
                     </p>
                   </div>
 
                   {/* False Positive */}
                   <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-amber-400">
+                    <div className="flex items-center justify-between text-xs text-amber-700 dark:text-amber-400">
                       <span className="font-semibold">FALSE POSITIVES (FP)</span>
                       <AlertTriangle className="size-4" />
                     </div>
                     <div className="my-2">
-                      <span className="text-3xl font-mono font-bold text-white">
+                      <span className="text-3xl font-mono font-bold text-slate-900 dark:text-white">
                         {modelState.confusion_matrix.false_positives.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/60">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 font-medium">
                       Genuine transfers flagged as risky. Recalibrated via user feedback.
                     </p>
                   </div>
 
                   {/* False Negative */}
                   <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-rose-400">
+                    <div className="flex items-center justify-between text-xs text-rose-700 dark:text-rose-400">
                       <span className="font-semibold">FALSE NEGATIVES (FN)</span>
                       <ShieldAlert className="size-4" />
                     </div>
                     <div className="my-2">
-                      <span className="text-3xl font-mono font-bold text-white">
+                      <span className="text-3xl font-mono font-bold text-slate-900 dark:text-white">
                         {modelState.confusion_matrix.false_negatives.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/60">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 font-medium">
                       Subtle zero-day attacks slipped through; auto-fed into Isolation Forest training queue.
                     </p>
                   </div>
 
                   {/* True Negative */}
-                  <div className="p-4 rounded-xl border border-white/10 bg-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs text-white/70">
+                  <div className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-xs text-slate-700 dark:text-white/70">
                       <span className="font-semibold">TRUE NEGATIVES (TN)</span>
                       <Check className="size-4" />
                     </div>
                     <div className="my-2">
-                      <span className="text-3xl font-mono font-bold text-white">
+                      <span className="text-3xl font-mono font-bold text-slate-900 dark:text-white">
                         {modelState.confusion_matrix.true_negatives.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-[11px] text-white/60">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 font-medium">
                       Legitimate transfers approved instantly with zero friction (&lt;12ms latency).
                     </p>
                   </div>
@@ -643,57 +643,57 @@ export default function AdminModelCenterPage() {
               </div>
 
               {/* Multi-Model Fusion Specs */}
-              <div className="p-5 rounded-2xl border border-white/10 bg-[#0a1718] space-y-4">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Cpu className="size-4 text-[#b8f55e]" />
+              <div className="p-5 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0a1718] space-y-4 shadow-sm">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Cpu className="size-4 text-emerald-600 dark:text-[#b8f55e]" />
                   Active Ensemble Architecture
                 </h3>
 
                 <div className="space-y-3">
-                  <div className="p-3 rounded-xl border border-white/10 bg-white/5">
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white">1. XGBoost UPI Classifier</span>
-                      <span className="text-[#b8f55e] font-mono">v2.4 (35% weight)</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">1. XGBoost UPI Classifier</span>
+                      <span className="text-emerald-700 dark:text-[#b8f55e] font-mono font-bold">v2.4 (35% weight)</span>
                     </div>
-                    <p className="text-[11px] text-white/50 mt-1">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 mt-1 font-medium leading-relaxed">
                       Gradient boosted decision trees for known fraud patterns, blacklist VPAs & phishing keywords.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-xl border border-white/10 bg-white/5">
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white">2. Isolation Forest Anomaly</span>
-                      <span className="text-[#b8f55e] font-mono">v3.1 (25% weight)</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">2. Isolation Forest Anomaly</span>
+                      <span className="text-emerald-700 dark:text-[#b8f55e] font-mono font-bold">v3.1 (25% weight)</span>
                     </div>
-                    <p className="text-[11px] text-white/50 mt-1">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 mt-1 font-medium leading-relaxed">
                       Unsupervised tree isolation detecting multivariate deviations in ticket size & temporal cadence.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-xl border border-white/10 bg-white/5">
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white">3. Haversine Geo-Velocity</span>
-                      <span className="text-[#b8f55e] font-mono">v1.0 (20% weight)</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">3. Haversine Geo-Velocity</span>
+                      <span className="text-emerald-700 dark:text-[#b8f55e] font-mono font-bold">v1.0 (20% weight)</span>
                     </div>
-                    <p className="text-[11px] text-white/50 mt-1">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 mt-1 font-medium leading-relaxed">
                       Calculates speed between consecutive logins/txns (&gt;800 km/h triggers immediate block).
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-xl border border-white/10 bg-white/5">
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-white">4. Device & QR Entropy</span>
-                      <span className="text-[#b8f55e] font-mono">v2.0 (20% weight)</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">4. Device & QR Entropy</span>
+                      <span className="text-emerald-700 dark:text-[#b8f55e] font-mono font-bold">v2.0 (20% weight)</span>
                     </div>
-                    <p className="text-[11px] text-white/50 mt-1">
+                    <p className="text-[11px] text-slate-600 dark:text-white/60 mt-1 font-medium leading-relaxed">
                       Detects rooted hardware, shared emulator fingerprints, and tampered QR query parameters.
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
+                <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-xs text-slate-600 dark:text-white/60 font-medium">
                   <span>Ensemble Latency:</span>
-                  <span className="font-mono text-[#b8f55e] font-bold">14.2 ms avg</span>
+                  <span className="font-mono text-emerald-700 dark:text-[#b8f55e] font-bold">14.2 ms avg</span>
                 </div>
               </div>
             </div>

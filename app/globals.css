@@ -226,13 +226,24 @@ html.light [class*="bg-[#0d1f1e]"],
 html.light [class*="bg-[#0B1B2D]"],
 html.light [class*="bg-[#0c1619]"],
 html.light [class*="bg-[#061214]"],
+html.light [class*="from-[#0a1718]"],
+html.light [class*="from-[#071317]"],
 html.light [class*="from-[#091726]"],
+html.light [class*="from-[#06101D]"],
+html.light [class*="via-[#0d2122]"],
 html.light [class*="bg-[#06101D]"],
 html.light [class*="bg-[#091726]"] {
   background: #ffffff !important;
+  background-image: none !important;
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Dark transparent containers in light mode */
+html.light [class*="bg-black/"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
 }
 
 /* Sub-containers & subtle pills */
@@ -241,6 +252,8 @@ html.light [class*="bg-white/[.04]"],
 html.light [class*="bg-white/[.05]"],
 html.light [class*="bg-white/[.06]"],
 html.light [class*="bg-white/[.08]"],
+html.light [class*="bg-white/[0.03]"],
+html.light [class*="bg-white/[0.05]"],
 html.light [class*="bg-white/5"],
 html.light [class*="bg-white/10"],
 html.light [class*="bg-white/15"] {
@@ -335,13 +348,37 @@ html.light [class*="text-[#eef8f7]"] {
   color: #0f172a !important;
 }
 
-/* Sub-labels and muted indicators (e.g., "Active Users", "Submitted") */
+/* All white opacity variants in light mode become dark readable slate */
+html.light [class*="text-white/"] {
+  color: #475569 !important;
+}
+html.light [class*="text-white/80"],
+html.light [class*="text-white/90"] {
+  color: #1e293b !important;
+}
+html.light [class*="text-white/70"],
+html.light [class*="text-white/60"] {
+  color: #334155 !important;
+}
+html.light [class*="text-white/50"],
+html.light [class*="text-white/40"],
+html.light [class*="text-white/30"] {
+  color: #475569 !important;
+}
+
+/* Sub-labels and muted indicators (e.g., "Active Users", "Submitted", "Deterministic Rule Governance") */
+html.light [class*="text-[#b7c9c6]"],
 html.light [class*="text-[#8fa9a6]"],
+html.light [class*="text-[#829997]"],
+html.light [class*="text-[#9db2af]"],
+html.light [class*="text-[#91a8a7]"],
+html.light [class*="text-[#6f8583]"],
+html.light [class*="text-[#526b68]"],
 html.light [class*="text-[#819694]"],
 html.light [class*="text-[#78908d]"],
 html.light .text-slate-400 {
   color: #475569 !important;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 html.light .text-slate-300,
@@ -357,7 +394,10 @@ html.light .text-slate-500 {
 /* Colored Metric Numbers & Sub-labels */
 html.light .text-amber-400,
 html.light [class*="text-amber-400"],
-html.light .text-amber-300 {
+html.light .text-amber-300,
+html.light [class*="text-amber-300"],
+html.light .text-amber-200,
+html.light [class*="text-amber-200"] {
   color: #b45309 !important; /* Deep readable amber */
 }
 
@@ -393,6 +433,10 @@ html.light .text-rose-400,
 html.light .text-rose-500,
 html.light [class*="text-rose-400"],
 html.light [class*="text-rose-500"],
+html.light .text-rose-300,
+html.light [class*="text-rose-300"],
+html.light .text-rose-200,
+html.light [class*="text-rose-200"],
 html.light [class*="text-[#ff7a82]"] {
   color: #be123c !important; /* Rich deep rose */
 }

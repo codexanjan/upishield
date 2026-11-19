@@ -246,13 +246,13 @@ export default function LandingPage() {
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-[#b8f55e]/20 bg-[#b8f55e]/5 p-3.5">
-                    <div className="flex items-center gap-2 text-[#b8f55e] text-xs font-bold">
+                  <div className="rounded-2xl border border-emerald-500/20 dark:border-[#b8f55e]/20 bg-emerald-50/70 dark:bg-[#b8f55e]/5 p-3.5">
+                    <div className="flex items-center gap-2 text-emerald-800 dark:text-[#b8f55e] text-xs font-bold">
                       <Fingerprint className="size-3.5" />
                       <span>Biometric Enclave</span>
                     </div>
-                    <p className="text-[11px] text-white/80 mt-1 font-mono">Hardware Authentication</p>
-                    <span className="inline-block mt-2 text-[10px] font-bold text-[#b8f55e]">
+                    <p className="text-[11px] text-slate-600 dark:text-white/80 mt-1 font-mono">Hardware Authentication</p>
+                    <span className="inline-block mt-2 text-[10px] font-bold text-emerald-700 dark:text-[#b8f55e]">
                       ✓ Sovereign Key
                     </span>
                   </div>

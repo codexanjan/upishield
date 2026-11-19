@@ -292,15 +292,15 @@ export default function UserDashboard() {
                         Deterministic Travel-Time Rule
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-white mt-1">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
                       Was this you? A new device transacted from Delhi while your registered phone was active in Bengaluru.
                     </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-amber-200/90 font-mono">
-                      <span className="bg-black/30 px-2.5 py-1 rounded-md border border-white/10">
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-mono">
+                      <span className="bg-amber-100 dark:bg-black/40 px-2.5 py-1 rounded-md border border-amber-300 dark:border-white/10 text-amber-950 dark:text-amber-200 font-semibold shadow-xs">
                         Bengaluru · Today 10:20 AM
                       </span>
-                      <span className="text-amber-400 font-bold">➔</span>
-                      <span className="bg-black/30 px-2.5 py-1 rounded-md border border-white/10 text-rose-300">
+                      <span className="text-amber-600 dark:text-amber-400 font-bold">➔</span>
+                      <span className="bg-rose-100 dark:bg-black/40 px-2.5 py-1 rounded-md border border-rose-300 dark:border-white/10 text-rose-950 dark:text-rose-300 font-semibold shadow-xs">
                         Delhi · Today 10:38 AM (Device DEV-A782)
                       </span>
                     </div>
@@ -310,7 +310,7 @@ export default function UserDashboard() {
                 <div className="flex flex-wrap items-center gap-2 self-start lg:self-center shrink-0">
                   <button
                     onClick={() => setConflictStatus('verified_me')}
-                    className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition border border-white/10"
+                    className="px-3.5 py-2 rounded-xl bg-slate-900/10 hover:bg-slate-900/15 text-slate-900 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white text-xs font-semibold transition border border-slate-300 dark:border-white/10 shadow-xs"
                   >
                     Yes, It Was Me
                   </button>
@@ -326,13 +326,13 @@ export default function UserDashboard() {
                   </button>
                   <Link
                     href="/dashboard/devices"
-                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-[#8fa9a6] hover:text-white transition"
+                    className="px-3 py-2 rounded-xl bg-slate-900/5 hover:bg-slate-900/10 text-slate-700 dark:bg-white/5 dark:hover:bg-white/10 dark:text-[#8fa9a6] hover:text-slate-900 dark:hover:text-white transition border border-slate-200 dark:border-transparent text-xs font-medium"
                   >
                     Review Device
                   </Link>
                   <button
                     onClick={() => setBankModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-amber-400 hover:text-amber-300 transition"
+                    className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-amber-400 dark:hover:text-amber-300 transition border border-amber-300/60 dark:border-transparent text-xs font-medium"
                   >
                     Contact Bank
                   </button>
@@ -375,47 +375,47 @@ export default function UserDashboard() {
         </AnimatePresence>
 
         {/* OBJECTIVE 1 & 2: DYNAMIC RISK & BEHAVIOUR INTELLIGENCE OVERVIEW */}
-        <div className="rounded-2xl border border-[#b8f55e]/30 bg-gradient-to-r from-[#0a1718] via-[#0d2122] to-[#0a1718] p-5 shadow-2xl relative overflow-hidden">
+        <div className="rounded-2xl border border-emerald-500/20 dark:border-[#b8f55e]/30 bg-white dark:bg-gradient-to-r dark:from-[#0a1718] dark:via-[#0d2122] dark:to-[#0a1718] p-5 shadow-xl dark:shadow-2xl relative overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30 flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-emerald-50 dark:bg-[#b8f55e]/20 text-emerald-700 dark:text-[#b8f55e] border border-emerald-200 dark:border-[#b8f55e]/30 flex items-center gap-1.5">
                   <Cpu className="size-3" />
                   DYNAMIC RISK SCORING ACTIVE
                 </span>
-                <span className="text-xs text-white/50">Cross-UPI Ensemble v2.4.1</span>
+                <span className="text-xs text-slate-500 dark:text-white/50">Cross-UPI Ensemble v2.4.1</span>
               </div>
-              <h2 className="text-lg font-bold text-white">Real-Time Risk Profile &amp; Behaviour Baseline</h2>
-              <p className="text-xs text-white/60 max-w-xl">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Real-Time Risk Profile &amp; Behaviour Baseline</h2>
+              <p className="text-xs text-slate-600 dark:text-white/60 max-w-xl">
                 Multi-model AI continuous evaluation combining XGBoost fraud pattern matching, Isolation Forest anomaly detection, and Haversine flight velocity checks.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               {/* Score Gauge */}
-              <div className="flex items-center gap-3 bg-black/40 px-4 py-2.5 rounded-xl border border-white/10">
+              <div className="flex items-center gap-3 bg-slate-50 dark:bg-black/40 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-xs">
                 <div className="text-center">
-                  <span className="text-2xl font-mono font-bold text-[#b8f55e] leading-none">18</span>
-                  <span className="text-[10px] text-white/40 block mt-0.5">/ 100</span>
+                  <span className="text-2xl font-mono font-bold text-emerald-600 dark:text-[#b8f55e] leading-none">18</span>
+                  <span className="text-[10px] text-slate-500 dark:text-white/40 block mt-0.5 font-mono">/ 100</span>
                 </div>
-                <div className="border-l border-white/10 pl-3 text-left">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#b8f55e]/20 text-[#b8f55e]">
+                <div className="border-l border-slate-200 dark:border-white/10 pl-3 text-left">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-[#b8f55e]/20 text-emerald-800 dark:text-[#b8f55e]">
                     LOW RISK
                   </span>
-                  <span className="text-[11px] text-white/60 block mt-1 font-mono">Cutoff: 72.5</span>
+                  <span className="text-[11px] text-slate-600 dark:text-white/60 block mt-1 font-mono">Cutoff: 72.5</span>
                 </div>
               </div>
 
               {/* Deviation Metric */}
-              <div className="bg-black/40 px-4 py-2.5 rounded-xl border border-white/10">
-                <span className="text-[10px] uppercase text-white/40 tracking-wider block">Behaviour Deviation</span>
-                <span className="text-sm font-mono font-bold text-emerald-400 mt-0.5 block">14% (Normal)</span>
-                <span className="text-[10px] text-white/50">Ticket avg: ₹1,450</span>
+              <div className="bg-slate-50 dark:bg-black/40 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-xs">
+                <span className="text-[10px] uppercase text-slate-500 dark:text-white/40 tracking-wider block font-semibold">Behaviour Deviation</span>
+                <span className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">14% (Normal)</span>
+                <span className="text-[10px] text-slate-500 dark:text-white/50">Ticket avg: ₹1,450</span>
               </div>
 
               <Link
                 href="/dashboard/risk-profile"
-                className="px-4 py-2.5 rounded-xl bg-[#b8f55e] text-[#071014] text-xs font-bold hover:bg-[#c9f97f] transition shadow-lg shadow-[#b8f55e]/20 flex items-center gap-2 shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 dark:bg-[#b8f55e] text-white dark:text-[#071014] text-xs font-bold hover:bg-emerald-500 dark:hover:bg-[#c9f97f] transition shadow-lg shadow-emerald-600/20 dark:shadow-[#b8f55e]/20 flex items-center gap-2 shrink-0"
               >
                 <span>Full AI Risk Analysis</span>
                 <ArrowRight className="size-3.5" />
@@ -424,30 +424,30 @@ export default function UserDashboard() {
           </div>
 
           {/* Sub-Score Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-4 mt-4 border-t border-white/10 text-xs">
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-              <span className="text-[10px] text-white/50 block">Device Risk</span>
-              <span className="font-mono font-bold text-[#b8f55e]">12/100 (Safe)</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-4 mt-4 border-t border-slate-200 dark:border-white/10 text-xs">
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 block font-medium">Device Risk</span>
+              <span className="font-mono font-bold text-emerald-700 dark:text-[#b8f55e]">12/100 (Safe)</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-              <span className="text-[10px] text-white/50 block">Location Risk</span>
-              <span className="font-mono font-bold text-[#b8f55e]">15/100 (Home)</span>
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 block font-medium">Location Risk</span>
+              <span className="font-mono font-bold text-emerald-700 dark:text-[#b8f55e]">15/100 (Home)</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-              <span className="text-[10px] text-white/50 block">Receiver Risk</span>
-              <span className="font-mono font-bold text-[#b8f55e]">8/100 (Clean)</span>
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 block font-medium">Receiver Risk</span>
+              <span className="font-mono font-bold text-emerald-700 dark:text-[#b8f55e]">8/100 (Clean)</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-              <span className="text-[10px] text-white/50 block">QR Integrity</span>
-              <span className="font-mono font-bold text-[#b8f55e]">0/100 (Verified)</span>
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 block font-medium">QR Integrity</span>
+              <span className="font-mono font-bold text-emerald-700 dark:text-[#b8f55e]">0/100 (Verified)</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-              <span className="text-[10px] text-white/50 block">Anomaly Score</span>
-              <span className="font-mono font-bold text-[#b8f55e]">10/100 (Nominal)</span>
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 block font-medium">Anomaly Score</span>
+              <span className="font-mono font-bold text-emerald-700 dark:text-[#b8f55e]">10/100 (Nominal)</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
-              <span className="text-[10px] text-white/50 block">Adaptive Barrier</span>
-              <span className="font-mono font-bold text-white">72.5 (+2.5 bonus)</span>
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 block font-medium">Adaptive Barrier</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">72.5 (+2.5 bonus)</span>
             </div>
           </div>
         </div>

@@ -21,6 +21,7 @@ import { useAppStore, verifyUserCredentials, verifyAdminCredentials, DEFAULT_USE
 import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
 import { LanguageSelector } from '@/components/layout/language-selector'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 type AuthScreenProps = { admin?: boolean }
 
@@ -148,7 +149,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
             </h1>
 
             <MotionFadeUp delay={0.25}>
-              <p className="mt-6 max-w-md text-base leading-7 text-[#8fa9a6]">
+              <p className="mt-6 max-w-md text-base leading-7 text-slate-700 dark:text-[#8fa9a6] font-normal">
                 {admin
                   ? 'A secure operations console for incident triage, device tracking, and deterministic rule enforcement.'
                   : 'Track payment geography, detect location conflicts, and review suspicious recipients before sending.'}
@@ -165,9 +166,9 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 0.35 + idx * 0.1 }}
-                  className="flex items-center gap-3 text-sm text-[#b7c9c6]"
+                  className="flex items-center gap-3 text-sm font-semibold text-slate-800 dark:text-[#b7c9c6]"
                 >
-                  <span className="grid size-5 place-items-center rounded-full bg-[#b8f55e]/15 text-[#b8f55e]">
+                  <span className="grid size-5 place-items-center rounded-full bg-emerald-500/15 dark:bg-[#b8f55e]/15 text-emerald-600 dark:text-[#b8f55e]">
                     <Check className="size-3" />
                   </span>
                   {item}
@@ -176,7 +177,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
             </div>
           </div>
 
-          <div className="relative flex items-center justify-between text-xs text-[#6f8583]">
+          <div className="relative flex items-center justify-between text-xs text-slate-500 dark:text-[#6f8583] font-medium">
             <span>© 2026 UPI Shield · Deterministic Security</span>
             <span className="flex items-center gap-2">
               <LockKeyhole className="size-3.5" /> 100% Zero-AI Architecture
@@ -188,10 +189,13 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
         <section className="flex min-h-screen items-center justify-center px-6 py-10">
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center justify-between">
-              <Link href="/" className="inline-flex items-center gap-2 text-sm text-[#829997] transition hover:text-white">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-[#829997] transition hover:text-slate-900 dark:hover:text-white font-medium">
                 <ArrowLeft className="size-4" /> Back to home
               </Link>
-              <LanguageSelector compact />
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <LanguageSelector compact />
+              </div>
             </div>
 
             <div className="mb-6 lg:hidden">
