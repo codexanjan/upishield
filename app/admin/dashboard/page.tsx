@@ -35,10 +35,12 @@ import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
 import RealGoogleMap from '@/components/maps/real-google-map'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 export default function AdminDashboardPage() {
   const [mounted, setMounted] = useState(false)
   const { transactions, alerts } = useUPIGuardStore()
+  const { t } = useLanguage()
 
   // Section 53 Command Center KPIs
   const totalTransactions = 12482 + transactions.length
@@ -94,11 +96,11 @@ export default function AdminDashboardPage() {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <MotionBadge className="rounded-full border border-[#b8f55e]/25 bg-[#b8f55e]/10 px-3 py-1 text-xs font-semibold text-[#b8f55e]">
-                ADMIN COMMAND CENTER · REAL-TIME TRIAGE
+                {t('ADMIN COMMAND CENTER · REAL-TIME TRIAGE', 'ADMIN COMMAND CENTER · REAL-TIME TRIAGE')}
               </MotionBadge>
             </div>
             <MotionWordReveal
-              text="Security Command Center"
+              text={t('Security Command Center')}
               className="text-2xl sm:text-3xl font-medium tracking-tight text-white"
             />
             <p className="mt-1 text-xs text-[#8fa9a6]">
@@ -109,19 +111,19 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-2.5">
             <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 font-mono">
               <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live Platform Engine
+              {t('Live Platform Engine')}
             </span>
             <Link
               href="/pay"
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-[#b8f55e] px-3.5 py-2 text-xs font-bold text-[#071014] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/25"
             >
-              <Send className="size-3.5" /> Send UPI
+              <Send className="size-3.5" /> {t('Send UPI')}
             </Link>
             <Link
               href="/admin/payment-map"
               className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 text-xs font-semibold text-slate-900 dark:text-white transition shadow-sm"
             >
-              <MapPin className="size-3.5 text-[#b8f55e]" /> Live Map
+              <MapPin className="size-3.5 text-[#b8f55e]" /> {t('Live Map')}
             </Link>
           </div>
         </div>
@@ -146,41 +148,41 @@ export default function AdminDashboardPage() {
                 href="/admin/fraud/simulator"
                 className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#438EFF] to-[#5BD6FF] text-[#06101D] text-xs font-bold shadow-md hover:brightness-110 transition flex items-center gap-1.5"
               >
-                <Flame className="size-3.5" /> Fraud Simulator
+                <Flame className="size-3.5" /> {t('Fraud Simulator')}
               </Link>
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
             <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">TOTAL TRANSACTIONS</span>
+              <span className="text-[10px] uppercase font-semibold text-slate-400">{t('TOTAL TRANSACTIONS')}</span>
               <div className="text-2xl font-black text-white font-mono">{totalTransactions.toLocaleString()}</div>
-              <span className="text-[10px] text-emerald-400">All channels</span>
+              <span className="text-[10px] text-emerald-400">{t('All channels')}</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">SUCCESSFUL</span>
+              <span className="text-[10px] uppercase font-semibold text-slate-400">{t('SUCCESSFUL')}</span>
               <div className="text-2xl font-black text-emerald-400 font-mono">{totalSuccessful.toLocaleString()}</div>
-              <span className="text-[10px] text-slate-500">Settled cleanly</span>
+              <span className="text-[10px] text-slate-500">{t('Settled cleanly')}</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">BLOCKED</span>
+              <span className="text-[10px] uppercase font-semibold text-slate-400">{t('BLOCKED')}</span>
               <div className="text-2xl font-black text-rose-400 font-mono">{totalBlocked}</div>
-              <span className="text-[10px] text-rose-400/80">Critical risk</span>
+              <span className="text-[10px] text-rose-400/80">{t('Critical risk')}</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">FRAUD RATE</span>
+              <span className="text-[10px] uppercase font-semibold text-slate-400">{t('FRAUD RATE')}</span>
               <div className="text-2xl font-black text-[#5BD6FF] font-mono">{fraudRate}%</div>
               <span className="text-[10px] text-slate-500">&lt; 5% target</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">AMOUNT PROTECTED</span>
+              <span className="text-[10px] uppercase font-semibold text-slate-400">{t('AMOUNT PROTECTED')}</span>
               <div className="text-2xl font-black text-emerald-400 font-mono">₹{amountProtected.toFixed(1)}L</div>
-              <span className="text-[10px] text-emerald-400/80">Saved before debit</span>
+              <span className="text-[10px] text-emerald-400/80">{t('Saved before debit')}</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#06101D] border border-white/5 space-y-1">
-              <span className="text-[10px] uppercase font-semibold text-slate-400">ACTIVE ALERTS</span>
+              <span className="text-[10px] uppercase font-semibold text-slate-400">{t('ACTIVE ALERTS')}</span>
               <div className="text-2xl font-black text-amber-400 font-mono">{24 + alerts.filter(a => a.status === 'OPEN').length}</div>
-              <span className="text-[10px] text-amber-400/80">Triage queue</span>
+              <span className="text-[10px] text-amber-400/80">{t('Triage queue')}</span>
             </div>
           </div>
         </div>
@@ -188,49 +190,49 @@ export default function AdminDashboardPage() {
         {/* 8 COMMAND CENTER METRIC CARDS (Prompt Spec 26) */}
         <div className="grid gap-3.5 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">Active Users</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('Active Users')}</span>
             <p className="text-xl font-bold text-white font-mono">{stats.active_users.toLocaleString()}</p>
             <span className="text-[9px] text-[#b8f55e]">Online endpoints</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">Txns Today</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('Txns Today')}</span>
             <p className="text-xl font-bold text-white font-mono">{stats.transactions_today.toLocaleString()}</p>
             <span className="text-[9px] text-emerald-400">100% evaluated</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">New Devices</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('New Devices')}</span>
             <p className="text-xl font-bold text-amber-400 font-mono">{stats.new_devices}</p>
             <span className="text-[9px] text-amber-400/80">Pending profile</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">New Locations</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('New Locations')}</span>
             <p className="text-xl font-bold text-sky-400 font-mono">{stats.new_locations}</p>
             <span className="text-[9px] text-sky-400/80">Geo-clusters</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">Location Alerts</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('Location Alerts')}</span>
             <p className="text-xl font-bold text-rose-400 font-mono">{stats.location_alerts}</p>
             <span className="text-[9px] text-rose-400/80">Velocity conflict</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">Fraud Reports</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('Fraud Reports')}</span>
             <p className="text-xl font-bold text-white font-mono">{stats.fraud_reports}</p>
             <span className="text-[9px] text-[#8fa9a6]">Submitted</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">Critical Cases</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('Critical Cases')}</span>
             <p className="text-xl font-bold text-rose-500 font-mono">{stats.critical_cases}</p>
             <span className="text-[9px] text-rose-400 font-bold">Needs Action</span>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-[#0a1718] p-3.5 space-y-1">
-            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">Open Invs</span>
+            <span className="text-[10px] text-[#8fa9a6] uppercase font-semibold">{t('Open Invs')}</span>
             <p className="text-xl font-bold text-[#b8f55e] font-mono">{stats.open_investigations}</p>
             <span className="text-[9px] text-[#b8f55e]/80">On Kanban</span>
           </div>

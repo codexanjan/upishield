@@ -42,6 +42,7 @@ import { useAppStore } from '@/lib/store'
 import { NotificationDrawer } from './notification-drawer'
 import { LanguageSelector } from './language-selector'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 const adminNavItems = [
   { label: 'Command Center', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -78,6 +79,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { admin, adminLogout, setNotificationOpen, unreadCount } = useAppStore()
+  const { t } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
@@ -111,7 +113,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     <ShieldCheck className="size-5" />
                   </div>
                   <div>
-                    <span className="text-sm font-bold tracking-wider text-white">ADMIN PORTAL</span>
+                    <span className="text-sm font-bold tracking-wider text-white">{t('ADMIN PORTAL')}</span>
                     <p className="text-[10px] text-[#b8f55e]">UPI SHIELD AI</p>
                   </div>
                 </div>
@@ -136,7 +138,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                       }`}
                     >
                       <Icon className="size-4" />
-                      {item.label}
+                      {t(item.label)}
                     </Link>
                   )
                 })}
@@ -148,7 +150,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-[#ff7a82] hover:bg-[#ff7a82]/10 transition"
                 >
                   <LogOut className="size-4" />
-                  Sign Out
+                  {t('Sign Out')}
                 </button>
               </div>
             </motion.aside>
@@ -166,7 +168,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <span className="text-sm font-bold tracking-wider text-white">UPI SHIELD</span>
-                <p className="text-[10px] text-[#b8f55e]">Admin Command Center</p>
+                <p className="text-[10px] text-[#b8f55e]">{t('Admin Command Center')}</p>
               </div>
             </Link>
           </div>
@@ -178,7 +180,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 AD
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-white truncate">{admin?.name || 'Administrator'}</p>
+                <p className="text-xs font-semibold text-white truncate">{admin?.name || t('Platform Administrator')}</p>
                 <p className="text-[10px] text-[#819694] truncate">{admin?.email || 'admin@upishield.ai'}</p>
               </div>
             </div>
@@ -200,7 +202,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Icon className={`size-4 transition-transform group-hover:scale-110 ${active ? 'text-[#b8f55e]' : 'text-[#819694]'}`} />
-                  <span>{item.label}</span>
+                  <span>{t(item.label)}</span>
                   {active && (
                     <motion.span
                       layoutId="adminActivePill"
@@ -219,7 +221,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#819694] hover:text-[#b8f55e] hover:bg-white/5 transition font-medium"
             >
               <FileCode className="size-3.5 text-[#b8f55e]" />
-              <span>API Documentation</span>
+              <span>{t('API Documentation')}</span>
             </Link>
 
             <button
@@ -227,7 +229,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-[#819694] hover:text-[#ff7a82] hover:bg-[#ff7a82]/10 transition"
             >
               <LogOut className="size-3.5" />
-              <span>Sign Out</span>
+              <span>{t('Sign Out')}</span>
             </button>
           </div>
         </aside>
@@ -247,9 +249,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
               <div className="hidden sm:block">
                 <span className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#78908d]">
-                  FRAUD OPERATIONS
+                  {t('FRAUD OPERATIONS')}
                 </span>
-                <p className="text-xs text-white font-medium">Compliance & Verification Desk</p>
+                <p className="text-xs text-white font-medium">{t('Compliance & Verification Desk')}</p>
               </div>
             </div>
 
@@ -277,7 +279,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 className="hidden sm:flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-[#b8f55e] px-3.5 py-2 text-xs font-bold text-[#09110f] hover:brightness-110 transition shadow-md shadow-[#b8f55e]/25"
               >
                 <Send className="size-3.5" />
-                <span>Send UPI</span>
+                <span>{t('Send UPI')}</span>
               </Link>
 
               <Link
@@ -285,7 +287,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 className="hidden sm:flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-900 dark:text-slate-200 hover:bg-white/10 transition shadow-sm"
               >
                 <Sliders className="size-3.5 text-[#b8f55e]" />
-                <span>Configure Rules</span>
+                <span>{t('Configure Rules')}</span>
               </Link>
 
               <button
@@ -294,7 +296,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 title="Sign out of Admin Session"
               >
                 <LogOut className="size-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <span className="hidden sm:inline">{t('Sign Out')}</span>
               </button>
             </div>
           </header>

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { MotionWordReveal, MotionFadeUp, MotionBadge, ScrollReveal } from '@/components/motion/animated-text'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { LanguageSelector } from '@/components/layout/language-selector'
+import { useLanguage } from '@/lib/i18n/language-context'
 import {
   ShieldCheck,
   ArrowUpRight,
@@ -73,6 +75,8 @@ const steps = [
 ]
 
 export default function LandingPage() {
+  const { t } = useLanguage()
+
   return (
     <div className="min-h-screen bg-[#071014] text-[#eef8f7] selection:bg-emerald-500/30 overflow-x-hidden font-sans">
       <CyberShieldIntro />
@@ -100,27 +104,30 @@ export default function LandingPage() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-[#8fa9a6]">
-            <a href="#hero" className="hover:text-white transition">Platform</a>
-            <a href="#features" className="hover:text-white transition">Capabilities</a>
-            <a href="#how-it-works" className="hover:text-white transition">Security Protocol</a>
-            <Link href="/docs" className="text-[#b8f55e] hover:brightness-110 transition">API Docs</Link>
+            <a href="#hero" className="hover:text-white transition">{t('Platform')}</a>
+            <a href="#features" className="hover:text-white transition">{t('Capabilities')}</a>
+            <a href="#how-it-works" className="hover:text-white transition">{t('Security Protocol')}</a>
+            <Link href="/docs" className="text-[#b8f55e] hover:brightness-110 transition">{t('API Docs')}</Link>
           </nav>
 
           <div className="flex items-center gap-3">
             {/* Theme Toggle Button */}
             <ThemeToggle />
 
+            {/* Language Selector */}
+            <LanguageSelector />
+
             <Link
               href="/admin/login"
               className="rounded-xl border border-rose-500/40 bg-rose-600/20 px-4 py-2 text-xs font-bold text-rose-800 dark:text-rose-200 hover:bg-rose-600 hover:text-white transition shadow-lg shadow-rose-950/40"
             >
-              Admin Login
+              {t('Admin Login')}
             </Link>
             <Link
               href="/login"
               className="rounded-xl bg-[#b8f55e] px-4 py-2 text-xs font-extrabold text-[#09110f] hover:brightness-110 transition shadow-lg shadow-[#b8f55e]/25 flex items-center gap-1.5"
             >
-              <span>User Panel</span>
+              <span>{t('User Panel')}</span>
               <ArrowRight className="size-3.5" />
             </Link>
           </div>
@@ -135,14 +142,14 @@ export default function LandingPage() {
           <div className="lg:col-span-7 space-y-6">
             <MotionBadge className="rounded-full border border-[#b8f55e]/25 bg-[#b8f55e]/10 px-4 py-1.5 text-xs font-semibold text-[#b8f55e]">
               <ShieldCheck className="size-3.5" />
-              <span>Deterministic Sovereign Defense · Bharat Financial Rails</span>
+              <span>{t('Deterministic Sovereign Defense · Bharat Financial Rails')}</span>
             </MotionBadge>
 
             <h1 className="text-4xl sm:text-6xl font-medium tracking-[-0.04em] leading-[1.08] text-[#eef8f7]">
-              <MotionWordReveal text="Secure every payment." delay={0.05} />
+              <MotionWordReveal text={t('Secure every payment.')} delay={0.05} />
               <br />
               <MotionWordReveal
-                text="Protect every rupee."
+                text={t('Protect every rupee.')}
                 highlightWord="rupee"
                 highlightClassName="text-[#b8f55e]"
                 delay={0.25}
@@ -160,7 +167,7 @@ export default function LandingPage() {
                 href="/login"
                 className="inline-flex items-center gap-2 rounded-full bg-[#b8f55e] px-7 py-3.5 text-sm font-extrabold text-[#09110f] hover:brightness-110 transition shadow-xl shadow-[#b8f55e]/30"
               >
-                <span>Enter User Panel</span>
+                <span>{t('Enter User Panel')}</span>
                 <ArrowRight className="size-4" />
               </Link>
               <Link
@@ -168,13 +175,13 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-rose-500/40 bg-rose-600/20 hover:bg-rose-600/35 text-rose-800 dark:text-rose-200 px-6 py-3.5 text-sm font-semibold transition shadow-lg shadow-rose-950/40"
               >
                 <Terminal className="size-4 text-rose-600 dark:text-rose-400" />
-                <span>Admin SOC Center</span>
+                <span>{t('Admin SOC Center')}</span>
               </Link>
               <Link
                 href="/docs"
                 className="inline-flex items-center gap-1.5 rounded-full px-4 py-3.5 text-xs font-semibold text-slate-700 dark:text-[#8fa9a6] hover:text-slate-900 dark:hover:text-white transition"
               >
-                Documentation <ChevronRight className="size-3.5" />
+                {t('Documentation')} <ChevronRight className="size-3.5" />
               </Link>
             </MotionFadeUp>
           </div>
@@ -189,7 +196,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-2.5">
                   <span className="size-2 rounded-full bg-[#b8f55e] animate-ping" />
                   <span className="text-xs font-mono font-bold tracking-widest text-[#b8f55e] uppercase">
-                    SYSTEM STATUS: ARMED
+                    {t('System Status: Armed')}
                   </span>
                 </div>
                 <span className="text-[10px] font-mono text-[#8fa9a6] px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
@@ -264,7 +271,7 @@ export default function LandingPage() {
                   href="/login"
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 py-3 text-xs font-bold text-slate-900 dark:text-white transition group"
                 >
-                  <span>Launch Protected Workspace</span>
+                  <span>{t('Launch Protected Workspace')}</span>
                   <ArrowRight className="size-3.5 text-emerald-600 dark:text-[#b8f55e] group-hover:translate-x-1 transition" />
                 </Link>
               </div>

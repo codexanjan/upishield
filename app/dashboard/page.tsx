@@ -41,9 +41,11 @@ import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import { RealGoogleMap, MapMarkerItem, getCityCoordinates } from '@/components/maps/real-google-map'
 import { SecurityActionModal } from '@/components/security/security-action-modal'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 export default function UserDashboard() {
   const { user, privacyMasked, togglePrivacyMask } = useAppStore()
+  const { t } = useLanguage()
   const storeTransactions = useUPIGuardStore((s) => s.transactions)
   const storeExpenses = useUPIGuardStore((s) => s.expenses)
   const accounts = useUPIGuardStore((s) => s.accounts)
@@ -286,14 +288,14 @@ export default function UserDashboard() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                        Unknown Location & Device Login
+                        {t('UNKNOWN LOCATION & DEVICE LOGIN')}
                       </span>
                       <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded">
                         Deterministic Travel-Time Rule
                       </span>
                     </div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
-                      Was this you? A new device transacted from Delhi while your registered phone was active in Bengaluru.
+                      {t('Was this you? A new device transacted from Delhi while your registered phone was active in Bengaluru.')}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-mono">
                       <span className="bg-amber-100 dark:bg-black/40 px-2.5 py-1 rounded-md border border-amber-300 dark:border-white/10 text-amber-950 dark:text-amber-200 font-semibold shadow-xs">
@@ -312,7 +314,7 @@ export default function UserDashboard() {
                     onClick={() => setConflictStatus('verified_me')}
                     className="px-3.5 py-2 rounded-xl bg-slate-900/10 hover:bg-slate-900/15 text-slate-900 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white text-xs font-semibold transition border border-slate-300 dark:border-white/10 shadow-xs"
                   >
-                    Yes, It Was Me
+                    {t('Yes, It Was Me')}
                   </button>
                   <button
                     onClick={() => {
@@ -322,19 +324,19 @@ export default function UserDashboard() {
                     className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition shadow-lg shadow-rose-600/25 flex items-center gap-1.5"
                   >
                     <Lock className="size-3.5" />
-                    No, Secure Account
+                    {t('No, Secure Account')}
                   </button>
                   <Link
                     href="/dashboard/devices"
                     className="px-3 py-2 rounded-xl bg-slate-900/5 hover:bg-slate-900/10 text-slate-700 dark:bg-white/5 dark:hover:bg-white/10 dark:text-[#8fa9a6] hover:text-slate-900 dark:hover:text-white transition border border-slate-200 dark:border-transparent text-xs font-medium"
                   >
-                    Review Device
+                    {t('Review Device')}
                   </Link>
                   <button
                     onClick={() => setBankModalOpen(true)}
                     className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-amber-400 dark:hover:text-amber-300 transition border border-amber-300/60 dark:border-transparent text-xs font-medium"
                   >
-                    Contact Bank
+                    {t('Contact Bank')}
                   </button>
                 </div>
               </div>
@@ -464,7 +466,7 @@ export default function UserDashboard() {
                     : 'text-[#8fa9a6] hover:text-white hover:bg-white/5'
                 }`}
               >
-                1. Financial Overview
+                1. {t('Financial Overview')}
               </button>
               <button
                 onClick={() => setActiveTab('payment')}
@@ -474,7 +476,7 @@ export default function UserDashboard() {
                     : 'text-[#8fa9a6] hover:text-white hover:bg-white/5'
                 }`}
               >
-                2. Payment Cards
+                2. {t('Payment Cards')}
               </button>
               <button
                 onClick={() => setActiveTab('location')}
@@ -484,7 +486,7 @@ export default function UserDashboard() {
                     : 'text-[#8fa9a6] hover:text-white hover:bg-white/5'
                 }`}
               >
-                3. Location Cards
+                3. {t('Location Cards')}
               </button>
               <button
                 onClick={() => setActiveTab('security')}
@@ -494,7 +496,7 @@ export default function UserDashboard() {
                     : 'text-[#8fa9a6] hover:text-white hover:bg-white/5'
                 }`}
               >
-                4. Security Cards
+                4. {t('Security Cards')}
               </button>
             </div>
 
@@ -504,7 +506,7 @@ export default function UserDashboard() {
               title="Toggle financial value privacy"
             >
               {privacyMasked ? <EyeOff className="size-3.5 text-[#b8f55e]" /> : <Eye className="size-3.5" />}
-              <span>{privacyMasked ? 'Masked' : 'Hide Balances'}</span>
+              <span>{privacyMasked ? 'Masked' : t('Hide Balances')}</span>
             </button>
           </div>
 
@@ -519,7 +521,7 @@ export default function UserDashboard() {
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#b8f55e]/10 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-semibold text-[#8fa9a6]">UPI Shield Wallet</p>
+                    <p className="text-xs font-semibold text-[#8fa9a6]">{t('UPI Shield Wallet')}</p>
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30">
                       ₹1 CRORE
                     </span>
@@ -545,7 +547,7 @@ export default function UserDashboard() {
 
               <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5 shadow-xl">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Monthly Income</p>
+                  <p className="text-xs font-medium text-[#8fa9a6]">{t('Monthly Income')}</p>
                   <TrendingUp className="size-4 text-[#b8f55e]" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white font-mono">
@@ -558,7 +560,7 @@ export default function UserDashboard() {
 
               <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5 shadow-xl">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Monthly Expenses</p>
+                  <p className="text-xs font-medium text-[#8fa9a6]">{t('Monthly Expenses')}</p>
                   <Receipt className="size-4 text-amber-400" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white font-mono">
@@ -571,7 +573,7 @@ export default function UserDashboard() {
 
               <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5 shadow-xl">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#8fa9a6]">Net Savings</p>
+                  <p className="text-xs font-medium text-[#8fa9a6]">{t('Net Savings')}</p>
                   <ShieldCheck className="size-4 text-[#b8f55e]" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-white font-mono">

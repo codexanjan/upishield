@@ -26,6 +26,7 @@ import { AdminLayout } from '@/components/layout/admin-layout'
 import { MotionWordReveal, MotionFadeUp, MotionBadge } from '@/components/motion/animated-text'
 import RealGoogleMap, { CITY_COORDINATES } from '@/components/maps/real-google-map'
 import { useUPIGuardStore } from '@/lib/upiguard-store'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 interface AdminMarker {
   id: string
@@ -153,6 +154,7 @@ const mockAdminMarkers: AdminMarker[] = [
 
 export default function AdminPaymentMapPage() {
   const { transactions: storeTransactions } = useUPIGuardStore()
+  const { t } = useLanguage()
 
   const [layers, setLayers] = useState({
     transactions: true,
@@ -292,7 +294,7 @@ export default function AdminPaymentMapPage() {
           <div className="rounded-2xl border border-white/10 bg-[#0a1718] p-5 space-y-4 h-fit">
             <div className="flex items-center gap-2 border-b border-white/10 pb-3">
               <Layers className="size-4 text-[#b8f55e]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white">MAP LAYERS</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white">{t('MAP LAYERS')}</h3>
             </div>
 
             <div className="space-y-2 text-xs">
@@ -311,7 +313,7 @@ export default function AdminPaymentMapPage() {
                   onClick={() => toggleLayer(layer.key as any)}
                   className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5 cursor-pointer hover:border-white/20 transition"
                 >
-                  <span className="text-slate-300 font-medium">{layer.label}</span>
+                  <span className="text-slate-300 font-medium">{t(layer.label)}</span>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${layer.state
                       ? 'bg-[#b8f55e]/20 text-[#b8f55e] border border-[#b8f55e]/30'
                       : 'bg-white/5 text-slate-500'
@@ -393,7 +395,7 @@ export default function AdminPaymentMapPage() {
                 <div className="border-b border-white/10 pb-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#b8f55e]">
-                      TRANSACTION INSPECTOR
+                      {t('TRANSACTION INSPECTOR')}
                     </span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${selectedMarker.risk === 'Critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
                       }`}>
@@ -406,29 +408,29 @@ export default function AdminPaymentMapPage() {
 
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">User ID</span>
+                    <span className="text-[#8fa9a6]">{t('User ID')}</span>
                     <span className="font-mono text-white">{selectedMarker.userId} ({selectedMarker.userName})</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Receiver VPA</span>
+                    <span className="text-[#8fa9a6]">{t('Receiver VPA')}</span>
                     <span className="font-mono text-rose-400 truncate max-w-[160px]">{selectedMarker.receiver}</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Location</span>
+                    <span className="text-[#8fa9a6]">{t('Location')}</span>
                     <span className="font-semibold text-white flex items-center gap-1">
                       <MapPin className="size-3 text-[#b8f55e]" /> {selectedMarker.city}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Device ID</span>
+                    <span className="text-[#8fa9a6]">{t('Device ID')}</span>
                     <span className="font-mono text-white">{selectedMarker.device}</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Device Status</span>
+                    <span className="text-[#8fa9a6]">{t('Device Status')}</span>
                     <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${selectedMarker.deviceStatus === 'NEW' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
                       }`}>
                       {selectedMarker.deviceStatus}
@@ -436,17 +438,17 @@ export default function AdminPaymentMapPage() {
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Payee Status</span>
+                    <span className="text-[#8fa9a6]">{t('Payee Status')}</span>
                     <span className="font-bold text-rose-400">{selectedMarker.payeeStatus}</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Platform Reports</span>
+                    <span className="text-[#8fa9a6]">{t('Platform Reports')}</span>
                     <span className="font-mono font-bold text-rose-400">{selectedMarker.platformReports} Reports</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-xl bg-[#071014] border border-white/5">
-                    <span className="text-[#8fa9a6]">Linked Case</span>
+                    <span className="text-[#8fa9a6]">{t('Linked Case')}</span>
                     <span className="font-mono text-[#b8f55e] font-bold">{selectedMarker.caseId}</span>
                   </div>
                 </div>
@@ -457,13 +459,13 @@ export default function AdminPaymentMapPage() {
                     href={`/admin/transactions`}
                     className="p-2 text-center rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/10 transition"
                   >
-                    Open Txn
+                    {t('Open Txn')}
                   </Link>
                   <Link
                     href={`/admin/users`}
                     className="p-2 text-center rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/10 transition"
                   >
-                    Open User
+                    {t('Open User')}
                   </Link>
                   <Link
                     href={`/admin/devices/${selectedMarker.device}`}

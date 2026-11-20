@@ -22,6 +22,7 @@ import { apiRequest } from '@/lib/api'
 import { MotionWordReveal, MotionFadeUp } from '@/components/motion/animated-text'
 import { LanguageSelector } from '@/components/layout/language-selector'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useLanguage } from '@/lib/i18n/language-context'
 
 type AuthScreenProps = { admin?: boolean }
 
@@ -36,6 +37,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
   const redirectPath = searchParams.get('redirect')
 
   const { setUser, setAdmin } = useAppStore()
+  const { t } = useLanguage()
   const credentials = admin ? DEMO_CREDENTIALS.admin : DEMO_CREDENTIALS.user
 
   // Pre-fill inputs with demo credentials so user can enter immediately
@@ -45,7 +47,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const title = admin ? 'ADMIN SECURITY CONSOLE' : 'WELCOME BACK'
+  const title = admin ? t('ADMIN SECURITY CONSOLE') : t('WELCOME BACK')
 
   const executeLogin = (userData: any, token: string) => {
     if (admin) {
@@ -145,7 +147,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
             </MotionFadeUp>
 
             <h1 className="mt-5 text-5xl font-medium leading-[1.05] tracking-[-.05em] text-[#eef8f7]">
-              <MotionWordReveal text={admin ? 'Investigate with confidence.' : 'Good to see you again.'} delay={0.1} />
+              <MotionWordReveal text={admin ? t('Investigate with confidence.') : t('Good to see you again.')} delay={0.1} />
             </h1>
 
             <MotionFadeUp delay={0.25}>
@@ -190,7 +192,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center justify-between">
               <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-[#829997] transition hover:text-slate-900 dark:hover:text-white font-medium">
-                <ArrowLeft className="size-4" /> Back to home
+                <ArrowLeft className="size-4" /> {t('Back to home')}
               </Link>
               <div className="flex items-center gap-2">
                 <ThemeToggle />
@@ -278,7 +280,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
 
             <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
               <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-300">
-                {admin ? 'Administrator Email' : 'Email Address'}
+                {admin ? t('Administrator Email', 'Administrator Email') : t('Email Address')}
                 <input
                   name="email"
                   required
@@ -291,7 +293,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
               </label>
 
               <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-300">
-                Password
+                {t('Password')}
                 <div className="relative">
                   <input
                     name="password"
@@ -326,7 +328,7 @@ export function AuthScreen({ admin = false }: AuthScreenProps) {
                     <span>Signing In...</span>
                   </>
                 ) : (
-                  <span>{admin ? 'Sign In to Admin SOC' : 'Sign In'}</span>
+                  <span>{admin ? t('Sign in with Credentials') : t('Sign in with Credentials')}</span>
                 )}
               </button>
             </form>

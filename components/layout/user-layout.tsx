@@ -285,7 +285,7 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#78908d]">
                   {t('nav.personal_finance', 'PERSONAL FINANCE')}
                 </span>
-                <p className="text-xs text-white font-medium">Deterministic Rule Safety Active</p>
+                <p className="text-xs text-white font-medium">{t('Deterministic Rule Safety Active', 'Deterministic Rule Safety Active')}</p>
               </div>
             </div>
 
